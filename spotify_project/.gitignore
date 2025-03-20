@@ -1,0 +1,17 @@
+# Secrets and environment variables
+.env
+
+# Python and Django
+__pycache__/
+*.py[cod]
+db.sqlite3
+db.sqlite3-journal
+
+# Virtual environment
+venv/
+
+# Editor settings
+.vscode/
+
+# Logs
+*.log
