@@ -4,6 +4,7 @@ import secrets
 import string
 import requests
 from urllib.parse import urlencode
+import math
 
 from django.shortcuts import render, redirect
 from django.conf import settings
@@ -72,7 +73,7 @@ def spotify_login(request):
         'response_type': 'code',
         'redirect_uri': settings.SPOTIFY_REDIRECT_URI,
         'state': state,
-        'scope': 'user-read-private user-read-email user-library-read',
+        'scope': 'user-read-private user-read-email user-library-read streaming',
         'code_challenge_method': 'S256',
         'code_challenge': code_challenge,
     }
@@ -224,6 +225,32 @@ def refresh_token(request):
     return redirect(reverse('spotify_profile'))
 
 
+def format_duration(milliseconds):
+    """
+    Convert milliseconds to a MM:SS format string.
+    Ensures that x.5 values round up consistently (124500ms → 2:05).
+    
+    Args:
+        milliseconds (int): Duration in milliseconds
+        
+    Returns:
+        str: Formatted duration string (e.g., "2:05")
+    """
+    # Calculate raw seconds with decimal point
+    raw_seconds = milliseconds / 1000
+    
+    # Custom rounding to handle .5 values consistently
+    if raw_seconds % 1 == 0.5:  # If exactly .5
+        seconds = int(raw_seconds + 0.5)  # Always round up
+    else:
+        seconds = round(raw_seconds)  # Use normal rounding
+    
+    minutes = seconds // 60
+    seconds = seconds % 60
+    
+    return f"{minutes}:{seconds:02d}"
+
+
 def spotify_library(request):
     """
     Display user's saved tracks from Spotify.
@@ -258,6 +285,11 @@ def spotify_library(request):
     # Parse library data
     library_data = response.json()
     
+    # Process track durations
+    for item in library_data['items']:
+        # Add formatted duration to each track
+        item['track']['duration_formatted'] = format_duration(item['track']['duration_ms'])
+    
     # Calculate pagination info
     total_tracks = library_data['total']
     has_next = (offset + limit) < total_tracks
@@ -274,7 +306,7 @@ def spotify_library(request):
         'has_next': has_next,
         'has_prev': has_prev,
         'next_offset': next_offset,
-        'prev_offset': prev_offset,
+        'prev_offset': prev_offset
     }
     
     # Render library page
