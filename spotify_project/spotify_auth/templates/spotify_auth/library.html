@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Spotify Library</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1DB954; /* Spotify green */
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .track-list {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .track-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .track-image {
+            width: 60px;
+            height: 60px;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+        .track-info {
+            flex: 1;
+        }
+        .track-title {
+            font-weight: bold;
+            margin: 0 0 5px 0;
+        }
+        .track-artist {
+            color: #666;
+            margin: 0;
+        }
+        .track-album {
+            margin: 0;
+            font-size: 0.9em;
+            color: #888;
+        }
+        .track-added {
+            font-size: 0.8em;
+            color: #999;
+            width: 150px;
+            text-align: right;
+        }
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .button {
+            display: inline-block;
+            background-color: #1DB954;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #1ed760;
+        }
+        .button-disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .navigation {
+            margin-bottom: 20px;
+        }
+        .track-duration {
+            width: 50px;
+            text-align: right;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navigation">
+            <a href="{% url 'spotify_profile' %}" class="button">Back to Profile</a>
+        </div>
+        
+        <h1>Your Saved Tracks</h1>
+        
+        <p>Displaying {{ tracks|length }} of {{ total }} tracks</p>
+        
+        <div class="tracks-container">
+            {% for item in tracks %}
+                <div class="track-item">
+                    {% if item.track.album.images %}
+                        <img src="{{ item.track.album.images.2.url }}" alt="Album cover" class="track-image">
+                    {% else %}
+                        <div class="track-image" style="background-color: #ddd;"></div>
+                    {% endif %}
+                    
+                    <div class="track-info">
+                        <h3 class="track-title">{{ item.track.name }}</h3>
+                        <p class="track-artist">
+                            {% for artist in item.track.artists %}
+                                {{ artist.name }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </p>
+                        <p class="track-album">{{ item.track.album.name }}</p>
+                    </div>
+                    
+                    <div class="track-added">
+                        Added: {{ item.added_at|slice:":10" }}
+                    </div>
+                    
+                    <div class="track-duration">
+                        {{ item.track.duration_ms|divisibleby:"60000" }}:{{ item.track.duration_ms|divisibleby:"1000"|stringformat:"02d" }}
+                    </div>
+                </div>
+            {% empty %}
+                <p>No tracks found in your library.</p>
+            {% endfor %}
+        </div>
+        
+        <div class="pagination">
+            <div>
+                {% if has_prev %}
+                    <a href="{% url 'spotify_library' %}?offset={{ prev_offset }}" class="button">Previous</a>
+                {% else %}
+                    <span class="button button-disabled">Previous</span>
+                {% endif %}
+            </div>
+            
+            <div>
+                {% if has_next %}
+                    <a href="{% url 'spotify_library' %}?offset={{ next_offset }}" class="button">Next</a>
+                {% else %}
+                    <span class="button button-disabled">Next</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -72,7 +72,7 @@ def spotify_login(request):
         'response_type': 'code',
         'redirect_uri': settings.SPOTIFY_REDIRECT_URI,
         'state': state,
-        'scope': 'user-read-private user-read-email',
+        'scope': 'user-read-private user-read-email user-library-read',
         'code_challenge_method': 'S256',
         'code_challenge': code_challenge,
     }
@@ -222,3 +222,60 @@ def refresh_token(request):
     
     # Redirect back to profile
     return redirect(reverse('spotify_profile'))
+
+
+def spotify_library(request):
+    """
+    Display user's saved tracks from Spotify.
+    """
+    # Check if user is authenticated with Spotify
+    access_token = request.session.get('spotify_access_token')
+    if not access_token:
+        return redirect(reverse('spotify_login'))
+    
+    # Call Spotify API to get user's saved tracks
+    headers = {'Authorization': f'Bearer {access_token}'}
+    
+    # Get pagination parameters
+    limit = 50  # Maximum allowed by Spotify
+    offset = int(request.GET.get('offset', 0))
+    
+    # Make API request to get saved tracks
+    response = requests.get(
+        f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}', 
+        headers=headers
+    )
+    
+    if response.status_code != 200:
+        if response.status_code == 401:
+            # Token expired, try to refresh
+            return redirect(reverse('refresh_token'))
+        else:
+            return render(request, 'spotify_auth/error.html', {
+                'error': f'API call failed: {response.text}'
+            })
+    
+    # Parse library data
+    library_data = response.json()
+    
+    # Calculate pagination info
+    total_tracks = library_data['total']
+    has_next = (offset + limit) < total_tracks
+    has_prev = offset > 0
+    next_offset = offset + limit if has_next else None
+    prev_offset = max(0, offset - limit) if has_prev else None
+    
+    # Prepare context
+    context = {
+        'tracks': library_data['items'],
+        'total': total_tracks,
+        'offset': offset,
+        'limit': limit,
+        'has_next': has_next,
+        'has_prev': has_prev,
+        'next_offset': next_offset,
+        'prev_offset': prev_offset,
+    }
+    
+    # Render library page
+    return render(request, 'spotify_auth/library.html', context)

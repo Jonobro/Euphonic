@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'spotify_auth',
+    'sslserver',  # For development HTTPS
 ]
 
 MIDDLEWARE = [
@@ -103,10 +104,15 @@ SESSION_COOKIE_SECURE = True  # For HTTPS only
 SESSION_COOKIE_HTTPONLY = True  # Prevents JavaScript access
 SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
 
+# Configure for proxy setup
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
 # IMPORTANT: Spotify OAuth Configuration from environment variables
 SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
 SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
-SPOTIFY_REDIRECT_URI = os.environ.get('SPOTIFY_REDIRECT_URI', 'http://localhost:8000/callback/')
+SPOTIFY_REDIRECT_URI = os.environ.get('SPOTIFY_REDIRECT_URI', 'https://localhost/callback/')
 
 # Validate required settings
 if not SPOTIFY_CLIENT_ID:

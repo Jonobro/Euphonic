@@ -7,4 +7,5 @@ urlpatterns = [
     path('callback/', views.spotify_callback, name='spotify_callback'),
     path('profile/', views.spotify_profile, name='spotify_profile'),
     path('refresh/', views.refresh_token, name='refresh_token'),
+    path('library/', views.spotify_library, name='spotify_library'),
 ]
