@@ -106,15 +106,9 @@
         
         <div>
             <a href="{% url 'index' %}" class="button">Back to Home</a>
-            <a href="{% url 'refresh_token' %}" class="button">Refresh Token</a>
             <a href="{% url 'spotify_library' %}" class="button">View Your Library</a>
         </div>
         
-        <div class="data-section">
-            <h3>Note on Security</h3>
-            <p>Your access token is securely stored in the server session and is not exposed in browser responses. 
-            This implementation follows security best practices for OAuth applications.</p>
-        </div>
     </div>
 </body>
 </html>

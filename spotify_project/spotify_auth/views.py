@@ -12,50 +12,33 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_protect
 from django.http import HttpResponse
 
-
 # ===== PKCE Utility Functions =====
 
+# Generate a random string for PKCE code verifier
 def generate_code_verifier(length=64):
-    """
-    Generate a random string for PKCE code verifier.
-    
-    The code verifier is a high-entropy cryptographic random string
-    with a length between 43 and 128 characters.
-    """
     possible_chars = string.ascii_letters + string.digits + '-._~'
     code_verifier = ''.join(secrets.choice(possible_chars) for _ in range(length))
     return code_verifier
 
-
+# Transform the code verifier using SHA256 algorithm to create the code challenge
 def generate_code_challenge(verifier):
-    """
-    Transform the code verifier using SHA256 algorithm to create the code challenge.
-    """
     # SHA256 hash the verifier
     sha256_hash = hashlib.sha256(verifier.encode('utf-8')).digest()
-    
     # Base64 URL encode the hash
     code_challenge = base64.urlsafe_b64encode(sha256_hash).decode('utf-8')
-    
     # Remove padding characters
     code_challenge = code_challenge.replace('=', '')
-    
     return code_challenge
-
 
 # ===== Views =====
 
+# View function for the index page
 def index(request):
-    """Home page with connection button."""
     return render(request, 'spotify_auth/index.html')
 
-
+# Begin OAuth flow with PKCE
 @csrf_protect
 def spotify_login(request):
-    """
-    Start the Spotify OAuth flow with PKCE.
-    Generates code verifier, code challenge, and state parameters.
-    """
     # Generate code verifier and store in session
     code_verifier = generate_code_verifier(64)
     request.session['spotify_code_verifier'] = code_verifier
@@ -73,7 +56,7 @@ def spotify_login(request):
         'response_type': 'code',
         'redirect_uri': settings.SPOTIFY_REDIRECT_URI,
         'state': state,
-        'scope': 'user-read-private user-read-email user-library-read streaming',
+        'scope': 'user-read-private user-read-email user-library-read',
         'code_challenge_method': 'S256',
         'code_challenge': code_challenge,
     }
@@ -84,13 +67,9 @@ def spotify_login(request):
     # Redirect to Spotify authorization page
     return redirect(auth_url)
 
-
+# Handle callback from Spotify
 @csrf_protect
 def spotify_callback(request):
-    """
-    Handle callback from Spotify.
-    Exchange authorization code for access token using the PKCE flow.
-    """
     # Get code from query parameters
     code = request.GET.get('code')
     state = request.GET.get('state')
@@ -144,9 +123,8 @@ def spotify_callback(request):
     request.session['spotify_access_token'] = token_info['access_token']
     if 'refresh_token' in token_info:
         request.session['spotify_refresh_token'] = token_info['refresh_token']
-    request.session['spotify_token_expiry'] = token_info['expires_in']
-    
-    # Clean up session variables we no longer need
+
+    # Delete session variables that are no longer needed for increased security
     if 'spotify_code_verifier' in request.session:
         del request.session['spotify_code_verifier']
     if 'spotify_auth_state' in request.session:
@@ -155,12 +133,8 @@ def spotify_callback(request):
     # Redirect to profile page
     return redirect(reverse('spotify_profile'))
 
-
+# Display user profile information from Spotify using access token
 def spotify_profile(request):
-    """
-    Display user profile information from Spotify.
-    Uses the access token to make API calls to Spotify.
-    """
     # Check if user is authenticated with Spotify
     access_token = request.session.get('spotify_access_token')
     if not access_token:
@@ -172,9 +146,17 @@ def spotify_profile(request):
     
     if response.status_code != 200:
         if response.status_code == 401:
-            # Token expired, redirect to login
-            if 'spotify_access_token' in request.session:
-                del request.session['spotify_access_token']
+            # Token expired, try to refresh automatically
+            success = _refresh_token_helper(request)
+            if success:
+                # Try again with the new token
+                access_token = request.session.get('spotify_access_token')
+                headers = {'Authorization': f'Bearer {access_token}'}
+                response = requests.get('https://api.spotify.com/v1/me', headers=headers)
+                if response.status_code == 200:
+                    user_data = response.json()
+                    return render(request, 'spotify_auth/profile.html', {'profile': user_data})
+            # If refresh failed or second attempt failed, redirect to login
             return redirect(reverse('spotify_login'))
         else:
             return render(request, 'spotify_auth/error.html', {
@@ -185,14 +167,12 @@ def spotify_profile(request):
     user_data = response.json()
     return render(request, 'spotify_auth/profile.html', {'profile': user_data})
 
-
-def refresh_token(request):
-    """
-    Refresh the access token using the refresh token.
-    """
+# Helper function to refresh access token when it expires
+# Returns boolean variable to indicate success or failure
+def _refresh_token_helper(request):
     refresh_token = request.session.get('spotify_refresh_token')
     if not refresh_token:
-        return redirect(reverse('spotify_login'))
+        return False
     
     token_url = 'https://accounts.spotify.com/api/token'
     
@@ -211,51 +191,31 @@ def refresh_token(request):
     if response.status_code != 200:
         if 'spotify_refresh_token' in request.session:
             del request.session['spotify_refresh_token']
-        return redirect(reverse('spotify_login'))
+        return False
     
     token_info = response.json()
     
     # Update tokens in session
     request.session['spotify_access_token'] = token_info['access_token']
-    request.session['spotify_token_expiry'] = token_info['expires_in']
     if 'refresh_token' in token_info:
         request.session['spotify_refresh_token'] = token_info['refresh_token']
-    
-    # Redirect back to profile
-    return redirect(reverse('spotify_profile'))
+    return True
 
-
+# Function to convert ms to mm:ss format
+# Consistently rounds exact half seconds up to the nearest second to match Spotify's rounding
 def format_duration(milliseconds):
-    """
-    Convert milliseconds to a MM:SS format string.
-    Ensures that x.5 values round up consistently (124500ms → 2:05).
-    
-    Args:
-        milliseconds (int): Duration in milliseconds
-        
-    Returns:
-        str: Formatted duration string (e.g., "2:05")
-    """
-    # Calculate raw seconds with decimal point
     raw_seconds = milliseconds / 1000
-    
-    # Custom rounding to handle .5 values consistently
-    if raw_seconds % 1 == 0.5:  # If exactly .5
-        seconds = int(raw_seconds + 0.5)  # Always round up
+    if raw_seconds % 1 == 0.5:
+        seconds = int(raw_seconds + 0.5)
     else:
-        seconds = round(raw_seconds)  # Use normal rounding
-    
+        seconds = round(raw_seconds)
     minutes = seconds // 60
     seconds = seconds % 60
-    
     return f"{minutes}:{seconds:02d}"
 
-
+# Display user's saved tracks from Spotify
 def spotify_library(request):
-    """
-    Display user's saved tracks from Spotify.
-    """
-    # Check if user is authenticated with Spotify
+    # Check if user is authenticated with Spotify and redirect to login screen if not
     access_token = request.session.get('spotify_access_token')
     if not access_token:
         return redirect(reverse('spotify_login'))
@@ -275,8 +235,43 @@ def spotify_library(request):
     
     if response.status_code != 200:
         if response.status_code == 401:
-            # Token expired, try to refresh
-            return redirect(reverse('refresh_token'))
+            # Token expired, try to refresh automatically
+            success = _refresh_token_helper(request)
+            if success:
+                # Try again with the new token
+                access_token = request.session.get('spotify_access_token')
+                headers = {'Authorization': f'Bearer {access_token}'}
+                response = requests.get(
+                    f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}', 
+                    headers=headers
+                )
+                if response.status_code == 200:
+                    # Continue processing with the refreshed response
+                    library_data = response.json()
+                    # Process the data as normal
+                    for item in library_data['items']:
+                        item['track']['duration_formatted'] = format_duration(item['track']['duration_ms'])
+                    
+                    # Calculate pagination info
+                    total_tracks = library_data['total']
+                    has_next = (offset + limit) < total_tracks
+                    has_prev = offset > 0
+                    next_offset = offset + limit if has_next else None
+                    prev_offset = max(0, offset - limit) if has_prev else None
+                    
+                    context = {
+                        'tracks': library_data['items'],
+                        'total': total_tracks,
+                        'offset': offset,
+                        'limit': limit,
+                        'has_next': has_next,
+                        'has_prev': has_prev,
+                        'next_offset': next_offset,
+                        'prev_offset': prev_offset
+                    }
+                    return render(request, 'spotify_auth/library.html', context)
+            # If refresh failed or second attempt failed, redirect to login
+            return redirect(reverse('spotify_login'))
         else:
             return render(request, 'spotify_auth/error.html', {
                 'error': f'API call failed: {response.text}'

@@ -1,22 +1,20 @@
-"""
-Django settings for spotify_project.
-Using environment variables for secure configuration.
-"""
+# Django settings for spotify_project
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv  # Add this import
+from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv()  # Add this line
+load_dotenv()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-only-key')
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("DJANGO_SECRET_KEY environment variable is required. Please set it.")
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# Set to true only for development. Turn off in production using .env file!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
@@ -30,7 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'spotify_auth',
-    'sslserver',  # For development HTTPS
+    'sslserver',  # For development HTTPS. Remove in production!
 ]
 
 MIDDLEWARE = [
@@ -93,27 +91,26 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# Static files
 STATIC_URL = 'static/'
 
-# Default primary key field type
+# Default primary key field type for Django
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Session security settings
-SESSION_COOKIE_SECURE = True  # For HTTPS only
+SESSION_COOKIE_SECURE = True  # HTTPS only
 SESSION_COOKIE_HTTPONLY = True  # Prevents JavaScript access
 SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
 
-# Configure for proxy setup
+# Proxy setup
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
-# IMPORTANT: Spotify OAuth Configuration from environment variables
+# For Spotify OAuth
 SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
 SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
 SPOTIFY_REDIRECT_URI = os.environ.get('SPOTIFY_REDIRECT_URI', 'https://localhost/callback/')
 
-# Validate required settings
 if not SPOTIFY_CLIENT_ID:
     raise ValueError("SPOTIFY_CLIENT_ID environment variable is required. Please set it.")
