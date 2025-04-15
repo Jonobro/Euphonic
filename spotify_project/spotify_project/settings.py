@@ -17,7 +17,7 @@ if not SECRET_KEY:
 # Set to true only for development. Turn off in production using .env file!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS','localhost,127.0.0.1').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -28,7 +28,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'spotify_auth',
-    'sslserver',  # For development HTTPS. Remove in production!
 ]
 
 MIDDLEWARE = [
@@ -113,7 +112,6 @@ USE_X_FORWARDED_PORT = True
 
 # For Spotify OAuth
 SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
-SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
 SPOTIFY_REDIRECT_URI = os.environ.get('SPOTIFY_REDIRECT_URI', 'https://localhost/callback/')
 
 if not SPOTIFY_CLIENT_ID:

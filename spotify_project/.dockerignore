@@ -1,0 +1,35 @@
+# Environment variables
+.env*
+
+# Version control
+.git/
+.gitignore
+
+# IDE
+.vscode/
+
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+env/
+venv/
+ENV/
+
+# Python distribution / packaging artifacts
+build/
+dist/
+sdist/
+*.egg-info/
+*.egg
+
+# Database file
+db.sqlite3*
+
+# Logs directory
+logs/
+
+# Nginx configuration
+nginx/

@@ -11,14 +11,9 @@
     <div class="container">
         <h1>Authentication Error</h1>
         
-        <div class="error-box">
-            <p><strong>Something went wrong:</strong></p>
-            <p>{{ error }}</p>
-        </div>
+        <p>There was a problem connecting to Spotify. Please return to the login screen and try again.</p>
         
-        <p>Please try again or contact support if the problem persists.</p>
-        
-        <a href="{% url 'index' %}" class="button">Back to Home</a>
+        <a href="{% url 'index' %}" class="button">Back to Login</a>
     </div>
 </body>
 </html>
