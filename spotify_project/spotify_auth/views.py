@@ -10,6 +10,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_protect
 from django.http import HttpResponse
+from google import genai
 
 # ===== PKCE Utility Functions =====
 
@@ -298,3 +299,17 @@ def spotify_library(request):
     }
 
     return render(request, 'spotify_auth/library.html', context)
+
+def gemini_test_view(request):
+    try:
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents="Explain how AI works in a few words"
+        )
+        result_text = response.text
+
+    except Exception as e:
+        result_text = f"An error occurred: {str(e)}"
+
+    return render(request, 'spotify_auth/gemini_test.html', {'gemini_result': result_text})

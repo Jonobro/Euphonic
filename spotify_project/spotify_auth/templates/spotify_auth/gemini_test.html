@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini API Test</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'spotify_auth/css/library.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1>Gemini API Test Result</h1>
+        <div class="library-string-container">
+            <pre>{{ gemini_result }}</pre>
+        </div>
+        <br>
+        <a href="{% url 'index' %}" class="button">Back to Home</a>
+    </div>
+</body>
+</html>
