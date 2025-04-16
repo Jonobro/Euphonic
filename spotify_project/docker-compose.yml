@@ -3,6 +3,7 @@ services:
     build: .
     volumes:
       - static_volume:/app/staticfiles
+      - ./logs:/app/logs
     env_file:
       - .env
     environment:

@@ -4,7 +4,6 @@ import secrets
 import string
 import requests
 from urllib.parse import urlencode
-import math
 
 from django.shortcuts import render, redirect
 from django.conf import settings
@@ -167,6 +166,12 @@ def spotify_profile(request):
     user_data = response.json()
     return render(request, 'spotify_auth/profile.html', {'profile': user_data})
 
+def logout_view(request):
+    # Flush the entire session to remove all data, including Spotify tokens
+    request.session.flush() 
+    # Redirect to the index page after logout
+    return redirect(reverse('index'))
+
 # Helper function to refresh access token when it expires
 # Returns boolean variable to indicate success or failure
 def _refresh_token_helper(request):
@@ -201,108 +206,95 @@ def _refresh_token_helper(request):
         request.session['spotify_refresh_token'] = token_info['refresh_token']
     return True
 
-# Function to convert ms to mm:ss format
-# Consistently rounds exact half seconds up to the nearest second to match Spotify's rounding
-def format_duration(milliseconds):
-    raw_seconds = milliseconds / 1000
-    if raw_seconds % 1 == 0.5:
-        seconds = int(raw_seconds + 0.5)
-    else:
-        seconds = round(raw_seconds)
-    minutes = seconds // 60
-    seconds = seconds % 60
-    return f"{minutes}:{seconds:02d}"
+# Helper function to gather all tracks
+def _fetch_all_spotify_tracks(request):
+    simplified_tracks = []
+    limit = 50
+    offset = 0
+    total = None
 
-# Display user's saved tracks from Spotify
+    while True:
+        access_token = request.session.get('spotify_access_token')
+        if not access_token:
+            print("Access token missing during library fetch.")
+            return None, False
+
+        headers = {'Authorization': f'Bearer {access_token}'}
+        try:
+            response = requests.get(
+                f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}',
+                headers=headers,
+                timeout=15
+            )
+
+            if response.status_code == 401:
+                print("Token expired during library fetch, attempting refresh...")
+                refresh_success = _refresh_token_helper(request)
+                if not refresh_success:
+                    print("Token refresh failed during library fetch.")
+                    return None, False
+                continue
+
+            response.raise_for_status()
+
+            data = response.json()
+            items = data.get('items', [])
+            if not items:
+                 break
+
+            for item in items:
+                track = item.get('track')
+                if track:
+                    track_name = track.get('name')
+                    artist_names = [artist.get('name') for artist in track.get('artists', [])]
+                    simplified_tracks.append({
+                        'name': track_name,
+                        'artists': ', '.join(artist_names)
+                    })
+
+            if total is None:
+                total = data.get('total')
+
+            if total is not None and len(simplified_tracks) >= total:
+                break
+
+            offset += len(items)
+
+            # Handles excessively large libraries
+            if offset > 20000:
+                print(f"Exiting due to excessively large library")
+                break
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching Spotify tracks: {e}")
+            return None, False
+
+    return simplified_tracks, True
+
 def spotify_library(request):
-    # Check if user is authenticated with Spotify and redirect to login screen if not
-    access_token = request.session.get('spotify_access_token')
-    if not access_token:
+    if not request.session.get('spotify_access_token'):
         return redirect(reverse('spotify_login'))
-    
-    # Call Spotify API to get user's saved tracks
-    headers = {'Authorization': f'Bearer {access_token}'}
-    
-    # Get pagination parameters
-    limit = 50  # Maximum allowed by Spotify
-    offset = int(request.GET.get('offset', 0))
-    
-    # Make API request to get saved tracks
-    response = requests.get(
-        f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}', 
-        headers=headers
-    )
-    
-    if response.status_code != 200:
-        if response.status_code == 401:
-            # Token expired, try to refresh automatically
-            success = _refresh_token_helper(request)
-            if success:
-                # Try again with the new token
-                access_token = request.session.get('spotify_access_token')
-                headers = {'Authorization': f'Bearer {access_token}'}
-                response = requests.get(
-                    f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}', 
-                    headers=headers
-                )
-                if response.status_code == 200:
-                    # Continue processing with the refreshed response
-                    library_data = response.json()
-                    # Process the data as normal
-                    for item in library_data['items']:
-                        item['track']['duration_formatted'] = format_duration(item['track']['duration_ms'])
-                    
-                    # Calculate pagination info
-                    total_tracks = library_data['total']
-                    has_next = (offset + limit) < total_tracks
-                    has_prev = offset > 0
-                    next_offset = offset + limit if has_next else None
-                    prev_offset = max(0, offset - limit) if has_prev else None
-                    
-                    context = {
-                        'tracks': library_data['items'],
-                        'total': total_tracks,
-                        'offset': offset,
-                        'limit': limit,
-                        'has_next': has_next,
-                        'has_prev': has_prev,
-                        'next_offset': next_offset,
-                        'prev_offset': prev_offset
-                    }
-                    return render(request, 'spotify_auth/library.html', context)
-            # If refresh failed or second attempt failed, redirect to login
-            return redirect(reverse('spotify_login'))
+
+    simplified_tracks_list, fetch_success = _fetch_all_spotify_tracks(request)
+
+    if not fetch_success:
+        if not request.session.get('spotify_access_token'):
+             return redirect(reverse('spotify_login'))
         else:
-            return render(request, 'spotify_auth/error.html', {
-                'error': f'API call failed: {response.text}'
-            })
+             return render(request, 'spotify_auth/error.html', {
+                 'error': 'Could not retrieve your Spotify library at this time. Please try again later.'
+             })
     
-    # Parse library data
-    library_data = response.json()
-    
-    # Process track durations
-    for item in library_data['items']:
-        # Add formatted duration to each track
-        item['track']['duration_formatted'] = format_duration(item['track']['duration_ms'])
-    
-    # Calculate pagination info
-    total_tracks = library_data['total']
-    has_next = (offset + limit) < total_tracks
-    has_prev = offset > 0
-    next_offset = offset + limit if has_next else None
-    prev_offset = max(0, offset - limit) if has_prev else None
-    
-    # Prepare context
+    full_library_string = "Your Spotify Library is empty or could not be fully retrieved."
+    total_tracks = 0
+    if simplified_tracks_list:
+        song_strings = [f"{track['name']} by {track['artists']}" for track in simplified_tracks_list]
+        full_library_string = "\n".join(song_strings)
+        total_tracks = len(simplified_tracks_list)
+
     context = {
-        'tracks': library_data['items'],
+        'library_string': full_library_string,
         'total': total_tracks,
-        'offset': offset,
-        'limit': limit,
-        'has_next': has_next,
-        'has_prev': has_prev,
-        'next_offset': next_offset,
-        'prev_offset': prev_offset
     }
-    
-    # Render library page
+
     return render(request, 'spotify_auth/library.html', context)

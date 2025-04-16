@@ -12,59 +12,13 @@
         <div class="navigation">
             <a href="{% url 'spotify_profile' %}" class="button">Back to Profile</a>
         </div>
-        
+
         <h1>Your Saved Tracks</h1>
-        
-        <p>Displaying {{ tracks|length }} of {{ total }} tracks</p>
-        
-        <div class="tracks-container">
-            {% for item in tracks %}
-                <div class="track-item">
-                    {% if item.track.album.images %}
-                        <img src="{{ item.track.album.images.2.url }}" alt="Album cover" class="track-image">
-                    {% else %}
-                        <div class="track-image" style="background-color: #ddd;"></div>
-                    {% endif %}
-                    
-                    <div class="track-info">
-                        <h3 class="track-title">{{ item.track.name }}</h3>
-                        <p class="track-artist">
-                            {% for artist in item.track.artists %}
-                                {{ artist.name }}{% if not forloop.last %}, {% endif %}
-                            {% endfor %}
-                        </p>
-                    </div>
-                    
-                    <div class="track-metadata">
-                        <div class="track-duration">
-                            {{ item.track.duration_formatted }}
-                        </div>
-                        <div class="track-added">
-                            Added: {{ item.added_at|slice:":10" }}
-                        </div>
-                    </div>
-                </div>
-            {% empty %}
-                <p>No tracks found in your library.</p>
-            {% endfor %}
-        </div>
-        
-        <div class="pagination">
-            <div>
-                {% if has_prev %}
-                    <a href="{% url 'spotify_library' %}?offset={{ prev_offset }}" class="button">Previous</a>
-                {% else %}
-                    <span class="button button-disabled">Previous</span>
-                {% endif %}
-            </div>
-            
-            <div>
-                {% if has_next %}
-                    <a href="{% url 'spotify_library' %}?offset={{ next_offset }}" class="button">Next</a>
-                {% else %}
-                    <span class="button button-disabled">Next</span>
-                {% endif %}
-            </div>
+
+        <p>Total Tracks: {{ total }}</p>
+
+        <div class="library-string-container">
+            <pre>{{ library_string }}</pre>
         </div>
     </div>
 </body>
