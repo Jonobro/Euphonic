@@ -9,7 +9,6 @@ from django.shortcuts import render, redirect
 from django.conf import settings
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_protect
-from django.http import HttpResponse
 from google import genai
 
 # ===== PKCE Utility Functions =====
@@ -32,8 +31,10 @@ def generate_code_challenge(verifier):
 
 # ===== Views =====
 
-# View function for the index page
 def index(request):
+    # Redirect to analysis page if user is already authenticated
+    if request.session.get('spotify_access_token'):
+        return redirect(reverse('analysis'))
     return render(request, 'spotify_auth/index.html')
 
 # Begin OAuth flow with PKCE
@@ -130,42 +131,7 @@ def spotify_callback(request):
     if 'spotify_auth_state' in request.session:
         del request.session['spotify_auth_state']
     
-    # Redirect to profile page
-    return redirect(reverse('spotify_profile'))
-
-# Display user profile information from Spotify using access token
-def spotify_profile(request):
-    # Check if user is authenticated with Spotify
-    access_token = request.session.get('spotify_access_token')
-    if not access_token:
-        return redirect(reverse('spotify_login'))
-    
-    # Call Spotify API to get user profile
-    headers = {'Authorization': f'Bearer {access_token}'}
-    response = requests.get('https://api.spotify.com/v1/me', headers=headers)
-    
-    if response.status_code != 200:
-        if response.status_code == 401:
-            # Token expired, try to refresh automatically
-            success = _refresh_token_helper(request)
-            if success:
-                # Try again with the new token
-                access_token = request.session.get('spotify_access_token')
-                headers = {'Authorization': f'Bearer {access_token}'}
-                response = requests.get('https://api.spotify.com/v1/me', headers=headers)
-                if response.status_code == 200:
-                    user_data = response.json()
-                    return render(request, 'spotify_auth/profile.html', {'profile': user_data})
-            # If refresh failed or second attempt failed, redirect to login
-            return redirect(reverse('spotify_login'))
-        else:
-            return render(request, 'spotify_auth/error.html', {
-                'error': f'API call failed: {response.text}'
-            })
-    
-    # Render profile page with user data
-    user_data = response.json()
-    return render(request, 'spotify_auth/profile.html', {'profile': user_data})
+    return redirect(reverse('analysis'))
 
 def logout_view(request):
     # Flush the entire session to remove all data, including Spotify tokens
@@ -197,6 +163,8 @@ def _refresh_token_helper(request):
     if response.status_code != 200:
         if 'spotify_refresh_token' in request.session:
             del request.session['spotify_refresh_token']
+        if 'spotify_access_token' in request.session:
+            del request.session['spotify_access_token']
         return False
     
     token_info = response.json()
@@ -272,44 +240,44 @@ def _fetch_all_spotify_tracks(request):
 
     return simplified_tracks, True
 
-def spotify_library(request):
+def analysis_view(request):
+    # Ensure the user is logged into Spotify
     if not request.session.get('spotify_access_token'):
         return redirect(reverse('spotify_login'))
 
-    simplified_tracks_list, fetch_success = _fetch_all_spotify_tracks(request)
-
-    if not fetch_success:
-        if not request.session.get('spotify_access_token'):
-             return redirect(reverse('spotify_login'))
-        else:
-             return render(request, 'spotify_auth/error.html', {
-                 'error': 'Could not retrieve your Spotify library at this time. Please try again later.'
-             })
-    
-    full_library_string = "Your Spotify Library is empty or could not be fully retrieved."
-    total_tracks = 0
-    if simplified_tracks_list:
-        song_strings = [f"{track['name']} by {track['artists']}" for track in simplified_tracks_list]
-        full_library_string = "\n".join(song_strings)
-        total_tracks = len(simplified_tracks_list)
-
-    context = {
-        'library_string': full_library_string,
-        'total': total_tracks,
-    }
-
-    return render(request, 'spotify_auth/library.html', context)
-
-def gemini_test_view(request):
     try:
+        # Fetch the user's Spotify library
+        simplified_tracks_list, fetch_success = _fetch_all_spotify_tracks(request)
+
+        if not fetch_success:
+            if not request.session.get('spotify_access_token'):
+                 return redirect(reverse('spotify_login'))
+            else:
+                 return render(request, 'spotify_auth/error.html', {
+                     'error': 'Could not retrieve your Spotify library to analyze. Please try again later.'
+                 })
+
+        # Prepare a string containing the user's library
+        full_library_string = "User library is empty or could not be retrieved."
+        if simplified_tracks_list:
+            song_strings = [f"{track['name']} by {track['artists']}" for track in simplified_tracks_list]
+            # Limit string length to 400,000 characters for API call (roughly 10,000 songs)
+            max_prompt_length = 400000
+            full_library_string = "\n".join(song_strings)
+            if len(full_library_string) > max_prompt_length:
+                full_library_string = full_library_string[:max_prompt_length] + "\n... (library truncated due to excessive size)"
+
+        # Call Gemini API to analyze the user's library
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        prompt = f"Based on the following list of saved Spotify tracks, describe the user's likely musical taste:\n\n{full_library_string}"
+
         response = client.models.generate_content(
             model="gemini-2.0-flash",
-            contents="Explain how AI works in a few words"
+            contents=prompt
         )
         result_text = response.text
 
     except Exception as e:
-        result_text = f"An error occurred: {str(e)}"
+        result_text = f"An error occurred during analysis: {str(e)}"
 
-    return render(request, 'spotify_auth/gemini_test.html', {'gemini_result': result_text})
+    return render(request, 'spotify_auth/gemini.html', {'analysis_result': result_text})
