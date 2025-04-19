@@ -4,11 +4,13 @@ import secrets
 import string
 import requests
 from urllib.parse import urlencode
-
+import json
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_protect
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 from google import genai
 
 # ===== PKCE Utility Functions =====
@@ -32,9 +34,9 @@ def generate_code_challenge(verifier):
 # ===== Views =====
 
 def index(request):
-    # Redirect to analysis page if user is already authenticated
+    # Redirect to chat page if user is already authenticated
     if request.session.get('spotify_access_token'):
-        return redirect(reverse('analysis'))
+        return redirect(reverse('chat'))
     return render(request, 'spotify_auth/index.html')
 
 # Begin OAuth flow with PKCE
@@ -113,8 +115,9 @@ def spotify_callback(request):
     response = requests.post(token_url, data=token_data, headers=headers)
     
     if response.status_code != 200:
+        print(f"Token exchange failed: {response.status_code} - {response.text}")
         return render(request, 'spotify_auth/error.html', {
-            'error': f'Token exchange failed: {response.text}'
+            'error': 'Token exchange with Spotify failed. Please try again.'
         })
     
     # Parse token response
@@ -131,7 +134,7 @@ def spotify_callback(request):
     if 'spotify_auth_state' in request.session:
         del request.session['spotify_auth_state']
     
-    return redirect(reverse('analysis'))
+    return redirect(reverse('chat'))
 
 def logout_view(request):
     # Flush the entire session to remove all data, including Spotify tokens
@@ -235,49 +238,99 @@ def _fetch_all_spotify_tracks(request):
                 break
 
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching Spotify tracks: {e}")
+            print("Error fetching Spotify tracks. Please try again later.")
             return None, False
 
     return simplified_tracks, True
 
-def analysis_view(request):
-    # Ensure the user is logged into Spotify
+@csrf_protect
+@require_http_methods(["GET", "POST"])
+def chat_view(request):
+    # Ensure user is authenticated with Spotify
     if not request.session.get('spotify_access_token'):
-        return redirect(reverse('spotify_login'))
+        if request.method == "POST":
+            return JsonResponse({'error': 'User not authenticated'}, status=401)
+        else:
+            return redirect(reverse('spotify_login'))
 
-    try:
-        # Fetch the user's Spotify library
-        simplified_tracks_list, fetch_success = _fetch_all_spotify_tracks(request)
+    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    model_name = "gemini-2.0-flash"
 
-        if not fetch_success:
-            if not request.session.get('spotify_access_token'):
-                 return redirect(reverse('spotify_login'))
-            else:
-                 return render(request, 'spotify_auth/error.html', {
-                     'error': 'Could not retrieve your Spotify library to analyze. Please try again later.'
-                 })
+    if request.method == "GET":
+        try:
+            simplified_tracks_list, fetch_success = _fetch_all_spotify_tracks(request)
+            if not fetch_success:
+                 if not request.session.get('spotify_access_token'):
+                     return redirect(reverse('spotify_login'))
+                 else:
+                     return render(request, 'spotify_auth/error.html', {
+                         'error': 'Could not retrieve Spotify library. Please try again.'
+                     })
 
-        # Prepare a string containing the user's library
-        full_library_string = "User library is empty or could not be retrieved."
-        if simplified_tracks_list:
-            song_strings = [f"{track['name']} by {track['artists']}" for track in simplified_tracks_list]
-            # Limit string length to 400,000 characters for API call (roughly 10,000 songs)
-            max_prompt_length = 400000
-            full_library_string = "\n".join(song_strings)
-            if len(full_library_string) > max_prompt_length:
-                full_library_string = full_library_string[:max_prompt_length] + "\n... (library truncated due to excessive size)"
+            # Prepare library string
+            full_library_string = "User library is empty or could not be retrieved."
+            if simplified_tracks_list:
+                song_strings = [f"{t['name']} by {t['artists']}" for t in simplified_tracks_list]
+                # Spotify playlists do not exceed 10,000 songs, but setting a max length for safety
+                max_prompt_length = 1000000
+                full_library_string = "\n".join(song_strings)
+                if len(full_library_string) > max_prompt_length:
+                    full_library_string = full_library_string[:max_prompt_length] + "\n... (library truncated)"
 
-        # Call Gemini API to analyze the user's library
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        prompt = f"Based on the following list of saved Spotify tracks, describe the user's likely musical taste:\n\n{full_library_string}"
+            # Create initial prompt
+            initial_prompt = f"Based on the following list of saved Spotify tracks, describe the user's likely musical taste:\n\n{full_library_string}"
 
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
-        )
-        result_text = response.text
+            # Start a new chat and send initial prompt
+            chat = client.chats.create(model=model_name)
+            response = chat.send_message(initial_prompt)
+            initial_analysis_text = response.text
 
-    except Exception as e:
-        result_text = f"An error occurred during analysis: {str(e)}"
+            # Store the history list in the session
+            history_list = []
+            for message in chat.get_history():
+                 history_list.append({'role': message.role, 'parts': [{'text': p.text for p in message.parts}]})
 
-    return render(request, 'spotify_auth/gemini.html', {'analysis_result': result_text})
+            request.session['chat_history'] = history_list
+            request.session.modified = True
+
+            return render(request, 'spotify_auth/chat.html', {'analysis_result': initial_analysis_text})
+
+        except Exception as e:
+            print(f"Error in chat_view GET: {e}")
+            return render(request, 'spotify_auth/error.html', {
+                'error': 'An unexpected error occurred. Please try again later.'
+            })
+
+    elif request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            user_message = data.get('message')
+            if not user_message:
+                return JsonResponse({'error': 'No message provided'}, status=400)
+
+            # Retrieve history list from session
+            history_list = request.session.get('chat_history', [])
+            if not history_list:
+                 return JsonResponse({'error': 'Chat history not found. Please reload the page.'}, status=400)
+
+            chat = client.chats.create(model=model_name, history=history_list)
+            print(f"Chat history: {history_list}")
+            response = chat.send_message(user_message)
+            ai_response_text = response.text
+
+            updated_history_list = []
+            for message in chat.get_history():
+                 updated_history_list.append({'role': message.role, 'parts': [{'text': p.text for p in message.parts}]})
+
+            print(f"Updated chat history: {updated_history_list}")
+            # Save updated history list back to session
+            request.session['chat_history'] = updated_history_list
+            request.session.modified = True
+
+            return JsonResponse({'response': ai_response_text})
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            print(f"Error in chat_view POST: {e}")
+            return JsonResponse({'error': 'An unexpected error occurred. Please try again later.'}, status=500)

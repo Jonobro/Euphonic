@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Music Taste Analysis</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'spotify_auth/css/chat.css' %}">
+</head>
+<body>
+    <div class="container">
+        {% csrf_token %}
+        <div class="navigation" style="text-align: right;">
+             <a href="{% url 'logout' %}" class="button">Logout</a>
+        </div>
+        <h1>Your Music Taste Analysis & Chat</h1>
+        <div id="chat-container">
+            <div id="message-list">
+                <div class="message ai-message">
+                    <p>{{ analysis_result }}</p>
+                </div>
+            </div>
+            <div id="chat-input-area">
+                <textarea id="user-input" placeholder="Ask follow-up questions or request playlists..."></textarea>
+                <button id="send-button" class="button">Send</button>
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'spotify_auth/js/chat.js' %}"></script>
+</body>
+</html>
