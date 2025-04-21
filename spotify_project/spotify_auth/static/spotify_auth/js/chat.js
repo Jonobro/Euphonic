@@ -2,21 +2,83 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendButton = document.getElementById('send-button');
     const userInput = document.getElementById('user-input');
     const messageList = document.getElementById('message-list');
-    // Get CSRF token from the hidden input added in the template
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // safely grab CSRF token (won't blow up if the input isn't there)
+    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    const csrfToken = csrfInput ? csrfInput.value : null;
+
+    // Configure marked options for better Markdown rendering
+    if (typeof marked !== 'undefined') {
+        marked.setOptions({
+            gfm: true,                // GitHub Flavored Markdown
+            breaks: true,             // Convert \n to <br>
+            headerIds: false,         // Don't add IDs to headers
+            mangle: false,            // Don't mangle email addresses
+            smartLists: true,         // Use smarter list behavior
+            smartypants: true         // Use "smart" typographic punctuation
+        });
+    }
+
+    const initialAiMessageDiv = document.getElementById('initial-ai-message');
+
+    // --- Process Initial AI Message ---
+    if (initialAiMessageDiv && typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+        try {
+            // use textContent to pull in the raw markdown from Django
+            const rawMarkdown = initialAiMessageDiv.textContent.trim();
+            
+            // Debug: check what we're actually getting
+            console.log("Raw initial markdown:", rawMarkdown);
+            
+            const rawHtml = marked.parse(rawMarkdown);
+            const safeHtml = DOMPurify.sanitize(rawHtml);
+            
+            // Debug: check what HTML we're generating
+            console.log("Processed HTML:", safeHtml);
+            
+            initialAiMessageDiv.innerHTML = safeHtml;
+        } catch (error) {
+            console.error("Error processing initial AI message:", error);
+            initialAiMessageDiv.innerHTML = "<p>Error displaying initial analysis. Please refresh.</p>";
+        }
+    } else if (initialAiMessageDiv) {
+        console.warn("Libraries not loaded: marked available?", typeof marked !== 'undefined', 
+                    "DOMPurify available?", typeof DOMPurify !== 'undefined');
+    }
+    // --- End Process Initial AI Message ---
 
     // Function to add a message to the chat display
     function addMessage(text, sender) {
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
-        
-        const messageP = document.createElement('p');
-        messageP.textContent = text; // Use textContent for security
-        
-        messageDiv.appendChild(messageP);
+
+        if (sender === 'ai' && typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+            try {
+                // Debug: check what we're actually getting
+                console.log("Raw markdown from response:", text);
+                
+                const rawHtml = marked.parse(text);
+                const safeHtml = DOMPurify.sanitize(rawHtml);
+                
+                // Debug: check what HTML we're generating
+                console.log("Processed HTML:", safeHtml);
+                
+                messageDiv.innerHTML = safeHtml;
+            } catch (error) {
+                console.error("Error parsing AI message:", error);
+                messageDiv.textContent = text;
+            }
+        } else if (sender === 'ai') {
+            console.warn("Libraries not loaded when processing AI message");
+            messageDiv.textContent = text;
+        } else {
+            const p = document.createElement('p');
+            p.textContent = text;
+            messageDiv.appendChild(p);
+        }
+
         messageList.appendChild(messageDiv);
-        
-        // Scroll to the bottom
+        // Scroll after adding the message
         messageList.scrollTop = messageList.scrollHeight;
     }
 
@@ -59,8 +121,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Display user message immediately
             addMessage(messageText, 'user');
             userInput.value = ''; // Clear input field
+            userInput.style.height = 'auto'; // Reset height after clearing
 
-            // TODO: Add a loading indicator here if desired
             // Disable input/button during processing
             userInput.disabled = true;
             sendButton.disabled = true;
@@ -79,13 +141,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     messageList.removeChild(thinkingMessage); // Remove thinking indicator
                 }
                 console.error("Error sending message:", error);
-                // Display a more specific error if available from the backend
                 const errorMessage = error.message.includes('Server responded')
                     ? `Sorry, there was an issue: ${error.message.split(': ')[1] || 'Please try again.'}`
                     : "Sorry, I couldn't get a response. Please check your connection and try again.";
-                addMessage(errorMessage, 'ai');
+                addMessage(errorMessage, 'ai'); // Add error message as an AI message
             } finally {
-                // TODO: Remove loading indicator here
                 // Re-enable input/button
                 userInput.disabled = false;
                 sendButton.disabled = false;
@@ -101,19 +161,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event listener for pressing Enter in the textarea
     userInput.addEventListener('keypress', function(event) {
-        // Check if Enter key is pressed without the Shift key
         if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault(); // Prevent default newline behavior
+            event.preventDefault();
             handleSendMessage();
         }
     });
 
     // Auto-resize textarea
     userInput.addEventListener('input', function() {
-        this.style.height = 'auto'; // Reset height
-        this.style.height = (this.scrollHeight) + 'px'; // Set to scroll height
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
     });
 
-    // Initial scroll to bottom (in case initial message makes it scrollable)
-    messageList.scrollTop = messageList.scrollHeight;
+    // Initial scroll to bottom (ensure it runs after initial message processing)
+    // Use a small timeout to allow the browser to render the potentially updated initial message height
+    setTimeout(() => {
+        messageList.scrollTop = messageList.scrollHeight;
+    }, 0);
 });
