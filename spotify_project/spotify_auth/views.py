@@ -301,7 +301,7 @@ def chat_view(request):
             # Start a new chat and send initial prompt
             chat = client.chats.create(
                 model=model_name,
-                config=types.ChatConfig(system_instruction=SYSTEM_INSTRUCTION)
+                config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION)
             )
             response = chat.send_message(initial_prompt)
             initial_analysis_text = response.text
@@ -337,7 +337,7 @@ def chat_view(request):
             chat = client.chats.create(
                 model=model_name,
                 history=history_list,
-                config=types.ChatConfig(system_instruction=SYSTEM_INSTRUCTION)
+                config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION)
             )
             print(f"Chat history: {history_list}")
             response = chat.send_message(user_message)
