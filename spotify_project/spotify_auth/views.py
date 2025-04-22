@@ -277,44 +277,40 @@ def _fetch_all_spotify_tracks(request):
             ))
 
             isrc_to_recording_ids = {}
-            isrc_to_acousticbrainz_data = {}
+            rec_id_to_acousticbrainz_data = {}
 
             if isrc_codes:
                 isrc_to_recording_ids = query_musicbrainz_recordings(isrc_codes)
 
-                for isrc, recording_ids in isrc_to_recording_ids.items():
-                    found_valid_data = False
-                    if not recording_ids:
-                        isrc_to_acousticbrainz_data[isrc] = None
-                        continue
+                all_recording_ids = list(set(
+                    rec_id
+                    for ids in isrc_to_recording_ids.values()
+                    for rec_id in ids
+                ))
 
-                    for rec_id in recording_ids:
-                        try:
-                            resp = requests.get(
-                                f"https://acousticbrainz.org/api/v1/high-level",
-                                params={"recording_ids": rec_id},
-                                headers={"Accept": "application/json"},
-                                timeout=10
-                            )
-                            resp.raise_for_status()
-                            acoustic_data = resp.json()
+                batch_size = 25
+                for i in range(0, len(all_recording_ids), batch_size):
+                    batch_ids = all_recording_ids[i:i + batch_size]
+                    recording_ids_param = ";".join(batch_ids)
 
-                            if acoustic_data == {"mbid_mapping": {}}:
-                                continue
-                            else:
-                                isrc_to_acousticbrainz_data[isrc] = acoustic_data
-                                found_valid_data = True
-                                break
+                    try:
+                        resp = requests.get(
+                            "https://acousticbrainz.org/api/v1/high-level",
+                            params={"recording_ids": recording_ids_param},
+                            headers={"Accept": "application/json"},
+                            timeout=30
+                        )
+                        resp.raise_for_status()
+                        acoustic_data_batch = resp.json()
 
-                        except requests.RequestException as e:
-                            print(f"AcousticBrainz request failed for recording ID {rec_id} (ISRC: {isrc}): {e}")
-                        except json.JSONDecodeError as e:
-                            print(f"Failed to decode AcousticBrainz JSON for {rec_id} (ISRC: {isrc}): {e}")
-                        except Exception as e:
-                             print(f"Unexpected error fetching AcousticBrainz for {rec_id} (ISRC: {isrc}): {e}")
+                        rec_id_to_acousticbrainz_data.update(acoustic_data_batch)
 
-                    if not found_valid_data:
-                        isrc_to_acousticbrainz_data[isrc] = None
+                    except requests.RequestException as e:
+                        print(f"AcousticBrainz batch request failed for IDs starting with {batch_ids[0] if batch_ids else 'N/A'}: {e}")
+                    except json.JSONDecodeError as e:
+                        print(f"Failed to decode AcousticBrainz JSON for batch starting with {batch_ids[0] if batch_ids else 'N/A'}: {e}")
+                    except Exception as e:
+                         print(f"Unexpected error fetching AcousticBrainz batch starting with {batch_ids[0] if batch_ids else 'N/A'}: {e}")
 
             for item in items:
                 track = item.get('track')
@@ -326,23 +322,19 @@ def _fetch_all_spotify_tracks(request):
                 artist_names = [a.get('name') for a in track.get('artists', [])]
                 isrc_code = track.get('external_ids', {}).get('isrc')
 
-                acoustic_data_container = isrc_to_acousticbrainz_data.get(isrc_code)
-
                 matched_recording_id = None
-                
-                # Initialize feature values
                 danceability = mood_acoustic = mood_electronic = mood_happy = mood_party = mood_relaxed = mood_sad = timbre = voice_instrumental = None
-
-                # Initialize feature probabilities
                 danceability_prob = mood_acoustic_prob = mood_electronic_prob = mood_happy_prob = mood_party_prob = mood_relaxed_prob = mood_sad_prob = timbre_prob = voice_instrumental_prob = None
 
-                if acoustic_data_container:
-                    potential_rec_ids = list(acoustic_data_container.keys())
-                    valid_rec_ids = [rid for rid in potential_rec_ids if rid != "mbid_mapping"]
-                    if valid_rec_ids:
-                        matched_recording_id = valid_rec_ids[0]
-                        hl_data_frames = acoustic_data_container.get(matched_recording_id, {})
+                potential_recording_ids = isrc_to_recording_ids.get(isrc_code, [])
+                for rec_id in potential_recording_ids:
+                    acoustic_data = rec_id_to_acousticbrainz_data.get(rec_id)
+
+                    if acoustic_data and acoustic_data != {"mbid_mapping": {}}:
+                        matched_recording_id = rec_id
+                        hl_data_frames = acoustic_data
                         hl_data = hl_data_frames.get("0", {}).get("highlevel")
+
                         if hl_data:
                             danceability = hl_data.get('danceability', {}).get('value')
                             danceability_prob = hl_data.get('danceability', {}).get('probability')
@@ -362,6 +354,7 @@ def _fetch_all_spotify_tracks(request):
                             timbre_prob = hl_data.get('timbre', {}).get('probability')
                             voice_instrumental = hl_data.get('voice_instrumental', {}).get('value')
                             voice_instrumental_prob = hl_data.get('voice_instrumental', {}).get('probability')
+                        break
 
                 simplified_tracks.append({
                     'id': track_id,
@@ -446,7 +439,17 @@ def chat_view(request):
 
     if request.method == "GET":
         try:
-            simplified_tracks_list, fetch_success = _fetch_all_spotify_tracks(request)
+            # Attempt to use cached tracks if available
+            cached_tracks = request.session.get('spotify_tracks')
+            if cached_tracks is not None:
+                simplified_tracks_list = cached_tracks
+                fetch_success = True
+            else:
+                simplified_tracks_list, fetch_success = _fetch_all_spotify_tracks(request)
+                if fetch_success:
+                    request.session['spotify_tracks'] = simplified_tracks_list
+                    request.session.modified = True
+
             if not fetch_success:
                  if not request.session.get('spotify_access_token'):
                      return redirect(reverse('spotify_login'))
