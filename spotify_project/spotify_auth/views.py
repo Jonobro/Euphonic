@@ -62,7 +62,7 @@ def spotify_login(request):
         'state': state,
         'scope': 'user-read-private user-read-email user-library-read',
         'code_challenge_method': 'S256',
-        'code_challenge': code_challenge,
+        'code_challenge': code_challenge
     }
     
     # Construct authorization URL
@@ -187,20 +187,52 @@ def _refresh_token_helper(request):
         request.session['spotify_refresh_token'] = token_info['refresh_token']
     return True
 
-# def query_musicbrainz_recordings(isrc_codes):
-#     if not isrc_codes:
-#         return
-#     query = ' OR '.join(f"isrc:{code}" for code in isrc_codes)
-#     params = {"query": query, "fmt": "json"}
-#     response = requests.get(
-#         "http://musicbrainz.org/ws/2/recording/",
-#         params=params,
-#         headers={"User-Agent": "EuphonicIntelligence/1.0 (euphonicintelligence.com)"},
-#         timeout=60
-#     )
-#     response.raise_for_status()
-#     for recording in response.json().get("recordings", []):
-#         yield recording
+def query_musicbrainz_recordings(isrc_codes):
+    if not isrc_codes:
+        return {}
+    
+    isrc_to_recordings = {isrc: [] for isrc in isrc_codes}
+    batch_size = 25
+
+    for i in range(0, len(isrc_codes), batch_size):
+        batch_isrcs = isrc_codes[i:i + batch_size]
+        
+        query = ' OR '.join(f"isrc:{code}" for code in batch_isrcs)
+        params = {"query": query, "fmt": "json"}
+
+        try:
+            response = requests.get(
+                "http://musicbrainz.org/ws/2/recording",
+                params=params,
+                headers={"User-Agent": "EuphonicIntelligence/1.0 (euphonicintelligence.com)"},
+                timeout=60
+            )
+            response.raise_for_status()
+            
+            recordings_data = response.json().get("recordings", [])
+            
+            for recording in recordings_data:
+                recording_id = recording.get("id")
+                if not recording_id:
+                    continue
+                
+                found_isrcs = recording.get('isrcs', []) 
+                
+                for isrc in found_isrcs:
+                    if isrc in isrc_to_recordings:
+                        if recording_id not in isrc_to_recordings[isrc]:
+                             isrc_to_recordings[isrc].append(recording_id)
+
+        except requests.RequestException as e:
+            print(f"Error querying MusicBrainz batch starting at index {i}: {e}")
+            continue 
+        except json.JSONDecodeError as e:
+             print(f"Error decoding MusicBrainz JSON response for batch starting at index {i}: {e}")
+             continue
+        except Exception as e:
+             print(f"An unexpected error occurred during MusicBrainz query for batch starting at index {i}: {e}")
+             continue
+    return isrc_to_recordings
 
 # Helper function to gather all tracks
 def _fetch_all_spotify_tracks(request):
@@ -238,32 +270,51 @@ def _fetch_all_spotify_tracks(request):
             if not items:
                  break
 
-            # isrc_codes = [
-            #     item['track']['external_ids']['isrc']
-            #     for item in items
-            #     if item.get('track', {}).get('external_ids', {}).get('isrc')
-            # ]
-            
-            # recordings_map = {
-            #     rec['id']: rec
-            #     for rec in query_musicbrainz_recordings(isrc_codes)
-            # }
+            isrc_codes = list(set(
+                item['track']['external_ids']['isrc']
+                for item in items
+                if item.get('track', {}).get('external_ids', {}).get('isrc')
+            ))
 
-            # highlevel_map = {}
-            # recording_ids = list(recordings_map.keys())
-            # for i in range(0, len(recording_ids), 25):
-            #     batch_ids = recording_ids[i:i + 25]
-            #     try:
-            #         resp = requests.get(
-            #             "https://acousticbrainz.org/api/v1/high-level",
-            #             params={"recording_ids": ";".join(batch_ids)},
-            #             headers={"Accept": "application/json"},
-            #             timeout=15
-            #         )
-            #         resp.raise_for_status()
-            #         highlevel_map.update(resp.json())
-            #     except requests.RequestException as e:
-            #         print(f"AcousticBrainz batch request failed for {batch_ids}: {e}")
+            isrc_to_recording_ids = {}
+            isrc_to_acousticbrainz_data = {}
+
+            if isrc_codes:
+                isrc_to_recording_ids = query_musicbrainz_recordings(isrc_codes)
+
+                for isrc, recording_ids in isrc_to_recording_ids.items():
+                    found_valid_data = False
+                    if not recording_ids:
+                        isrc_to_acousticbrainz_data[isrc] = None
+                        continue
+
+                    for rec_id in recording_ids:
+                        try:
+                            resp = requests.get(
+                                f"https://acousticbrainz.org/api/v1/high-level",
+                                params={"recording_ids": rec_id},
+                                headers={"Accept": "application/json"},
+                                timeout=10
+                            )
+                            resp.raise_for_status()
+                            acoustic_data = resp.json()
+
+                            if acoustic_data == {"mbid_mapping": {}}:
+                                continue
+                            else:
+                                isrc_to_acousticbrainz_data[isrc] = acoustic_data
+                                found_valid_data = True
+                                break
+
+                        except requests.RequestException as e:
+                            print(f"AcousticBrainz request failed for recording ID {rec_id} (ISRC: {isrc}): {e}")
+                        except json.JSONDecodeError as e:
+                            print(f"Failed to decode AcousticBrainz JSON for {rec_id} (ISRC: {isrc}): {e}")
+                        except Exception as e:
+                             print(f"Unexpected error fetching AcousticBrainz for {rec_id} (ISRC: {isrc}): {e}")
+
+                    if not found_valid_data:
+                        isrc_to_acousticbrainz_data[isrc] = None
 
             for item in items:
                 track = item.get('track')
@@ -273,61 +324,89 @@ def _fetch_all_spotify_tracks(request):
                 track_name = track.get('name')
                 track_id = track.get('id')
                 artist_names = [a.get('name') for a in track.get('artists', [])]
-                # isrc_code = track.get('external_ids', {}).get('isrc')
-                # danceability = mood_acoustic = mood_electronic = mood_happy = mood_party = mood_relaxed = mood_sad = timbre = voice_instrumental = None
+                isrc_code = track.get('external_ids', {}).get('isrc')
 
-                # match = next(
-                #     (rec for rec in recordings_map.values()
-                #      if isrc_code in rec.get('isrcs', [])),
-                #     None
-                # )
-                # if match:
-                #     recording_id = match['id']
-                #     hl = highlevel_map.get(recording_id, {}).get("0", {}).get("highlevel")
-                #     if hl:
-                #         danceability        = hl.get('danceability', {}).get('value')
-                #         mood_acoustic       = hl.get('mood_acoustic', {}).get('value')
-                #         mood_electronic     = hl.get('mood_electronic', {}).get('value')
-                #         mood_happy          = hl.get('mood_happy', {}).get('value')
-                #         mood_party          = hl.get('mood_party', {}).get('value')
-                #         mood_relaxed        = hl.get('mood_relaxed', {}).get('value')
-                #         mood_sad            = hl.get('mood_sad', {}).get('value')
-                #         timbre              = hl.get('timbre', {}).get('value')
-                #         voice_instrumental  = hl.get('voice_instrumental', {}).get('value')
+                acoustic_data_container = isrc_to_acousticbrainz_data.get(isrc_code)
+
+                matched_recording_id = None
+                
+                # Initialize feature values
+                danceability = mood_acoustic = mood_electronic = mood_happy = mood_party = mood_relaxed = mood_sad = timbre = voice_instrumental = None
+
+                # Initialize feature probabilities
+                danceability_prob = mood_acoustic_prob = mood_electronic_prob = mood_happy_prob = mood_party_prob = mood_relaxed_prob = mood_sad_prob = timbre_prob = voice_instrumental_prob = None
+
+                if acoustic_data_container:
+                    potential_rec_ids = list(acoustic_data_container.keys())
+                    valid_rec_ids = [rid for rid in potential_rec_ids if rid != "mbid_mapping"]
+                    if valid_rec_ids:
+                        matched_recording_id = valid_rec_ids[0]
+                        hl_data_frames = acoustic_data_container.get(matched_recording_id, {})
+                        hl_data = hl_data_frames.get("0", {}).get("highlevel")
+                        if hl_data:
+                            danceability = hl_data.get('danceability', {}).get('value')
+                            danceability_prob = hl_data.get('danceability', {}).get('probability')
+                            mood_acoustic = hl_data.get('mood_acoustic', {}).get('value')
+                            mood_acoustic_prob = hl_data.get('mood_acoustic', {}).get('probability')
+                            mood_electronic = hl_data.get('mood_electronic', {}).get('value')
+                            mood_electronic_prob = hl_data.get('mood_electronic', {}).get('probability')
+                            mood_happy = hl_data.get('mood_happy', {}).get('value')
+                            mood_happy_prob = hl_data.get('mood_happy', {}).get('probability')
+                            mood_party = hl_data.get('mood_party', {}).get('value')
+                            mood_party_prob = hl_data.get('mood_party', {}).get('probability')
+                            mood_relaxed = hl_data.get('mood_relaxed', {}).get('value')
+                            mood_relaxed_prob = hl_data.get('mood_relaxed', {}).get('probability')
+                            mood_sad = hl_data.get('mood_sad', {}).get('value')
+                            mood_sad_prob = hl_data.get('mood_sad', {}).get('probability')
+                            timbre = hl_data.get('timbre', {}).get('value')
+                            timbre_prob = hl_data.get('timbre', {}).get('probability')
+                            voice_instrumental = hl_data.get('voice_instrumental', {}).get('value')
+                            voice_instrumental_prob = hl_data.get('voice_instrumental', {}).get('probability')
 
                 simplified_tracks.append({
                     'id': track_id,
                     'name': track_name,
                     'artists': ', '.join(artist_names),
-                    # 'isrc': isrc_code,
-                    # 'danceability': danceability,
-                    # 'mood_acoustic': mood_acoustic,
-                    # 'mood_electronic': mood_electronic,
-                    # 'mood_happy': mood_happy,
-                    # 'mood_party': mood_party,
-                    # 'mood_relaxed': mood_relaxed,
-                    # 'mood_sad': mood_sad,
-                    # 'timbre': timbre,
-                    # 'voice_instrumental': voice_instrumental
+                    'isrc': isrc_code,
+                    'recording_id': matched_recording_id,
+                    'danceability': danceability,
+                    'danceability_prob': danceability_prob,
+                    'mood_acoustic': mood_acoustic,
+                    'mood_acoustic_prob': mood_acoustic_prob,
+                    'mood_electronic': mood_electronic,
+                    'mood_electronic_prob': mood_electronic_prob,
+                    'mood_happy': mood_happy,
+                    'mood_happy_prob': mood_happy_prob,
+                    'mood_party': mood_party,
+                    'mood_party_prob': mood_party_prob,
+                    'mood_relaxed': mood_relaxed,
+                    'mood_relaxed_prob': mood_relaxed_prob,
+                    'mood_sad': mood_sad,
+                    'mood_sad_prob': mood_sad_prob,
+                    'timbre': timbre,
+                    'timbre_prob': timbre_prob,
+                    'voice_instrumental': voice_instrumental,
+                    'voice_instrumental_prob': voice_instrumental_prob
                 })
 
             if total is None:
                 total = data.get('total')
 
-            if total is not None and len(simplified_tracks) >= total:
-                break
-
             offset += len(items)
 
-            # Handles excessively large libraries
+            if total is not None and offset >= total:
+                break
+
             if offset > 20000:
-                print(f"Exiting due to excessively large library")
+                print(f"Exiting due to excessively large library (processed {offset} tracks)")
                 break
 
         except requests.exceptions.RequestException as e:
-            print("Error fetching Spotify tracks. Please try again later.")
-            print(f"Request error: {e}")
+            print(f"Error fetching Spotify tracks batch starting at offset {offset}: {e}")
             return None, False
+        except Exception as e:
+             print(f"Unexpected error processing Spotify batch at offset {offset}: {e}")
+             return None, False
 
     request.session['simplified_spotify_tracks'] = simplified_tracks
     request.session.modified = True
@@ -448,7 +527,7 @@ def chat_view(request):
                  updated_history_list.append({'role': message.role, 'parts': [{'text': p.text for p in message.parts}]})
 
             print(f"Updated chat history: {updated_history_list}")
-            # Save updated history list back to session
+
             request.session['chat_history'] = updated_history_list
             request.session.modified = True
 
