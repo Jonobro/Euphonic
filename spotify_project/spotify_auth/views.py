@@ -13,6 +13,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from google import genai
 from google.genai import types
+from django.views.decorators.cache import never_cache
 
 # ===== PKCE Utility Functions =====
 
@@ -541,3 +542,108 @@ def chat_view(request):
         except Exception as e:
             print(f"Error in chat_view POST: {e}")
             return JsonResponse({'error': 'An unexpected error occurred. Please try again later.'}, status=500)
+
+@never_cache
+def analytics_view(request):
+    tracks = request.session.get('spotify_tracks')
+    if not tracks:
+        return redirect(reverse('chat'))
+
+    N = len(tracks)
+    
+    features_info = {
+        "danceability": {
+            "display": "Danceability",
+            "description": "The proportion of your tracks that are suitable for dancing based on tempo, rhythm stability, beat strength, and overall regularity.",
+            "labels": ("danceable", "not_danceable")
+        },
+        "mood_acoustic": {
+            "display": "Acoustic",
+            "description": "The proportion of your tracks that use primarily acoustic instruments versus electronic/electric instruments.",
+            "labels": ("acoustic", "not_acoustic")
+        },
+        "mood_electronic": {
+            "display": "Electronic",
+            "description": "The proportion of your tracks that use predominantly electronic sounds, synthesizers, and electronic production techniques.",
+            "labels": ("electronic", "not_electronic")
+        },
+        "mood_happy": {
+            "display": "Happy",
+            "description": "The proportion of your tracks that are happy - conveying emotional positivity through the music based on key, harmony, and other musical elements.",
+            "labels": ("happy", "not_happy")
+        },
+        "mood_party": {
+            "display": "Party",
+            "description": "The proportion of your tracks that have characteristics typically associated with party music: energetic, upbeat, and crowd-pleasing.",
+            "labels": ("party", "not_party")
+        },
+        "mood_relaxed": {
+            "display": "Relaxed",
+            "description": "The proportion of your tracks that are calming & soothing, based on tempo, dynamics, and instrumentation.",
+            "labels": ("relaxed", "not_relaxed")
+        },
+        "mood_sad": {
+            "display": "Sad",
+            "description": "The proportion of your tracks that convey emotional sadness through musical elements like minor keys and slow tempos.",
+            "labels": ("sad", "not_sad")
+        },
+        "timbre": {
+            "display": "Bright Timbre",
+            "description": "Describes the sound quality or tone color, with 'bright' indicating more high-frequency content versus 'dark' having more low-frequency content.",
+            "labels": ("bright", "dark")
+        },
+        "voice_instrumental": {
+            "display": "Instrumental",
+            "description": "Distinguishes between instrumental music and tracks featuring vocals.",
+            "labels": ("instrumental", "voice")
+        },
+    }
+
+    chart_data = {}
+    for feat, info in features_info.items():
+        pos_label, neg_label = info["labels"]
+        pos_cf = pos_label.casefold()
+        neg_cf = neg_label.casefold()
+
+        total_mass = 0.0
+        count = 0
+        for t in tracks:
+            p_val = t.get(f"{feat}_prob")
+            label = t.get(feat)
+            if p_val is None or label is None:
+                continue
+            label_cf = str(label).casefold()
+            if label_cf not in (pos_cf, neg_cf):
+                continue
+            try:
+                p = float(p_val)
+            except (ValueError, TypeError):
+                continue
+
+            count += 1
+            if label_cf == pos_cf:
+                total_mass += p
+            else:
+                total_mass += (1.0 - p)
+
+        if count > 0:
+            pos_frac = total_mass / count
+            neg_frac = 1.0 - pos_frac
+        else:
+            pos_frac = neg_frac = 0.0
+
+        chart_data[feat] = {
+            "pos": pos_frac,
+            "neg": neg_frac,
+            "pos_label": pos_label,
+            "neg_label": neg_label,
+            "display": info["display"],
+            "description": info["description"],
+        }
+
+    chart_data_json = json.dumps(chart_data)
+
+    return render(request, "spotify_auth/analytics.html", {
+        "chart_data_json": chart_data_json,
+        "chart_data": chart_data
+    })

@@ -28,7 +28,7 @@ def fetch_my_spotify_library():
     mock_request = Mock()
     mock_request.session = DummySession()
 
-    access_token = "BQCqECiwa1VLUKplquEIwEvj_Gi1fGGD1oIqvol1_cp2Jg177RAJiL_17CUufE-_jMbg-dQmKwn1LptWrpr4aZqyqxG_uSvUB80UI8rup_7WKMC5IbuGVkNWvqyQLK-WJh4r6e9w8u-oSmFT25q0wsuYe3NBlBdqotP-LwtDviMaaAlIXi8U8DE4dUbB893rYkuJ8JM6Z3fDUkKrsEFCZKyhLdcaih7zewMA1eQdqat1FuvT"
+    access_token = "BQDl6DrUkjU48OxGmgKeS7T8Ig2yOn5aYxxXc_ULJBub1DW4GFOFjstHgABCkYwJZa0oGxYQVAZqKhE-xWOaOtt69PvOq1yLX1GiqudKoat4aShaxcZq-xp89JCktfC0KkLKupPPnHmkcjOfxiRa3H4GyekdFKrwD7u0mb1Ada30Hx23woSIefLTaOgNhkNRw-i1dRRREEr_tCttNyf7-j4V1jROfzcPE6X542P5Z15y2KQ3buoM708uKqJq5DKq_EthldAH"
     mock_request.session['spotify_access_token'] = access_token
 
     simplified_tracks, success = _fetch_all_spotify_tracks(mock_request)
