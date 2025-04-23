@@ -14,6 +14,7 @@ from django.views.decorators.http import require_http_methods
 from google import genai
 from google.genai import types
 from django.views.decorators.cache import never_cache
+from sklearn.cluster import KMeans
 
 # ===== PKCE Utility Functions =====
 
@@ -643,7 +644,25 @@ def analytics_view(request):
 
     chart_data_json = json.dumps(chart_data)
 
-    return render(request, "spotify_auth/analytics.html", {
+    max_k = len(tracks)
+    requested_k = int(request.GET.get('k', 3))
+    k = min(requested_k, max_k)
+
+    clusters = {}
+    if k > 0:
+        feature_keys = sorted({
+            key for t in tracks for key in t.keys() if key.endswith('_prob')
+        })
+        data = [[float(t.get(key) or 0.0) for key in feature_keys] for t in tracks]
+        kmeans = KMeans(n_clusters=k, random_state=0, n_init=10).fit(data)
+        for lbl, track in zip(kmeans.labels_, tracks):
+            clusters.setdefault(lbl, []).append(track)
+
+    context = {
         "chart_data_json": chart_data_json,
-        "chart_data": chart_data
-    })
+        "chart_data": chart_data,
+        "clusters": clusters,
+        "k": k,
+        "max_k": max_k,
+    }
+    return render(request, "spotify_auth/analytics.html", context)
