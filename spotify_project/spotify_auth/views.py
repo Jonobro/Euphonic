@@ -589,7 +589,7 @@ def analytics_view(request):
             "labels": ("sad", "not_sad")
         },
         "timbre": {
-            "display": "Bright Timbre",
+            "display": "Timbre",
             "description": "Describes the sound quality or tone color, with 'bright' indicating more high-frequency content versus 'dark' having more low-frequency content.",
             "labels": ("bright", "dark")
         },
