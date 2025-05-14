@@ -19,6 +19,7 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl
       - certbot_certs:/etc/letsencrypt
       - certbot_www:/var/www/certbot
+      - static_volume:/app/staticfiles
     restart: always
     depends_on:
       - web
