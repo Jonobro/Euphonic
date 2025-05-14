@@ -130,14 +130,6 @@ def spotify_callback(request):
     if 'refresh_token' in token_info:
         request.session['spotify_refresh_token'] = token_info['refresh_token']
 
-    # --- PRINT ACCESS TOKEN TO DOCKER LOGS ---
-    access_token = token_info.get('access_token')
-    if access_token:
-        print("------------------------------------")
-        print(f"DEBUG: Spotify Access Token: {access_token}")
-        print("------------------------------------")
-    # --- REMOVE THIS PRINT STATEMENT BEFORE PRODUCTION ---
-
     # Delete session variables that are no longer needed for increased security
     if 'spotify_code_verifier' in request.session:
         del request.session['spotify_code_verifier']
