@@ -17,10 +17,20 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/ssl:/etc/nginx/ssl
-      - static_volume:/app/staticfiles
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
     restart: always
     depends_on:
       - web
 
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
 volumes:
   static_volume:
+  certbot_certs:
+  certbot_www:
