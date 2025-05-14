@@ -1,5 +1,3 @@
-# Deploy to DigitalOcean using GitHub Actions
-
 name: Deploy application to DigitalOcean
 
 on:
