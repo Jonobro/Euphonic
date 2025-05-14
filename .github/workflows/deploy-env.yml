@@ -1,0 +1,30 @@
+name: Deploy .env to DigitalOcean
+
+on:
+  push:
+    branches:
+      - EuphonicIntelligence
+
+jobs:
+  deploy_env_file:
+    name: Deploy .env file
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create .env file from secret
+        run: echo "${{ secrets.ENV_FILE_CONTENT }}" > .env
+        shell: bash
+
+      - name: Copy .env file to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          port: 22
+          source: ".env"
+          target: "/opt/euphonic-intelligence/Euphonic-Intelligence/spotify_project/.env"
+
+      - name: Clean up .env file from runner
+        if: always()
+        run: rm .env
+        shell: bash
