@@ -23,7 +23,7 @@ jobs:
           passphrase: ${{ secrets.DO_SSH_PASSPHRASE }}
           port: 22
           source: ".env"
-          target: "/opt/euphonic-intelligence/Euphonic-Intelligence/spotify_project/.env" # Location on server
+          target: "/opt/euphonic-intelligence/Euphonic-Intelligence/spotify_project/"
 
       - name: Clean up .env file from runner
         if: always()
