@@ -1,4 +1,4 @@
-name: Deploy Application to DigitalOcean
+name: Deploy application to DigitalOcean
 
 on:
   push:
@@ -7,13 +7,13 @@ on:
 
 jobs:
   deploy_application:
-    name: Deploy Application to Server
+    name: Deploy application to server
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to Server and Restart Application
+      - name: Deploy to server and restart application
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DO_HOST }}
@@ -26,6 +26,9 @@ jobs:
             
             echo "==> Navigating to project directory..."
             cd /opt/euphonic-intelligence/Euphonic-Intelligence/spotify_project/
+            
+            echo "==> Configuring git remote with PAT..."
+            git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git
             
             echo "==> Fetching latest code from origin/${{ github.ref_name }}..."
             git fetch origin ${{ github.ref_name }}
