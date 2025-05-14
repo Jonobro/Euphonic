@@ -1,4 +1,4 @@
-name: Deploy .env to DigitalOcean
+name: Deploy Application to DigitalOcean
 
 on:
   push:
@@ -6,26 +6,43 @@ on:
       - EuphonicIntelligence
 
 jobs:
-  deploy_env_file:
-    name: Deploy .env file
+  deploy_application:
+    name: Deploy Application to Server
     runs-on: ubuntu-latest
     steps:
-      - name: Create .env file from secret
-        run: echo "${{ secrets.ENV_FILE_CONTENT }}" > .env
-        shell: bash
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Copy .env file to server
-        uses: appleboy/scp-action@master
+      - name: Deploy to Server and Restart Application
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.DO_SSH_PASSPHRASE }}
           port: 22
-          source: ".env"
-          target: "/opt/euphonic-intelligence/Euphonic-Intelligence/spotify_project/"
-
-      - name: Clean up .env file from runner
-        if: always()
-        run: rm .env
-        shell: bash
+          script: |
+            set -e
+            
+            echo "==> Navigating to project directory..."
+            cd /opt/euphonic-intelligence/Euphonic-Intelligence/spotify_project/
+            
+            echo "==> Fetching latest code from origin/${{ github.ref_name }}..."
+            git fetch origin ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
+            
+            echo "==> Creating/updating .env file..."
+            cat <<EOF > .env
+            ${{ secrets.ENV_FILE_CONTENT }}
+            EOF
+            
+            echo "==> Docker compose down..."
+            docker-compose -f docker-compose.yml down
+            
+            echo "==> Docker compose up..."
+            docker-compose -f docker-compose.yml up --build -d
+            
+            echo "==> Pruning unused Docker images..."
+            docker image prune -af
+            
+            echo "==> Deployment successful"
