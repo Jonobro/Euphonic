@@ -428,7 +428,7 @@ def chat_view(request):
             return redirect(reverse('spotify_login'))
 
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    model_name = "gemini-2.5-flash"
+    model_name = "gemini-2.5-flash-preview-04-17"
 
     if request.method == "GET":
         try:
