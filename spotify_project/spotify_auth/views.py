@@ -417,9 +417,14 @@ def chat_view(request):
     - Use Markdown for all output. 
     - Use `##` for section headings. 
     - Use `**bold**` for emphasis. 
-    - Use `-` or `*` for bullet lists. 
+    - Use `-` or `*` for bullet lists.
+
+    Additional formatting requirements:
+    - Don't bold song titles or artist names.
+    - Make sure all text is the same size and font.
     """
-    
+    # Maybe tweak or remove the "additional formatting requirements" section later on
+
     # Ensure user is authenticated with Spotify
     if not request.session.get('spotify_access_token'):
         if request.method == "POST":
