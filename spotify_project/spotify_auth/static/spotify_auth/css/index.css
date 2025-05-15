@@ -49,3 +49,25 @@ code, .privacy-content code {
 .privacy-policy summary {
   color: #B3B3B3;
 }
+/* Add to spotify_auth/static/spotify_auth/css/chat.css and index.css */
+.spotify-footer {
+    text-align: center;
+    margin-top: 20px;
+    color: #B3B3B3;
+    font-size: 14px;
+}
+
+.spotify-footer a {
+    color: #1DB954;
+    text-decoration: none;
+}
+
+.spotify-footer a:hover {
+    text-decoration: underline;
+}
+
+.spotify-logo {
+    display: block;
+    height: 30px;
+    margin: 10px auto;
+}
