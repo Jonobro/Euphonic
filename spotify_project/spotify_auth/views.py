@@ -61,7 +61,7 @@ def spotify_login(request):
         'response_type': 'code',
         'redirect_uri': settings.SPOTIFY_REDIRECT_URI,
         'state': state,
-        'scope': 'user-read-private user-read-email user-library-read',
+        'scope': 'user-read-private user-library-read playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public',
         'code_challenge_method': 'S256',
         'code_challenge': code_challenge
     }
