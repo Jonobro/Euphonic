@@ -98,6 +98,7 @@ h1 {
 
 #chat-input-area {
     display: flex;
+    align-items: center; /* Vertically align items in the center */
     border-top: 1px solid #404040;
     padding-top: 15px;
 }
@@ -116,10 +117,6 @@ h1 {
     overflow-y: auto;
     font-family: inherit;
     font-size: 14px;
-}
-
-#chat-input-area button {
-    align-self: flex-end;
 }
 
 .tooltip-container {
@@ -180,6 +177,6 @@ h1 {
 
 .spotify-logo {
     display: block;
-    height: 6px;
+    height: 40px;
     margin: 10px auto;
 }
