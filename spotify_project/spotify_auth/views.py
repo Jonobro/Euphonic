@@ -14,6 +14,7 @@ from django.views.decorators.http import require_http_methods
 from google import genai
 from google.genai import types
 from django.views.decorators.cache import never_cache
+from pathlib import Path
 
 # ===== PKCE Utility Functions =====
 
@@ -39,7 +40,17 @@ def index(request):
     # Redirect to chat page if user is already authenticated
     if request.session.get('spotify_access_token'):
         return redirect(reverse('chat'))
-    return render(request, 'spotify_auth/index.html')
+
+    # Read the privacy policy markdown into a variable
+    policy_path = settings.BASE_DIR / "privacy_policy.md"
+    try:
+        privacy_md = policy_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        privacy_md = "Privacy policy not found."
+
+    return render(request, 'spotify_auth/index.html', {
+        'privacy_md': privacy_md
+    })
 
 # Begin OAuth flow with PKCE
 @csrf_protect
