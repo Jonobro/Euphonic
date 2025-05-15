@@ -418,12 +418,9 @@ def chat_view(request):
     - Use `##` for section headings. 
     - Use `**bold**` for emphasis. 
     - Use `-` or `*` for bullet lists.
-
-    Additional formatting requirements:
-    - Make sure all text is the same size and font.
-    - Put each paragraph on a new line.
+    - Make the font of the song titles the same as the rest of the text.
     """
-    # Maybe tweak or remove the "additional formatting requirements" section later on
+    # Maybe tweak or remove the "formatting requirements" section later on
 
     # Ensure user is authenticated with Spotify
     if not request.session.get('spotify_access_token'):
