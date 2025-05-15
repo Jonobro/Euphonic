@@ -420,8 +420,8 @@ def chat_view(request):
     - Use `-` or `*` for bullet lists.
 
     Additional formatting requirements:
-    - Don't bold song titles or artist names.
     - Make sure all text is the same size and font.
+    - Put each paragraph on a new line.
     """
     # Maybe tweak or remove the "additional formatting requirements" section later on
 
