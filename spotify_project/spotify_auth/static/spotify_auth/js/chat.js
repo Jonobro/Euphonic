@@ -83,4 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
         catch { addMessage(initial, 'ai'); }
     }
     scrollToBottom();
+
+    // Add tooltip mouse following functionality
+    const tooltip = document.querySelector('.custom-tooltip');
+    const tooltipContainer = document.querySelector('.tooltip-container');
+    
+    tooltipContainer.addEventListener('mousemove', (e) => {
+        tooltip.style.left = (e.clientX + 10) + 'px';
+        tooltip.style.top = (e.clientY + 10) + 'px';
+    });
 });

@@ -129,7 +129,7 @@ h1 {
 
 .custom-tooltip {
     visibility: hidden;
-    position: absolute;
+    position: fixed; /* Changed from absolute to fixed */
     z-index: 1;
     background-color: #333;
     color: white;
@@ -137,13 +137,12 @@ h1 {
     border-radius: 6px;
     padding: 8px 12px;
     width: 200px;
-    left: 105%;
-    top: 50%;
-    transform: translateY(-50%);
+    /* Remove left, top, and transform properties */
     opacity: 0;
     transition: opacity 0.2s;
     font-size: 14px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    pointer-events: none; /* Prevent tooltip from interfering with mouse events */
 }
 
 .tooltip-container:hover .custom-tooltip {
