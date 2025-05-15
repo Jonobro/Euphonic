@@ -13,7 +13,10 @@
 <body>
     <div class="container">
         <div class="navigation" style="text-align:right;">
-            <a href="{% url 'logout' %}" class="button" title="Purges your data with Euphonic Intelligence and revokes your OAuth authorization with Spotify">Logout</a>
+            <div class="tooltip-container">
+                <a href="{% url 'logout' %}" class="button">Logout</a>
+                <span class="custom-tooltip">Purges your data with Euphonic Intelligence and revokes your OAuth authorization with Spotify</span>
+            </div>
         </div>
         <h1>Your Music Taste Analysis & Chat</h1>
         <div id="chat-container">
