@@ -14,7 +14,7 @@ body {
     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 h1 {
-    color: #1DB954; /* Spotify green */
+    color: #1DB954;
     margin-top: 0;
 }
 .spotify-button {
@@ -37,9 +37,13 @@ h1 {
     margin-bottom: 30px;
     color: #B3B3B3;
 }
-/* Override browser defaults with !important */
 code, .privacy-content code {
   font-size: inherit !important;
+}
+code {
+  font-size: 1em !important;
+  font-family: inherit;
+  line-height: inherit !important;
 }
 .privacy-policy summary {
   color: #B3B3B3;
