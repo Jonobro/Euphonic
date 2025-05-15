@@ -39,11 +39,12 @@ h1 {
 }
 code, .privacy-content code {
   font-size: inherit !important;
-}
-code {
-  font-size: inherit !important;
-  font-family: inherit !important;
+  font-family: 'Helvetica Neue', Arial, sans-serif !important;
   line-height: inherit !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  color: inherit !important;
 }
 .privacy-policy summary {
   color: #B3B3B3;

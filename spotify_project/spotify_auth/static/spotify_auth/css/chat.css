@@ -29,6 +29,7 @@ h1 {
     font-weight: bold;
     font-size: 14px;
     transition: background-color 0.3s;
+    outline: none;
 }
 .button:hover {
     background-color: #1ed760;
