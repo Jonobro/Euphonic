@@ -15,6 +15,7 @@ from google import genai
 from google.genai import types
 from django.views.decorators.cache import never_cache
 from pathlib import Path
+from markdown import markdown
 
 # ===== PKCE Utility Functions =====
 
@@ -41,15 +42,16 @@ def index(request):
     if request.session.get('spotify_access_token'):
         return redirect(reverse('chat'))
 
-    # Read the privacy policy markdown into a variable
     policy_path = settings.BASE_DIR / "privacy_policy.md"
     try:
-        privacy_md = policy_path.read_text(encoding="utf-8")
+        raw = policy_path.read_text(encoding="utf-8")
+        # Convert Markdown to HTML
+        privacy_html = markdown(raw, extensions=['fenced_code', 'tables'])
     except FileNotFoundError:
-        privacy_md = "Privacy policy not found."
+        privacy_html = "<p>Privacy policy not found.</p>"
 
     return render(request, 'spotify_auth/index.html', {
-        'privacy_md': privacy_md
+        'privacy_html': privacy_html
     })
 
 # Begin OAuth flow with PKCE

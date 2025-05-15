@@ -1,5 +1,3 @@
-# Privacy Policy for Euphonic Intelligence
-
 **Last Updated:** May 15, 2025
 
 Jonathan Yoder, operating as Euphonic Intelligence ("we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, share, and retain your information when you use the Euphonic Intelligence application (the "Application" or "Service").

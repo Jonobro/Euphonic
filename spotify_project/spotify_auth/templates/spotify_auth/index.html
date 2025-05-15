@@ -1,27 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Euphonic Intelligence</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'spotify_auth/css/index.css' %}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Euphonic Intelligence</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'spotify_auth/css/index.css' %}">
 </head>
 <body>
-    <div class="container">
-        <h1>Euphonic Intelligence</h1>
-        
-        <div class="description">
-            <p>This application leverages artificial intelligence to generate custom playlists that precisely match your desires.</p>
-            <p>Click the button below to connect your Spotify account:</p>
-        </div>
-        
-        <a href="{% url 'spotify_login' %}" class="spotify-button">Connect to Spotify</a>
-
-        <div class="privacy-policy" style="margin-top: 40px; text-align: left;">
-          <h2>Privacy Policy</h2>
-          <pre style="white-space: pre-wrap; word-wrap: break-word;">{{ privacy_md }}</pre>
-        </div>
+  <div class="container">
+    <h1>Euphonic Intelligence</h1>
+    <div class="description">
+      <p>This application leverages artificial intelligence to generate custom playlists that precisely match your desires.</p>
+      <p>Click the button below to connect your Spotify account:</p>
     </div>
+    <a href="{% url 'spotify_login' %}" class="spotify-button">Connect to Spotify</a>
+
+    <details class="privacy-policy" style="margin-top:40px; font-family:inherit;">
+      <summary style="font-size:1.1em; font-weight:bold; cursor:pointer;">
+        Privacy Policy
+      </summary>
+      <div class="privacy-content" style="margin-top:10px; font-family:inherit; line-height:1.6; color:#B3B3B3;">
+        {{ privacy_html|safe }}
+      </div>
+    </details>
+  </div>
 </body>
 </html>
