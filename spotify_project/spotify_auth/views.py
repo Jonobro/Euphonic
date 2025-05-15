@@ -41,18 +41,7 @@ def index(request):
     # Redirect to chat page if user is already authenticated
     if request.session.get('spotify_access_token'):
         return redirect(reverse('chat'))
-
-    policy_path = settings.BASE_DIR / "privacy_policy.md"
-    try:
-        raw = policy_path.read_text(encoding="utf-8")
-        # Convert Markdown to HTML
-        privacy_html = markdown(raw, extensions=['fenced_code', 'tables'])
-    except FileNotFoundError:
-        privacy_html = "<p>Privacy policy not found.</p>"
-
-    return render(request, 'spotify_auth/index.html', {
-        'privacy_html': privacy_html
-    })
+    return render(request, 'spotify_auth/index.html')
 
 # Begin OAuth flow with PKCE
 @csrf_protect
