@@ -41,8 +41,8 @@ code, .privacy-content code {
   font-size: inherit !important;
 }
 code {
-  font-size: 1em !important;
-  font-family: inherit;
+  font-size: inherit !important;
+  font-family: inherit !important;
   line-height: inherit !important;
 }
 .privacy-policy summary {
