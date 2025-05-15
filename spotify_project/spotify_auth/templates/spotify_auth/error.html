@@ -13,11 +13,13 @@
         
         <p>There was a problem connecting to Spotify. Please return to the login screen and try again.</p>
 
-        <!-- NOTE! Remove this more specific error information in production once you have everything working -->
+        <!-- Comment out the below unless you are encountering an error -->
+
+        <!--
         {% if error %}
             <p><strong>Details:</strong> {{ error }}</p>
         {% endif %}
-        <!-- NOTE! Remove this more specific error information in production once you have everything working -->
+        -->
         
         <a href="{% url 'index' %}" class="button">Back to Login</a>
     </div>

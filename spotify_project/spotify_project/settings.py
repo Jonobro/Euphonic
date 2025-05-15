@@ -104,6 +104,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SESSION_COOKIE_SECURE = True  # HTTPS only
 SESSION_COOKIE_HTTPONLY = True  # Prevents JavaScript access
 SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+SESSION_COOKIE_DOMAIN = "euphonicintelligence.com"
 
 # Proxy setup
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

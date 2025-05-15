@@ -55,9 +55,6 @@ def spotify_login(request):
     state = secrets.token_urlsafe(16)
     request.session['spotify_auth_state'] = state
     
-    # Explicitly save the session before redirecting
-    request.session.save()
-    
     # Define authorization parameters
     auth_params = {
         'client_id': settings.SPOTIFY_CLIENT_ID,
