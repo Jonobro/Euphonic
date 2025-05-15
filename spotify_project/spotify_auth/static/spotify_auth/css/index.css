@@ -37,8 +37,9 @@ h1 {
     margin-bottom: 30px;
     color: #B3B3B3;
 }
-.privacy-content code {
-  font-size: inherit;
+/* Override browser defaults with !important */
+code, .privacy-content code {
+  font-size: inherit !important;
 }
 .privacy-policy summary {
   color: #B3B3B3;
