@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - EuphonicIntelligence
+  workflow_dispatch:
 
 jobs:
   deploy_application:
