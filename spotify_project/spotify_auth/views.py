@@ -5,6 +5,7 @@ import string
 import requests
 from urllib.parse import urlencode
 import json
+import re
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.urls import reverse
@@ -182,6 +183,61 @@ def _refresh_token_helper(request):
         request.session['spotify_refresh_token'] = token_info['refresh_token']
     return True
 
+# Helper function to get Spotify track URL
+def _get_spotify_track_url(request, song_title, artist_name):
+    access_token = request.session.get('spotify_access_token')
+    if not access_token:
+        print("Access token missing for Spotify search.")
+        return None
+
+    search_url = 'https://api.spotify.com/v1/search'
+    headers = {'Authorization': f'Bearer {access_token}'}
+    # Sanitize song_title and artist_name for query if necessary, though requests.get handles URL encoding of params
+    params = {
+        'q': f'track:"{song_title}" artist:"{artist_name}"', # Quoting might help with exact matches
+        'type': 'track',
+        'limit': 1
+    }
+
+    try:
+        response = requests.get(search_url, headers=headers, params=params, timeout=10)
+
+        if response.status_code == 401:  # Token expired
+            print(f"Spotify search token expired for '{song_title}'. Attempting refresh.")
+            refreshed = _refresh_token_helper(request)
+            if refreshed:
+                access_token = request.session.get('spotify_access_token')  # Get new token
+                if not access_token:
+                    print("Access token still missing after refresh attempt.")
+                    return None
+                headers['Authorization'] = f'Bearer {access_token}'
+                # Retry the request
+                response = requests.get(search_url, headers=headers, params=params, timeout=10)
+                print(f"Retrying Spotify search for '{song_title}' with new token. Status: {response.status_code}")
+            else:
+                print(f"Token refresh failed during Spotify search for '{song_title}'.")
+                return None  # Refresh failed
+
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx) other than 401 handled above
+        
+        data = response.json()
+        if data['tracks']['items']:
+            track_id = data['tracks']['items'][0]['id']
+            return f"https://open.spotify.com/track/{track_id}"
+        else:
+            print(f"No Spotify track found for '{song_title}' by '{artist_name}'.")
+            return None  # No track found
+            
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error during Spotify search for '{song_title}' by '{artist_name}': {http_err} - {response.text}")
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"Request error during Spotify search for '{song_title}' by '{artist_name}': {e}")
+        return None
+    except Exception as e: # Catch any other unexpected errors
+        print(f"Unexpected error during Spotify search for '{song_title}' by '{artist_name}': {e}")
+        return None
+
 # Helper function to gather all tracks
 def _fetch_all_spotify_tracks(request):
     simplified_tracks = []
@@ -342,17 +398,36 @@ def chat_view(request):
                 config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION)
             )
             response = chat.send_message(initial_prompt)
-            initial_analysis_text = response.text
+            initial_analysis_text = response.text # Raw AI response
 
-            # Store the history list in the session
+            # Process AI response for display
+            processed_initial_analysis_text = initial_analysis_text
+            
+            def replacer_fn_get(match):
+                song_title = match.group(1).strip()
+                artist_name = match.group(2).strip()
+                track_url = _get_spotify_track_url(request, song_title, artist_name)
+                if track_url:
+                    return f"[{song_title}]({track_url}) by {artist_name}"
+                else:
+                    return f"{song_title} by {artist_name}" # Fallback: just strip markers
+
+            # Pattern for $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@
+            specific_pattern = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
+            processed_initial_analysis_text = specific_pattern.sub(replacer_fn_get, processed_initial_analysis_text)
+            
+            # Remove any remaining $ or @ characters that were not part of the processed pattern
+            processed_initial_analysis_text = re.sub(r"[$@]", "", processed_initial_analysis_text)
+            
+            # Store the raw history list in the session
             history_list = []
-            for message in chat.get_history():
+            for message in chat.get_history(): # Contains raw AI response
                  history_list.append({'role': message.role, 'parts': [{'text': p.text for p in message.parts}]})
 
             request.session['chat_history'] = history_list
             request.session.modified = True
 
-            return render(request, 'spotify_auth/chat.html', {'analysis_result': initial_analysis_text})
+            return render(request, 'spotify_auth/chat.html', {'analysis_result': processed_initial_analysis_text}) # Pass processed text
 
         except Exception as e:
             print(f"Error in chat_view GET: {e}")
@@ -379,18 +454,37 @@ def chat_view(request):
             )
             print(f"Chat history: {history_list}")
             response = chat.send_message(user_message)
-            ai_response_text = response.text
+            ai_response_text = response.text # Raw AI response
 
+            # Process AI response for display
+            processed_ai_response_text = ai_response_text
+
+            def replacer_fn_post(match):
+                song_title = match.group(1).strip()
+                artist_name = match.group(2).strip()
+                track_url = _get_spotify_track_url(request, song_title, artist_name)
+                if track_url:
+                    return f"[{song_title}]({track_url}) by {artist_name}"
+                else:
+                    return f"{song_title} by {artist_name}" # Fallback: just strip markers
+
+            specific_pattern_post = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
+            processed_ai_response_text = specific_pattern_post.sub(replacer_fn_post, processed_ai_response_text)
+            
+            # Remove any remaining $ or @ characters
+            processed_ai_response_text = re.sub(r"[$@]", "", processed_ai_response_text)
+
+            # Store the raw, updated history list in the session
             updated_history_list = []
-            for message in chat.get_history():
+            for message in chat.get_history(): # Contains raw new AI message
                  updated_history_list.append({'role': message.role, 'parts': [{'text': p.text for p in message.parts}]})
 
-            print(f"Updated chat history: {updated_history_list}")
+            print(f"Updated chat history (raw): {updated_history_list}")
 
             request.session['chat_history'] = updated_history_list
             request.session.modified = True
 
-            return JsonResponse({'response': ai_response_text})
+            return JsonResponse({'response': processed_ai_response_text}) # Send processed text
 
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
