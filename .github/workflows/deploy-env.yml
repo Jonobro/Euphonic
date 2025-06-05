@@ -9,8 +9,7 @@ on:
 jobs:
   deploy_application:
     name: Deploy application to server
-    runs-on: LAPTOP-81O7UMAU
-    # runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
