@@ -270,9 +270,8 @@ def chat_view(request):
     If the user's prompt is vague, ambiguous, or unclear, please ask them for clarification before selecting songs for them.
     Don't ever include the same song twice in a playlist.
     Don't label your initial analysis as "Musical Analysis" or anything similar in large text. Just provide the analysis. This instruction only applies to your first response.
-    Whenever you provide a song title, enclose it with five dollar signs, like this: $$$$$Song Title$$$$$. Ensure that you do this for all song titles in your responses no matter what.
-    Whenever you provide an artist name, enclose it with five @ signs, like this: @@@@@Artist Name@@@@@. Ensure that you do this for all artist names in your responses no matter what.
-    Every time a song is mentioned, it should be formatted as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@. Don't ever provide just the song title or just the artist name without this formatting.
+    Every time a song is mentioned, it should be formatted as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@. Don't ever provide just the song title without this formatting. Ensure you do this for all song titles in your responses no matter what.
+    If an artist name is mentioned without a song title, it should not be formatted with any @ signs. Just provide the artist name as is.
 
     Formatting requirements:
     - Use Markdown for all output. 
