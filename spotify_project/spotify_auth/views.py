@@ -417,7 +417,7 @@ def chat_view(request):
             processed_initial_analysis_text = specific_pattern.sub(replacer_fn_get, processed_initial_analysis_text)
             
             # Remove any remaining $ or @ characters that were not part of the processed pattern
-            processed_initial_analysis_text = re.sub(r"[$@]", "", processed_initial_analysis_text)
+            processed_initial_analysis_text = re.sub(r"\${5}|@{5}", "", processed_initial_analysis_text)
             
             # Store the raw history list in the session
             history_list = []
@@ -466,13 +466,13 @@ def chat_view(request):
                 if track_url:
                     return f"[{song_title}]({track_url}) by {artist_name}"
                 else:
-                    return f"{song_title} by {artist_name}" # Fallback: just strip markers
+                    return f"{song_title} by {artist_name}"
 
             specific_pattern_post = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
             processed_ai_response_text = specific_pattern_post.sub(replacer_fn_post, processed_ai_response_text)
             
             # Remove any remaining $ or @ characters
-            processed_ai_response_text = re.sub(r"[$@]", "", processed_ai_response_text)
+            processed_ai_response_text = re.sub(r"\${5}|@{5}", "", processed_ai_response_text)
 
             # Store the raw, updated history list in the session
             updated_history_list = []
