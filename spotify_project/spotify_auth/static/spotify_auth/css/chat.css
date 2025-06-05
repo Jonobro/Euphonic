@@ -10,17 +10,17 @@ body {
 .container {
     background-color: #181818;
     border-radius: 10px;
-    padding: 20px; /* Reduced from 30px */
+    padding: 20px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 h1 {
-    color: #1DB954;
+    color: rgb(29, 185, 84);
     margin-top: 0;
     margin-bottom: 20px;
 }
 .button {
     display: inline-block;
-    background-color: #1DB954;
+    background-color: rgb(29, 185, 84);
     color: white;
     padding: 8px 15px;
     border: none;
@@ -32,7 +32,7 @@ h1 {
     outline: none;
 }
 .button:hover {
-    background-color: #1ed760;
+    background-color: rgb(29, 185, 84);
 }
 .library-string-container {
     margin-top: 20px;
@@ -78,9 +78,8 @@ h1 {
     margin: 0;
 }
 
-/* Style hyperlinks in messages */
 .message a {
-    color: rgb(0, 100, 50);
+    color: rgb(29, 185, 84);
     text-decoration: underline;
 }
 
@@ -96,7 +95,7 @@ h1 {
 }
 
 .user-message {
-    background-color: #1DB954;
+    background-color: rgb(29, 185, 84);
     color: #ffffff;
     align-self: flex-end;
     margin-left: auto;
@@ -105,7 +104,7 @@ h1 {
 
 #chat-input-area {
     display: flex;
-    align-items: center; /* Vertically align items in the center */
+    align-items: center;
     border-top: 1px solid #404040;
     padding-top: 15px;
 }
@@ -133,7 +132,7 @@ h1 {
 
 .custom-tooltip {
     visibility: hidden;
-    position: fixed; /* Changed from absolute to fixed */
+    position: fixed;
     z-index: 1;
     background-color: #333;
     color: white;
@@ -141,12 +140,11 @@ h1 {
     border-radius: 6px;
     padding: 8px 12px;
     width: 200px;
-    /* Remove left, top, and transform properties */
     opacity: 0;
     transition: opacity 0.2s;
     font-size: 14px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    pointer-events: none; /* Prevent tooltip from interfering with mouse events */
+    pointer-events: none;
 }
 
 .tooltip-container:hover .custom-tooltip {
@@ -165,7 +163,6 @@ h1 {
     margin: 0;
 }
 
-/* Add to spotify_auth/static/spotify_auth/css/chat.css and index.css */
 .spotify-footer {
     text-align: center;
     margin-top: 20px;
@@ -174,7 +171,7 @@ h1 {
 }
 
 .spotify-footer a {
-    color: #1DB954;
+    color: rgb(29, 185, 84);
     text-decoration: none;
 }
 
