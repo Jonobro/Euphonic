@@ -34,9 +34,6 @@ h1 {
 .button:hover {
     background-color: #1ed760;
 }
-.navigation {
-    margin-bottom: 0; /* Removed margin since it's not needed */
-}
 .library-string-container {
     margin-top: 20px;
     background-color: #282828;
