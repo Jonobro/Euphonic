@@ -182,53 +182,6 @@ def _refresh_token_helper(request):
         request.session['spotify_refresh_token'] = token_info['refresh_token']
     return True
 
-def query_musicbrainz_recordings(isrc_codes):
-    if not isrc_codes:
-        return {}
-    
-    isrc_to_recordings = {isrc: [] for isrc in isrc_codes}
-    batch_size = 25
-
-    for i in range(0, len(isrc_codes), batch_size):
-        batch_isrcs = isrc_codes[i:i + batch_size]
-        
-        query = ' OR '.join(f"isrc:{code}" for code in batch_isrcs)
-        params = {"query": query, "fmt": "json"}
-
-        try:
-            response = requests.get(
-                "http://musicbrainz.org/ws/2/recording",
-                params=params,
-                headers={"User-Agent": "EuphonicIntelligence/1.0 (euphonicintelligence.com)"},
-                timeout=60
-            )
-            response.raise_for_status()
-            
-            recordings_data = response.json().get("recordings", [])
-            
-            for recording in recordings_data:
-                recording_id = recording.get("id")
-                if not recording_id:
-                    continue
-                
-                found_isrcs = recording.get('isrcs', []) 
-                
-                for isrc in found_isrcs:
-                    if isrc in isrc_to_recordings:
-                        if recording_id not in isrc_to_recordings[isrc]:
-                             isrc_to_recordings[isrc].append(recording_id)
-
-        except requests.RequestException as e:
-            print(f"Error querying MusicBrainz batch starting at index {i}: {e}")
-            continue 
-        except json.JSONDecodeError as e:
-             print(f"Error decoding MusicBrainz JSON response for batch starting at index {i}: {e}")
-             continue
-        except Exception as e:
-             print(f"An unexpected error occurred during MusicBrainz query for batch starting at index {i}: {e}")
-             continue
-    return isrc_to_recordings
-
 # Helper function to gather all tracks
 def _fetch_all_spotify_tracks(request):
     simplified_tracks = []
@@ -265,48 +218,6 @@ def _fetch_all_spotify_tracks(request):
             if not items:
                  break
 
-            isrc_codes = list(set(
-                item['track']['external_ids']['isrc']
-                for item in items
-                if item.get('track', {}).get('external_ids', {}).get('isrc')
-            ))
-
-            isrc_to_recording_ids = {}
-            rec_id_to_acousticbrainz_data = {}
-
-            if isrc_codes:
-                isrc_to_recording_ids = query_musicbrainz_recordings(isrc_codes)
-
-                all_recording_ids = list(set(
-                    rec_id
-                    for ids in isrc_to_recording_ids.values()
-                    for rec_id in ids
-                ))
-
-                batch_size = 25
-                for i in range(0, len(all_recording_ids), batch_size):
-                    batch_ids = all_recording_ids[i:i + batch_size]
-                    recording_ids_param = ";".join(batch_ids)
-
-                    try:
-                        resp = requests.get(
-                            "https://acousticbrainz.org/api/v1/high-level",
-                            params={"recording_ids": recording_ids_param},
-                            headers={"Accept": "application/json"},
-                            timeout=30
-                        )
-                        resp.raise_for_status()
-                        acoustic_data_batch = resp.json()
-
-                        rec_id_to_acousticbrainz_data.update(acoustic_data_batch)
-
-                    except requests.RequestException as e:
-                        print(f"AcousticBrainz batch request failed for IDs starting with {batch_ids[0] if batch_ids else 'N/A'}: {e}")
-                    except json.JSONDecodeError as e:
-                        print(f"Failed to decode AcousticBrainz JSON for batch starting with {batch_ids[0] if batch_ids else 'N/A'}: {e}")
-                    except Exception as e:
-                         print(f"Unexpected error fetching AcousticBrainz batch starting with {batch_ids[0] if batch_ids else 'N/A'}: {e}")
-
             for item in items:
                 track = item.get('track')
                 if not track:
@@ -315,66 +226,11 @@ def _fetch_all_spotify_tracks(request):
                 track_name = track.get('name')
                 track_id = track.get('id')
                 artist_names = [a.get('name') for a in track.get('artists', [])]
-                isrc_code = track.get('external_ids', {}).get('isrc')
-
-                matched_recording_id = None
-                danceability = mood_acoustic = mood_electronic = mood_happy = mood_party = mood_relaxed = mood_sad = timbre = voice_instrumental = None
-                danceability_prob = mood_acoustic_prob = mood_electronic_prob = mood_happy_prob = mood_party_prob = mood_relaxed_prob = mood_sad_prob = timbre_prob = voice_instrumental_prob = None
-
-                potential_recording_ids = isrc_to_recording_ids.get(isrc_code, [])
-                for rec_id in potential_recording_ids:
-                    acoustic_data = rec_id_to_acousticbrainz_data.get(rec_id)
-
-                    if acoustic_data and acoustic_data != {"mbid_mapping": {}}:
-                        matched_recording_id = rec_id
-                        hl_data_frames = acoustic_data
-                        hl_data = hl_data_frames.get("0", {}).get("highlevel")
-
-                        if hl_data:
-                            danceability = hl_data.get('danceability', {}).get('value')
-                            danceability_prob = hl_data.get('danceability', {}).get('probability')
-                            mood_acoustic = hl_data.get('mood_acoustic', {}).get('value')
-                            mood_acoustic_prob = hl_data.get('mood_acoustic', {}).get('probability')
-                            mood_electronic = hl_data.get('mood_electronic', {}).get('value')
-                            mood_electronic_prob = hl_data.get('mood_electronic', {}).get('probability')
-                            mood_happy = hl_data.get('mood_happy', {}).get('value')
-                            mood_happy_prob = hl_data.get('mood_happy', {}).get('probability')
-                            mood_party = hl_data.get('mood_party', {}).get('value')
-                            mood_party_prob = hl_data.get('mood_party', {}).get('probability')
-                            mood_relaxed = hl_data.get('mood_relaxed', {}).get('value')
-                            mood_relaxed_prob = hl_data.get('mood_relaxed', {}).get('probability')
-                            mood_sad = hl_data.get('mood_sad', {}).get('value')
-                            mood_sad_prob = hl_data.get('mood_sad', {}).get('probability')
-                            timbre = hl_data.get('timbre', {}).get('value')
-                            timbre_prob = hl_data.get('timbre', {}).get('probability')
-                            voice_instrumental = hl_data.get('voice_instrumental', {}).get('value')
-                            voice_instrumental_prob = hl_data.get('voice_instrumental', {}).get('probability')
-                        break
 
                 simplified_tracks.append({
                     'id': track_id,
                     'name': track_name,
-                    'artists': ', '.join(artist_names),
-                    'isrc': isrc_code,
-                    'recording_id': matched_recording_id,
-                    'danceability': danceability,
-                    'danceability_prob': danceability_prob,
-                    'mood_acoustic': mood_acoustic,
-                    'mood_acoustic_prob': mood_acoustic_prob,
-                    'mood_electronic': mood_electronic,
-                    'mood_electronic_prob': mood_electronic_prob,
-                    'mood_happy': mood_happy,
-                    'mood_happy_prob': mood_happy_prob,
-                    'mood_party': mood_party,
-                    'mood_party_prob': mood_party_prob,
-                    'mood_relaxed': mood_relaxed,
-                    'mood_relaxed_prob': mood_relaxed_prob,
-                    'mood_sad': mood_sad,
-                    'mood_sad_prob': mood_sad_prob,
-                    'timbre': timbre,
-                    'timbre_prob': timbre_prob,
-                    'voice_instrumental': voice_instrumental,
-                    'voice_instrumental_prob': voice_instrumental_prob
+                    'artists': ', '.join(artist_names)
                 })
 
             if total is None:

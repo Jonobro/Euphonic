@@ -17,7 +17,7 @@ except RuntimeError as e:
         raise
 
 from django.conf import settings
-from spotify_auth.views import _fetch_all_spotify_tracks, query_musicbrainz_recordings, _refresh_token_helper
+from spotify_auth.views import _fetch_all_spotify_tracks, _refresh_token_helper
 
 class DummySession(dict):
     def __init__(self):
