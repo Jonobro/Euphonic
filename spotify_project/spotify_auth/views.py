@@ -270,7 +270,7 @@ def chat_view(request):
     If the user's prompt is vague, ambiguous, or unclear, please ask them for clarification before selecting songs for them.
     Don't ever include the same song twice in a playlist.
     Don't label your initial analysis as "Musical Analysis" or anything similar in large text. Just provide the analysis. This instruction only applies to your first response.
-    Whenever you provide a song title, enclose it with triple backticks, like this: ```Song Title```. Ensure that you do this for all song titles in your responses no matter what.
+    Whenever you provide a song title, enclose it with five dollar signs, like this: $$$$$Song Title$$$$$. Ensure that you do this for all song titles in your responses no matter what.
 
     Formatting requirements:
     - Use Markdown for all output. 
