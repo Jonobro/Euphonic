@@ -79,7 +79,8 @@ h1 {
 }
 
 .message a {
-    color:rgb(30, 185, 90);
+    color:rgb(30, 200, 90);
+    text-decoration: none;
 }
 
 .message a:hover {
