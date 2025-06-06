@@ -232,7 +232,6 @@ def _refresh_token_helper(request):
     
     token_info = response.json()
     
-    # Update tokens in session
     request.session['spotify_access_token'] = token_info['access_token']
     if 'refresh_token' in token_info:
         request.session['spotify_refresh_token'] = token_info['refresh_token']
@@ -291,9 +290,7 @@ def _get_spotify_track_url(request, song_title, artist_name):
         print(f"Unexpected error during Spotify search for '{song_title}' by '{artist_name}': {e}")
         return None
 
-# Helper function to gather all tracks
 def _fetch_all_spotify_tracks(request):
-    # Use 'spotify_user_tracks' as the consistent session key
     session_key_tracks = 'spotify_user_tracks'
     
     simplified_tracks = []
@@ -321,15 +318,15 @@ def _fetch_all_spotify_tracks(request):
                 if not refresh_success:
                     print("Token refresh failed during library fetch.")
                     return None, False
-                continue # Retry the request with the new token
+                continue
 
             response.raise_for_status()
 
             data = response.json()
             items = data.get('items', [])
-            if not items and offset > 0: # if items is empty and it's not the first request
+            if not items and offset > 0:
                  break
-            if not items and offset == 0 and data.get('total', 0) == 0: # Library is empty
+            if not items and offset == 0 and data.get('total', 0) == 0:
                 break
 
 
@@ -353,17 +350,17 @@ def _fetch_all_spotify_tracks(request):
 
             offset += len(items)
 
-            if not items and offset >= total : # handles empty library correctly
+            if not items and offset >= total: 
                 break
             
             if total is not None and offset >= total:
                 break
             
-            if not items: # If items is empty after the first request and total is not 0, something is wrong or loop should break
+            if not items:
                 break
 
 
-            if offset > 20000: # Safety break for extremely large libraries
+            if offset > 20000:
                 print(f"Exiting due to excessively large library (processed {offset} tracks)")
                 break
 
@@ -380,7 +377,7 @@ def _fetch_all_spotify_tracks(request):
 
 
 @csrf_protect
-@require_http_methods(["GET"]) # Chat view now only handles GET for page rendering
+@require_http_methods(["GET"])
 @never_cache
 def chat_view(request):
     if not request.session.get('spotify_access_token'):
@@ -391,18 +388,17 @@ def chat_view(request):
     is_loading_initial = False
 
     if not chat_history:
-        is_loading_initial = True # Signal to template/JS to make AJAX call
+        is_loading_initial = True
     else:
-        # If history exists, find the first AI (model) message to display
         for entry in chat_history:
             if entry.get('role') == 'model':
                 initial_analysis_for_template = entry['parts'][0]['text']
                 break
-        if not initial_analysis_for_template: # Fallback if no model message found
+        if not initial_analysis_for_template:
             initial_analysis_for_template = "Welcome back! How can I assist you with your music today?"
     
     return render(request, 'spotify_auth/chat.html', {
-        'analysis_result': initial_analysis_for_template, # Used if not is_loading_initial
+        'analysis_result': initial_analysis_for_template,
         'is_loading_initial_data': is_loading_initial
     })
 
@@ -414,7 +410,6 @@ def initialize_chat_data_view(request):
         return JsonResponse({'error': 'User not authenticated'}, status=401)
 
     if request.session.get('chat_history'):
-        # Already initialized, send back the first AI message from history
         first_ai_message = "Chat already initialized."
         for entry in request.session.get('chat_history', []):
             if entry.get('role') == 'model':
@@ -423,9 +418,8 @@ def initialize_chat_data_view(request):
         return JsonResponse({'analysis_result': first_ai_message, 'already_initialized': True})
 
     try:
-        session_key_tracks = 'spotify_user_tracks' # Consistent key
+        session_key_tracks = 'spotify_user_tracks'
         
-        # Fetch Spotify tracks if not already in session from a previous attempt
         simplified_tracks_list = request.session.get(session_key_tracks)
         fetch_success = True
         if simplified_tracks_list is None:
@@ -460,6 +454,7 @@ def initialize_chat_data_view(request):
         )
         response = chat.send_message(initial_prompt)
         initial_analysis_text = response.text
+        print(f"Raw Gemini Response (initialize_chat_data_view): {initial_analysis_text}")
 
         def clean_markers_for_initial_display(match):
             song_title = match.group(1).strip()
@@ -500,15 +495,15 @@ def chat_message_api(request):
              return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
 
         client = get_gemini_client()
-        # Recreate chat object with history for each new message
         chat = client.chats.create(
             model=MODEL_NAME,
-            history=history_list, # Pass the existing history
+            history=history_list,
             config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION)
         )
         
         response = chat.send_message(user_message)
         ai_response_text = response.text
+        print(f"Raw Gemini Response (chat_message_api): {ai_response_text}")
 
         processed_ai_response_text = ai_response_text
         def replacer_fn(match):
@@ -522,7 +517,7 @@ def chat_message_api(request):
         processed_ai_response_text = re.sub(r"\${5}|@{5}", "", processed_ai_response_text)
 
         updated_history_list = []
-        for message_part in chat.get_history(): # Corrected iteration
+        for message_part in chat.get_history():
              updated_history_list.append({'role': message_part.role, 'parts': [{'text': p.text for p in message_part.parts}]})
         
         request.session['chat_history'] = updated_history_list
