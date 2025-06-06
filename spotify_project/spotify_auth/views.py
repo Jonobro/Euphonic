@@ -329,6 +329,7 @@ def chat_view(request):
         *   Select only songs that you are fairly certain match the user's criteria.
     4.  **Song Formatting:**
         *   Format ALL song mentions as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@
+        *   Do not add backticks around song titles or artist names.
         *   If a song features another artist, the closing @@@@@ must come *after* the primary artist's name and *before* "ft.". Example: $$$$$Song Title$$$$$ by @@@@@Artist 1@@@@@ ft. Artist 2
         *   Artist names mentioned *without* a song title should NOT have `@` formatting (e.g., "What do you think of Taylor Swift?").
     5.  **Playlist Length:**
