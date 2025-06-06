@@ -46,6 +46,7 @@ SYSTEM_INSTRUCTION = """\
         *   Only suggest real songs that are definitely available on Spotify.
         *   Ensure no song appears more than once in a playlist.
         *   Select only songs that you are fairly certain match the user's criteria.
+        *   Make sure you aren't flipping the artist and the song title.
     4.  **Song Formatting:**
         *   Format ALL song mentions as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@
         *   Do not add backticks around song titles or artist names.
@@ -420,7 +421,7 @@ def initialize_chat_data_view(request):
         )
         response = chat.send_message(initial_prompt)
         initial_analysis_text = response.text
-        print(f"Raw Gemini Response (initialize_chat_data_view): {initial_analysis_text}")
+        print(f"Raw Gemini Response (initialize_chat_data_view): {response}")
 
         def clean_markers_for_initial_display(match):
             song_title = match.group(1).strip()
@@ -470,7 +471,7 @@ def chat_message_api(request):
         
         response = chat.send_message(user_message)
         ai_response_text = response.text
-        print(f"Raw Gemini Response (chat_message_api): {ai_response_text}")
+        print(f"Raw Gemini Response (chat_message_api): {response}")
 
         processed_ai_response_text = ai_response_text
         def replacer_fn(match):
