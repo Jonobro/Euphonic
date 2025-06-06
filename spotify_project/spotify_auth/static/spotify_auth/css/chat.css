@@ -79,6 +79,10 @@ h1 {
     margin: 0;
 }
 
+.message p + p {
+    margin-top: 1em;
+}
+
 .message a {
     color:rgb(30, 200, 90);
     text-decoration: none;
