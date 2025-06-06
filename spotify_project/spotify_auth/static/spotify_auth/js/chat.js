@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         msg.className = `message ${sender}-message`;
         if (window.marked && window.DOMPurify) {
             try { msg.innerHTML = DOMPurify.sanitize(marked.parse(text || '')); }
-            catch { msg.textContent = text; } // Fallback if parsing fails
+            catch { msg.textContent = text; }
         } else {
             msg.textContent = text;
         }
@@ -26,9 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return msg;
     };
 
-    // Updated to point to the new API endpoint for chat messages
     const sendMessageToBackend = async (message) => {
-        const res = await fetch('/chat_message_api/', { // Updated URL
+        const res = await fetch('/chat_message_api/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             body: JSON.stringify({ message })
@@ -78,13 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Initial data loading logic
     const isInitiallyLoading = messageList.dataset.isLoadingInitial === 'true';
     const initialMessageFromTemplate = messageList.dataset.initialMessage;
 
     if (isInitiallyLoading) {
         const loadingIndicator = addMessage("Welcome! We're fetching your Spotify library and preparing your initial analysis. This might take a moment...", 'ai');
-        userInput.disabled = sendButton.disabled = true; // Disable input during initial load
+        userInput.disabled = sendButton.disabled = true;
 
         fetch('/initialize_chat_data/', {
             method: 'POST',
@@ -118,24 +116,22 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Initialization error:", error);
         })
         .finally(() => {
-            userInput.disabled = sendButton.disabled = false; // Re-enable input
-            if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) { // Avoid stealing focus if user typed
+            userInput.disabled = sendButton.disabled = false;
+            if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
                  userInput.focus();
             }
         });
     } else if (initialMessageFromTemplate) {
-        // If not loading via AJAX, but an initial message was passed from the template
         try { addMessage(JSON.parse(`"${initialMessageFromTemplate}"`), 'ai'); }
         catch { addMessage(initialMessageFromTemplate, 'ai'); }
     }
     
-    scrollToBottom(); // Call once after potential initial message setup
+    scrollToBottom();
 
-    // Add tooltip mouse following functionality
     const tooltip = document.querySelector('.custom-tooltip');
     const tooltipContainer = document.querySelector('.tooltip-container');
     
-    if (tooltip && tooltipContainer) { // Ensure elements exist
+    if (tooltip && tooltipContainer) {
         tooltipContainer.addEventListener('mousemove', (e) => {
             tooltip.style.left = (e.clientX + 10) + 'px';
             tooltip.style.top = (e.clientY + 10) + 'px';

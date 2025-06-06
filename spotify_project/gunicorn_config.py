@@ -17,10 +17,8 @@ timeout = 1000
 max_requests = 1000
 max_requests_jitter = 50
 
-# Log settings
 errorlog = "logs/error.log"
 accesslog = "logs/access.log"
 loglevel = "info"
 
-# Process name
 proc_name = "spotify_project"

@@ -18,25 +18,17 @@ from django.views.decorators.cache import never_cache
 from pathlib import Path
 from markdown import markdown
 
-# ===== PKCE Utility Functions =====
-
-# Generate a random string for PKCE code verifier
 def generate_code_verifier(length=64):
     possible_chars = string.ascii_letters + string.digits + '-._~'
     code_verifier = ''.join(secrets.choice(possible_chars) for _ in range(length))
     return code_verifier
 
-# Transform the code verifier using SHA256 algorithm to create the code challenge
 def generate_code_challenge(verifier):
-    # SHA256 hash the verifier
     sha256_hash = hashlib.sha256(verifier.encode('utf-8')).digest()
-    # Base64 URL encode the hash
     code_challenge = base64.urlsafe_b64encode(sha256_hash).decode('utf-8')
-    # Remove padding characters
     code_challenge = code_challenge.replace('=', '')
     return code_challenge
 
-# ===== Module Level Constants and Helpers =====
 GEMINI_CLIENT = None
 MODEL_NAME = "gemini-2.5-flash-preview-05-20"
 SYSTEM_INSTRUCTION = """\
@@ -91,29 +83,18 @@ def get_gemini_client():
         GEMINI_CLIENT = genai.Client(api_key=settings.GEMINI_API_KEY)
     return GEMINI_CLIENT
 
-# ===== Views =====
-
 def index(request):
-    # Redirect to chat page if user is already authenticated
     if request.session.get('spotify_access_token'):
         return redirect(reverse('chat'))
     return render(request, 'spotify_auth/index.html')
 
-# Begin OAuth flow with PKCE
 @csrf_protect
 def spotify_login(request):
-    # Generate code verifier and store in session
     code_verifier = generate_code_verifier(64)
     request.session['spotify_code_verifier'] = code_verifier
-    
-    # Generate code challenge from verifier
     code_challenge = generate_code_challenge(code_verifier)
-    
-    # Generate state parameter for CSRF protection
     state = secrets.token_urlsafe(16)
     request.session['spotify_auth_state'] = state
-    
-    # Define authorization parameters
     auth_params = {
         'client_id': settings.SPOTIFY_CLIENT_ID,
         'response_type': 'code',
@@ -123,40 +104,31 @@ def spotify_login(request):
         'code_challenge_method': 'S256',
         'code_challenge': code_challenge
     }
-    
-    # Construct authorization URL
     auth_url = f"https://accounts.spotify.com/authorize?{urlencode(auth_params)}"
-    
-    # Redirect to Spotify authorization page
     return redirect(auth_url)
 
-# Handle callback from Spotify
 @csrf_protect
 def spotify_callback(request):
-    # Get code from query parameters
     code = request.GET.get('code')
     state = request.GET.get('state')
     error = request.GET.get('error')
-    
-    # Check for errors in the callback
+
     if error:
         return render(request, 'spotify_auth/error.html', {'error': error})
-    
-    # Verify state parameter to prevent CSRF attacks
     stored_state = request.session.get('spotify_auth_state')
+    
     if not state or state != stored_state:
         return render(request, 'spotify_auth/error.html', {
             'error': 'State verification failed. Possible CSRF attack.'
         })
     
-    # Get the code verifier from session
     code_verifier = request.session.get('spotify_code_verifier')
+    
     if not code_verifier:
         return render(request, 'spotify_auth/error.html', {
             'error': 'Code verifier not found in session.'
         })
     
-    # Exchange authorization code for access token
     token_url = 'https://accounts.spotify.com/api/token'
     
     token_data = {
@@ -171,7 +143,6 @@ def spotify_callback(request):
         'Content-Type': 'application/x-www-form-urlencoded',
     }
     
-    # Make request to Spotify token endpoint
     response = requests.post(token_url, data=token_data, headers=headers)
     
     if response.status_code != 200:
@@ -180,15 +151,12 @@ def spotify_callback(request):
             'error': 'Token exchange with Spotify failed. Please try again.'
         })
     
-    # Parse token response
     token_info = response.json()
     
-    # Store tokens securely in session
     request.session['spotify_access_token'] = token_info['access_token']
     if 'refresh_token' in token_info:
         request.session['spotify_refresh_token'] = token_info['refresh_token']
 
-    # Delete session variables that are no longer needed for increased security
     if 'spotify_code_verifier' in request.session:
         del request.session['spotify_code_verifier']
     if 'spotify_auth_state' in request.session:
@@ -197,13 +165,9 @@ def spotify_callback(request):
     return redirect(reverse('chat'))
 
 def logout_view(request):
-    # Flush the entire session to remove all data, including Spotify tokens
     request.session.flush() 
-    # Redirect to the index page after logout
     return redirect(reverse('index'))
 
-# Helper function to refresh access token when it expires
-# Returns boolean variable to indicate success or failure
 def _refresh_token_helper(request):
     refresh_token = request.session.get('spotify_refresh_token')
     if not refresh_token:
