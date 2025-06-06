@@ -8,6 +8,7 @@ services:
       - .env
     environment:
       - DJANGO_DEBUG=False
+    restart: unless-stopped
 
   nginx:
     image: nginx:1.27-alpine
@@ -30,6 +31,7 @@ services:
       - certbot_certs:/etc/letsencrypt
       - certbot_www:/var/www/certbot
       - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
     entrypoint: >
       /bin/sh -c '
         trap exit TERM;
