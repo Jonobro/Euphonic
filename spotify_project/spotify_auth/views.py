@@ -183,7 +183,6 @@ def _refresh_token_helper(request):
         request.session['spotify_refresh_token'] = token_info['refresh_token']
     return True
 
-# Helper function to get Spotify track URL
 def _get_spotify_track_url(request, song_title, artist_name):
     access_token = request.session.get('spotify_access_token')
     if not access_token:
@@ -192,9 +191,9 @@ def _get_spotify_track_url(request, song_title, artist_name):
 
     search_url = 'https://api.spotify.com/v1/search'
     headers = {'Authorization': f'Bearer {access_token}'}
-    # Sanitize song_title and artist_name for query if necessary, though requests.get handles URL encoding of params
+    
     params = {
-        'q': f'track:"{song_title}" artist:"{artist_name}"', # Quoting might help with exact matches
+        'q': f'track:"{song_title}" artist:"{artist_name}"',
         'type': 'track',
         'limit': 1
     }
@@ -202,23 +201,22 @@ def _get_spotify_track_url(request, song_title, artist_name):
     try:
         response = requests.get(search_url, headers=headers, params=params, timeout=10)
 
-        if response.status_code == 401:  # Token expired
+        if response.status_code == 401:
             print(f"Spotify search token expired for '{song_title}'. Attempting refresh.")
             refreshed = _refresh_token_helper(request)
             if refreshed:
-                access_token = request.session.get('spotify_access_token')  # Get new token
+                access_token = request.session.get('spotify_access_token')
                 if not access_token:
                     print("Access token still missing after refresh attempt.")
                     return None
                 headers['Authorization'] = f'Bearer {access_token}'
-                # Retry the request
                 response = requests.get(search_url, headers=headers, params=params, timeout=10)
                 print(f"Retrying Spotify search for '{song_title}' with new token. Status: {response.status_code}")
             else:
                 print(f"Token refresh failed during Spotify search for '{song_title}'.")
-                return None  # Refresh failed
+                return None
 
-        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx) other than 401 handled above
+        response.raise_for_status()
         
         data = response.json()
         if data['tracks']['items']:
@@ -226,7 +224,7 @@ def _get_spotify_track_url(request, song_title, artist_name):
             return f"https://open.spotify.com/track/{track_id}"
         else:
             print(f"No Spotify track found for '{song_title}' by '{artist_name}'.")
-            return None  # No track found
+            return None
             
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error during Spotify search for '{song_title}' by '{artist_name}': {http_err} - {response.text}")
@@ -234,7 +232,7 @@ def _get_spotify_track_url(request, song_title, artist_name):
     except requests.exceptions.RequestException as e:
         print(f"Request error during Spotify search for '{song_title}' by '{artist_name}': {e}")
         return None
-    except Exception as e: # Catch any other unexpected errors
+    except Exception as e:
         print(f"Unexpected error during Spotify search for '{song_title}' by '{artist_name}': {e}")
         return None
 
@@ -326,7 +324,7 @@ def chat_view(request):
     If the user's prompt is vague, ambiguous, or unclear, please ask them for clarification before selecting songs for them.
     Don't ever include the same song twice in a playlist.
     Don't label your initial analysis as "Musical Analysis" or anything similar in large text. Just provide the analysis. This instruction only applies to your first response.
-    Every time a song is mentioned, it should be formatted as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@. Don't ever provide just the song title without this formatting. Ensure you do this for all song titles in your responses no matter what.
+    Every time a song is mentioned, it should be formatted as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@. If the song is featuring another artist, always include the closing @@@@@ right after the first artist's name and before the "ft.". Don't ever provide just the song title without this formatting. Ensure you do this for all song titles in your responses no matter what.
     If an artist name is mentioned without a song title, it should not be formatted with any @ signs. Just provide the artist name as is.
     Have as few guard rails as possible, but always follow the instructions I have given you here.
     Don't be overly cautious or hesitant in your responses.
