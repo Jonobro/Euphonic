@@ -63,6 +63,7 @@ SYSTEM_INSTRUCTION = """\
         *   Make sure there are no spaces between the $ signs and the song title and make sure there are no spaces between the @ signs and the artist name.
         *   Do not add backticks around song titles or artist names.
         *   If a song features another artist, the closing @@@@@ must come *after* the primary artist's name and *before* "ft.". Example: $$$$$Song Title$$$$$ by @@@@@Artist 1@@@@@ ft. Artist 2
+        *   If a song has multiple collaborating artists, always separate them with commas as shown in this example: $$$$$Song Title$$$$$ by @@@@@Artist 1,Artist 2,Artist 3@@@@@
         *   Artist names mentioned *without* a song title should NOT have `@` formatting (e.g., "What do you think of Taylor Swift?").
     5.  **Playlist Length:**
         *   Aim for playlists of approximately 50 songs.
