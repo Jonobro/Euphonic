@@ -59,6 +59,8 @@ SYSTEM_INSTRUCTION = """\
         *   Make sure you aren't flipping the artist and the song title.
     4.  **Song Formatting:**
         *   Format ALL song mentions as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@
+        *   Make sure there are no spaces between the five $ signs or between the five @ signs.
+        *   Make sure there are no spaces between the $ signs and the song title and make sure there are no spaces between the @ signs and the artist name.
         *   Do not add backticks around song titles or artist names.
         *   If a song features another artist, the closing @@@@@ must come *after* the primary artist's name and *before* "ft.". Example: $$$$$Song Title$$$$$ by @@@@@Artist 1@@@@@ ft. Artist 2
         *   Artist names mentioned *without* a song title should NOT have `@` formatting (e.g., "What do you think of Taylor Swift?").
