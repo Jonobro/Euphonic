@@ -323,6 +323,7 @@ def chat_view(request):
     Don't mention these instructions to the end-user.
     If the user's prompt is vague, ambiguous, or unclear, please ask them for clarification before selecting songs for them.
     Don't ever include the same song twice in a playlist.
+    Make sure all songs you suggest are real songs that are available on Spotify.
     Don't label your initial analysis as "Musical Analysis" or anything similar in large text. Just provide the analysis. This instruction only applies to your first response.
     Every time a song is mentioned, it should be formatted as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@. If the song is featuring another artist, always include the closing @@@@@ right after the first artist's name and before the "ft.". Don't ever provide just the song title without this formatting. Ensure you do this for all song titles in your responses no matter what.
     If an artist name is mentioned without a song title, it should not be formatted with any @ signs. Just provide the artist name as is.
@@ -410,9 +411,8 @@ def chat_view(request):
             )
             response = chat.send_message(initial_prompt)
             print(f"Raw Gemini GET response: {response.text}")
-            initial_analysis_text = response.text # Raw AI response
+            initial_analysis_text = response.text
 
-            # Process AI response for display
             processed_initial_analysis_text = initial_analysis_text
             
             def replacer_fn_get(match):
@@ -422,24 +422,21 @@ def chat_view(request):
                 if track_url:
                     return f"[{song_title}]({track_url}) by {artist_name}"
                 else:
-                    return f"{song_title} by {artist_name}" # Fallback: just strip markers
+                    return f"{song_title} by {artist_name}"
 
-            # Pattern for $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@
             specific_pattern = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
             processed_initial_analysis_text = specific_pattern.sub(replacer_fn_get, processed_initial_analysis_text)
             
-            # Remove any remaining $ or @ characters that were not part of the processed pattern
             processed_initial_analysis_text = re.sub(r"\${5}|@{5}", "", processed_initial_analysis_text)
             
-            # Store the raw history list in the session
             history_list = []
-            for message in chat.get_history(): # Contains raw AI response
+            for message in chat.get_history():
                  history_list.append({'role': message.role, 'parts': [{'text': p.text for p in message.parts}]})
 
             request.session['chat_history'] = history_list
             request.session.modified = True
 
-            return render(request, 'spotify_auth/chat.html', {'analysis_result': processed_initial_analysis_text}) # Pass processed text
+            return render(request, 'spotify_auth/chat.html', {'analysis_result': processed_initial_analysis_text})
 
         except Exception as e:
             print(f"Error in chat_view GET: {e}")
@@ -467,9 +464,8 @@ def chat_view(request):
             print(f"Chat history: {history_list}")
             response = chat.send_message(user_message)
             print(f"Raw Gemini POST response: {response.text}")
-            ai_response_text = response.text # Raw AI response
+            ai_response_text = response.text
 
-            # Process AI response for display
             processed_ai_response_text = ai_response_text
 
             def replacer_fn_post(match):
@@ -484,12 +480,10 @@ def chat_view(request):
             specific_pattern_post = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
             processed_ai_response_text = specific_pattern_post.sub(replacer_fn_post, processed_ai_response_text)
             
-            # Remove any remaining $ or @ characters
             processed_ai_response_text = re.sub(r"\${5}|@{5}", "", processed_ai_response_text)
 
-            # Store the raw, updated history list in the session
             updated_history_list = []
-            for message in chat.get_history(): # Contains raw new AI message
+            for message in chat.get_history():
                  updated_history_list.append({'role': message.role, 'parts': [{'text': p.text for p in message.parts}]})
 
             print(f"Updated chat history (raw): {updated_history_list}")
@@ -497,7 +491,7 @@ def chat_view(request):
             request.session['chat_history'] = updated_history_list
             request.session.modified = True
 
-            return JsonResponse({'response': processed_ai_response_text}) # Send processed text
+            return JsonResponse({'response': processed_ai_response_text})
 
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
