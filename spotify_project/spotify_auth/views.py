@@ -417,7 +417,7 @@ def initialize_chat_data_view(request):
         google_search_tool = Tool(google_search = GoogleSearch())
         chat = client.chats.create(
             model=MODEL_NAME,
-            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION, response_modalities=["TEXT"]) # tools=[google_search_tool],
+            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION, tools=[google_search_tool], response_modalities=["TEXT"])
         )
         response = chat.send_message(initial_prompt)
         initial_analysis_text = response.text
@@ -466,7 +466,7 @@ def chat_message_api(request):
         chat = client.chats.create(
             model=MODEL_NAME,
             history=history_list,
-            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION, response_modalities=["TEXT"]) # tools=[google_search_tool],
+            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION, tools=[google_search_tool], response_modalities=["TEXT"])
         )
         
         response = chat.send_message(user_message)
