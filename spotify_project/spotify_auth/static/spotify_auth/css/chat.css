@@ -30,6 +30,7 @@ h1 {
     font-size: 14px;
     transition: background-color 0.3s;
     outline: none;
+    cursor: pointer;
 }
 .button:hover {
     background-color: rgb(25, 160, 75);
