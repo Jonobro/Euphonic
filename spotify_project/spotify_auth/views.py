@@ -14,6 +14,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from google import genai
 from google.genai import types
+from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 from django.views.decorators.cache import never_cache
 from pathlib import Path
 from markdown import markdown
@@ -412,9 +413,10 @@ def initialize_chat_data_view(request):
         Here is the list of tracks in the user's Spotify library for you to perform your musical analysis and to answer any subsequent user prompts: {full_library_string}"""
 
         client = get_gemini_client()
+        google_search_tool = Tool(google_search = GoogleSearch())
         chat = client.chats.create(
             model=MODEL_NAME,
-            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION)
+            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION, tools=[google_search_tool], response_modalities=["TEXT"])
         )
         response = chat.send_message(initial_prompt)
         initial_analysis_text = response.text
@@ -459,10 +461,11 @@ def chat_message_api(request):
              return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
 
         client = get_gemini_client()
+        google_search_tool = Tool(google_search = GoogleSearch())
         chat = client.chats.create(
             model=MODEL_NAME,
             history=history_list,
-            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION)
+            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION, tools=[google_search_tool], response_modalities=["TEXT"])
         )
         
         response = chat.send_message(user_message)
