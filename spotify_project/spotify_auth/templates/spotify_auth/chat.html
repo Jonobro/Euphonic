@@ -20,7 +20,11 @@
             </div>
         </div>
         <div id="chat-container">
-            <div id="message-list" data-initial-message="{{ analysis_result|escapejs }}"></div>
+            <div id="message-list" 
+                 {% if is_loading_initial_data %}data-is-loading-initial="true"{% endif %}
+                 {% if analysis_result and not is_loading_initial_data %}data-initial-message="{{ analysis_result|escapejs }}"{% endif %}>
+                 <!-- Content will be populated by JavaScript -->
+            </div>
             <div id="chat-input-area">
                 <textarea id="user-input" placeholder="Ask follow-up questions or request playlists..."></textarea>
                 <button id="send-button" class="button">Send</button>

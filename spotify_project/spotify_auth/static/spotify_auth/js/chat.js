@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         msg.className = `message ${sender}-message`;
         if (window.marked && window.DOMPurify) {
             try { msg.innerHTML = DOMPurify.sanitize(marked.parse(text || '')); }
-            catch { msg.textContent = text; }
+            catch { msg.textContent = text; } // Fallback if parsing fails
         } else {
             msg.textContent = text;
         }
@@ -26,8 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return msg;
     };
 
+    // Updated to point to the new API endpoint for chat messages
     const sendMessageToBackend = async (message) => {
-        const res = await fetch('/chat/', {
+        const res = await fetch('/chat_message_api/', { // Updated URL
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             body: JSON.stringify({ message })
@@ -77,19 +78,67 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const initial = messageList.dataset.initialMessage;
-    if (initial) {
-        try { addMessage(JSON.parse(`"${initial}"`), 'ai'); }
-        catch { addMessage(initial, 'ai'); }
+    // Initial data loading logic
+    const isInitiallyLoading = messageList.dataset.isLoadingInitial === 'true';
+    const initialMessageFromTemplate = messageList.dataset.initialMessage;
+
+    if (isInitiallyLoading) {
+        const loadingIndicator = addMessage("Welcome! We're fetching your Spotify library and preparing your initial analysis. This might take a moment...", 'ai');
+        userInput.disabled = sendButton.disabled = true; // Disable input during initial load
+
+        fetch('/initialize_chat_data/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json' 
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errData => {
+                    throw new Error(errData.error || `Initialization error: ${response.status}`);
+                }).catch(() => {
+                    throw new Error(`Initialization error: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (loadingIndicator) loadingIndicator.remove();
+            if (data.error) {
+                addMessage(`Initialization failed: ${data.error}`, 'ai');
+            } else if (data.analysis_result) {
+                addMessage(data.analysis_result, 'ai');
+            }
+            messageList.removeAttribute('data-is-loading-initial');
+        })
+        .catch(error => {
+            if (loadingIndicator) loadingIndicator.remove();
+            addMessage(`Sorry, an error occurred during initialization: ${error.message}`, 'ai');
+            console.error("Initialization error:", error);
+        })
+        .finally(() => {
+            userInput.disabled = sendButton.disabled = false; // Re-enable input
+            if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) { // Avoid stealing focus if user typed
+                 userInput.focus();
+            }
+        });
+    } else if (initialMessageFromTemplate) {
+        // If not loading via AJAX, but an initial message was passed from the template
+        try { addMessage(JSON.parse(`"${initialMessageFromTemplate}"`), 'ai'); }
+        catch { addMessage(initialMessageFromTemplate, 'ai'); }
     }
-    scrollToBottom();
+    
+    scrollToBottom(); // Call once after potential initial message setup
 
     // Add tooltip mouse following functionality
     const tooltip = document.querySelector('.custom-tooltip');
     const tooltipContainer = document.querySelector('.tooltip-container');
     
-    tooltipContainer.addEventListener('mousemove', (e) => {
-        tooltip.style.left = (e.clientX + 10) + 'px';
-        tooltip.style.top = (e.clientY + 10) + 'px';
-    });
+    if (tooltip && tooltipContainer) { // Ensure elements exist
+        tooltipContainer.addEventListener('mousemove', (e) => {
+            tooltip.style.left = (e.clientX + 10) + 'px';
+            tooltip.style.top = (e.clientY + 10) + 'px';
+        });
+    }
 });
