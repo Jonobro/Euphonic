@@ -14,13 +14,13 @@ body {
     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 h1 {
-    color: rgb(30, 215, 96);
+    color: rgb(30, 200, 90);
     margin-top: 0;
     margin-bottom: 20px;
 }
 .button {
     display: inline-block;
-    background-color: rgb(30, 215, 96);
+    background-color:rgb(30, 200, 90);
     color: white;
     padding: 8px 15px;
     border: none;
@@ -32,7 +32,7 @@ h1 {
     outline: none;
 }
 .button:hover {
-    background-color: #1ed760;
+    background-color: rgb(25, 160, 75);
 }
 .library-string-container {
     margin-top: 20px;
@@ -79,8 +79,7 @@ h1 {
 }
 
 .message a {
-    color: rgb(30, 215, 96);
-    text-decoration: underline;
+    color:rgb(30, 185, 90);
 }
 
 .message a:hover {
@@ -95,7 +94,7 @@ h1 {
 }
 
 .user-message {
-    background-color: rgb(30, 215, 96);
+    background-color:rgb(30, 200, 90);
     color: #ffffff;
     align-self: flex-end;
     margin-left: auto;
@@ -171,7 +170,7 @@ h1 {
 }
 
 .spotify-footer a {
-    color: rgb(30, 215, 96);
+    color:rgb(30, 200, 90);
     text-decoration: none;
 }
 
