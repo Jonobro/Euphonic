@@ -409,6 +409,7 @@ def chat_view(request):
                 config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION)
             )
             response = chat.send_message(initial_prompt)
+            print(f"Raw Gemini GET response: {response.text}")
             initial_analysis_text = response.text # Raw AI response
 
             # Process AI response for display
@@ -465,6 +466,7 @@ def chat_view(request):
             )
             print(f"Chat history: {history_list}")
             response = chat.send_message(user_message)
+            print(f"Raw Gemini POST response: {response.text}")
             ai_response_text = response.text # Raw AI response
 
             # Process AI response for display
