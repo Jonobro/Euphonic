@@ -461,19 +461,17 @@ def initialize_chat_data_view(request):
         response = chat.send_message(initial_prompt)
         initial_analysis_text = response.text
 
-        processed_initial_analysis_text = initial_analysis_text
-        def replacer_fn(match):
+        def clean_markers_for_initial_display(match):
             song_title = match.group(1).strip()
             artist_name = match.group(2).strip()
-            track_url = _get_spotify_track_url(request, song_title, artist_name)
-            return f"[{song_title}]({track_url}) by {artist_name}" if track_url else f"{song_title} by {artist_name}"
+            return f"{song_title} by {artist_name}"
 
         specific_pattern = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
-        processed_initial_analysis_text = specific_pattern.sub(replacer_fn, processed_initial_analysis_text)
+        processed_initial_analysis_text = specific_pattern.sub(clean_markers_for_initial_display, initial_analysis_text)
         processed_initial_analysis_text = re.sub(r"\${5}|@{5}", "", processed_initial_analysis_text)
         
         history_list = []
-        for message_part in chat.get_history(): # Corrected iteration
+        for message_part in chat.get_history():
              history_list.append({'role': message_part.role, 'parts': [{'text': p.text for p in message_part.parts}]})
         request.session['chat_history'] = history_list
         request.session.modified = True
