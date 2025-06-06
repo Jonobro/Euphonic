@@ -328,8 +328,8 @@ def chat_view(request):
         *   Ensure no song appears more than once in a playlist.
         *   Select only songs that you are fairly certain match the user's criteria.
     4.  **Song Formatting:**
-        *   Format ALL song mentions as: `$$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@`.
-        *   If a song features another artist, the closing `@@@@@` must come *after* the primary artist's name and *before* "ft.". Example: `$$$$$Song Title$$$$$ by @@@@@Artist 1@@@@@ ft. Artist 2`.
+        *   Format ALL song mentions as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@
+        *   If a song features another artist, the closing @@@@@ must come *after* the primary artist's name and *before* "ft.". Example: $$$$$Song Title$$$$$ by @@@@@Artist 1@@@@@ ft. Artist 2
         *   Artist names mentioned *without* a song title should NOT have `@` formatting (e.g., "What do you think of Taylor Swift?").
     5.  **Playlist Length:**
         *   Aim for playlists of approximately 50 songs.
