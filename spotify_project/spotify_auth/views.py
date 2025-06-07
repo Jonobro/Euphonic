@@ -453,14 +453,15 @@ def initialize_chat_data_view(request):
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (library truncated)"
         
         initial_prompt = f"""Your first task will be to analyze the user's Spotify library and provide insights about their musical taste. You should do that in your first message, as soon as you receive this message. 
-        At the end of your analysis, please ask the user if they have any questions or requests related to their music. 
-        Tell them that you can create a custom playlist for them using the existing songs in their library or a playlist of new songs that they might like based on their musical tastes. Ask them to let you know which of these they would prefer. 
-        Let them know they can provide you with specific criteria for the playlist and you will select songs that match this criteria. 
+        At the end of your analysis, please ask the user if they have any questions or requests related to their music.
+        Tell them that you can create a custom playlist for them based on whatever criteria they can imagine. Tell them it can be as specific or as weird as they want.
         Provide them with the following examples of potential criteria: "Using my songs, create a playlist that would be good for a road trip with my grandma" 
         or "Create a playlist of all of my songs that were released in the 1980s" 
         or "Create a playlist of folk songs that I might like based on my musical tastes" 
         or "Create a playlist of Katy Perry's 5 worst songs" 
-        When you are selecting songs for the playlist, please only select/include songs that you are fairly certain match the user's criteria.
+        Say this: "I can create a playlist using the existing songs in your library or using new songs - just let me know which you would prefer." 
+        Then say this: "Let's get started! What can I do for you?" 
+
         Here is the list of tracks in the user's Spotify library for you to perform your musical analysis and to answer any subsequent user prompts: {full_library_string}"""
 
         client = get_gemini_client()
@@ -522,13 +523,12 @@ def chat_message_api(request):
 
         client = get_gemini_client()
         
-        # Tools for the initial user message
         use_grounding_for_initial_message = check_and_update_grounding_usage()
         initial_tools = [GOOGLE_SEARCH_TOOL] if use_grounding_for_initial_message else None
         
         chat_config = types.GenerateContentConfig(
             system_instruction=SYSTEM_INSTRUCTION,
-            tools=initial_tools, # Default tools for the chat session
+            tools=initial_tools,
             response_modalities=["TEXT"]
         )
         chat = client.chats.create(
@@ -538,7 +538,6 @@ def chat_message_api(request):
         )
         
         _log_to_file(GEMINI_API_LOG_FILE, f"User Prompt to Gemini (chat_message_api - First Pass): {user_message}")
-        # Send user message using the default tools configured for the chat session
         response = chat.send_message(user_message)
         ai_response_text = response.text
         _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api - First Pass): {response}")
@@ -566,43 +565,40 @@ def chat_message_api(request):
                 "If you find that they do exist, then please revise the song titles and/or artists as needed to find these tracks in Spotify. "
                 "Then revise these song titles and/or artist names as needed to find these tracks in Spotify. "
                 "If you find that any of the songs don't exist in Spotify then remove them entirely from your next response. "
+
+                "If you remove a song entirely, then please add the exact information about the song as listed on https://www.wikipedia.org/"
+
                 "Then resent your entire previous message with the corrections and/or eliminations. "
                 "Here are the tracks that couldn't be found:\n\n"
                 f"{unfound_tracks_string}"
             )
             
-            # Tools specifically for the feedback message
             feedback_specific_tools = [URL_CONTEXT_TOOL]
-            # Check grounding availability again for this specific feedback call
             can_use_grounding_for_feedback = check_and_update_grounding_usage()
             if can_use_grounding_for_feedback:
                 feedback_specific_tools.append(GOOGLE_SEARCH_TOOL)
             
-            # Create a new chat instance with the specific tools for feedback
             feedback_chat_config = types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION, # Retain system instruction
+                system_instruction=SYSTEM_INSTRUCTION,
                 tools=feedback_specific_tools,
                 response_modalities=["TEXT"]
             )
             
-            # Get current history from the 'chat' object in the correct format
             current_chat_history_for_feedback = []
-            for message_part in chat.get_history(): # chat.get_history() returns Content objects
+            for message_part in chat.get_history():
                  current_chat_history_for_feedback.append(message_part)
 
             feedback_chat = client.chats.create(
                 model=MODEL_NAME,
-                history=current_chat_history_for_feedback, # Pass the history correctly
+                history=current_chat_history_for_feedback,
                 config=feedback_chat_config
             )
             
             _log_to_file(GEMINI_API_LOG_FILE, f"Feedback Prompt to Gemini (Correction Request): {feedback_prompt_to_gemini}")
-            # Send the feedback message using the new chat instance
             correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
             final_ai_text_to_process_for_user = correction_response.text
             _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (After Correction): {correction_response}")
             
-            # Update the original chat variable to the new chat session that includes the correction
             chat = feedback_chat
         
         def final_replacer_fn(match):
