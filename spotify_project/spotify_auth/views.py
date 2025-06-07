@@ -476,6 +476,7 @@ def initialize_chat_data_view(request):
             model=MODEL_NAME,
             config=chat_config
         )
+        _log_to_file(GEMINI_API_LOG_FILE, f"Prompt to Gemini (initialize_chat_data_view): {initial_prompt}")
         response = chat.send_message(initial_prompt)
         initial_analysis_text = response.text
         _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (initialize_chat_data_view): {response}")
@@ -534,6 +535,7 @@ def chat_message_api(request):
             config=chat_config
         )
         
+        _log_to_file(GEMINI_API_LOG_FILE, f"User Prompt to Gemini (chat_message_api - First Pass): {user_message}")
         response = chat.send_message(user_message)
         ai_response_text = response.text
         _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api - First Pass): {response}")
@@ -566,10 +568,10 @@ def chat_message_api(request):
                 f"{unfound_tracks_string}"
             )
             
-            _log_to_file(GEMINI_API_LOG_FILE, f"Feedback to Gemini (chat_message_api - Correction Request): {feedback_prompt_to_gemini}")
+            _log_to_file(GEMINI_API_LOG_FILE, f"Feedback Prompt to Gemini (Correction Request): {feedback_prompt_to_gemini}")
             correction_response = chat.send_message(feedback_prompt_to_gemini)
             final_ai_text_to_process_for_user = correction_response.text
-            _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api - After Correction): {correction_response}")
+            _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (After Correction): {correction_response}")
         
         def final_replacer_fn(match):
             song_title = match.group(1).strip()
