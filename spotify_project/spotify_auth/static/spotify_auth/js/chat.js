@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const thinkingInterval = setInterval(() => {
             dotCount = (dotCount % 3) + 1;
             thinkingMsgElement.textContent = 'Thinking' + '.'.repeat(dotCount);
-        }, 500);
+        }, 385);
 
         try {
             const reply = await sendMessageToBackend(text);
@@ -94,10 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let dotCount = 3;
         const loadingInterval = setInterval(() => {
             dotCount = (dotCount % 3) + 1;
-            if (loadingIndicator) { // Check if indicator still exists
+            if (loadingIndicator) {
                 loadingIndicator.textContent = loadingIndicatorBaseText + '.'.repeat(dotCount);
             }
-        }, 500);
+        }, 385);
 
         fetch('/initialize_chat_data/', {
             method: 'POST',
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Initialization error:", error);
         })
         .finally(() => {
-            clearInterval(loadingInterval); // Ensure interval is cleared in all cases
+            clearInterval(loadingInterval);
             userInput.disabled = sendButton.disabled = false;
             if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
                  userInput.focus();
