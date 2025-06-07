@@ -54,13 +54,20 @@ document.addEventListener('DOMContentLoaded', () => {
         userInput.value = '';
         userInput.disabled = sendButton.disabled = true;
         
-        const thinkingMsgElement = addMessage('...', 'ai'); 
+        const thinkingMsgElement = addMessage('Thinking.', 'ai'); 
+        let dotCount = 1;
+        const thinkingInterval = setInterval(() => {
+            dotCount = (dotCount % 3) + 1;
+            thinkingMsgElement.textContent = 'Thinking' + '.'.repeat(dotCount);
+        }, 500);
 
         try {
             const reply = await sendMessageToBackend(text);
+            clearInterval(thinkingInterval);
             if (thinkingMsgElement) thinkingMsgElement.remove(); 
             addMessage(reply, 'ai');
         } catch (e) {
+            clearInterval(thinkingInterval);
             if (thinkingMsgElement) thinkingMsgElement.remove(); 
             addMessage(`Sorry, ${e.message}`, 'ai');
         } finally {
@@ -81,8 +88,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const initialMessageFromTemplate = messageList.dataset.initialMessage;
 
     if (isInitiallyLoading) {
-        const loadingIndicator = addMessage("Welcome! I'm fetching your Spotify library and preparing your initial analysis. This might take a moment...", 'ai');
+        const loadingIndicatorBaseText = "Welcome! I'm fetching your Spotify library and preparing your initial analysis. This might take a moment";
+        const loadingIndicator = addMessage(loadingIndicatorBaseText + "...", 'ai');
         userInput.disabled = sendButton.disabled = true;
+        let dotCount = 3;
+        const loadingInterval = setInterval(() => {
+            dotCount = (dotCount % 3) + 1;
+            if (loadingIndicator) { // Check if indicator still exists
+                loadingIndicator.textContent = loadingIndicatorBaseText + '.'.repeat(dotCount);
+            }
+        }, 500);
 
         fetch('/initialize_chat_data/', {
             method: 'POST',
@@ -102,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return response.json();
         })
         .then(data => {
+            clearInterval(loadingInterval);
             if (loadingIndicator) loadingIndicator.remove();
             if (data.error) {
                 addMessage(`Initialization failed: ${data.error}`, 'ai');
@@ -111,11 +127,13 @@ document.addEventListener('DOMContentLoaded', () => {
             messageList.removeAttribute('data-is-loading-initial');
         })
         .catch(error => {
+            clearInterval(loadingInterval);
             if (loadingIndicator) loadingIndicator.remove();
             addMessage(`Sorry, an error occurred during initialization: ${error.message}`, 'ai');
             console.error("Initialization error:", error);
         })
         .finally(() => {
+            clearInterval(loadingInterval); // Ensure interval is cleared in all cases
             userInput.disabled = sendButton.disabled = false;
             if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
                  userInput.focus();

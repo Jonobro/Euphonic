@@ -38,7 +38,7 @@ MODEL_NAME = "gemini-2.5-flash-preview-05-20"
 CACHE_KEY_GROUNDED_TIMESTAMPS = 'grounded_api_call_timestamps'
 GROUNDING_API_LIMIT = 1495
 ONE_DAY_IN_SECONDS = 24 * 60 * 60
-GOOGLE_SEARCH_TOOL = Tool(google_search=GoogleSearch()) 
+GOOGLE_SEARCH_TOOL = Tool(google_search=GoogleSearch())
 GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'grounding_usage.log'
 GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'gemini_api_responses.log'
 
