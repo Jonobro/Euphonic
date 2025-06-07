@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const thinkingInterval = setInterval(() => {
             dotCount = (dotCount % 3) + 1;
             thinkingMsgElement.textContent = 'Thinking' + '.'.repeat(dotCount);
-        }, 385);
+        }, 400);
 
         try {
             const reply = await sendMessageToBackend(text);
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (loadingIndicator) {
                 loadingIndicator.textContent = loadingIndicatorBaseText + '.'.repeat(dotCount);
             }
-        }, 385);
+        }, 400);
 
         fetch('/initialize_chat_data/', {
             method: 'POST',

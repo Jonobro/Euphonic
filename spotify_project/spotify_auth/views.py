@@ -536,17 +536,50 @@ def chat_message_api(request):
         
         response = chat.send_message(user_message)
         ai_response_text = response.text
-        _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api): {response}")
+        _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api - First Pass): {response}")
 
-        processed_ai_response_text = ai_response_text
-        def replacer_fn(match):
+        unfound_tracks_for_feedback = [] 
+        specific_pattern = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
+        
+        all_song_mentions = specific_pattern.findall(ai_response_text)
+
+        for song_title_match, artist_name_match in all_song_mentions:
+            song_title = song_title_match.strip()
+            artist_name = artist_name_match.strip()
+            track_url = _get_spotify_track_url(request, song_title, artist_name)
+            if not track_url:
+                unfound_tracks_for_feedback.append(f"- {song_title} by {artist_name}")
+
+        final_ai_text_to_process_for_user = ai_response_text
+
+        if unfound_tracks_for_feedback:
+            unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
+            feedback_prompt_to_gemini = (
+                "The following tracks were not able to be found in Spotify. "
+                "Please review each of them and determine what the issue is. "
+                "Revise these song titles and/or artists as needed to find these tracks in Spotify. "
+                "If you determine that the song doesn't exist in Spotify then remove it entirely. "
+                "Then resend your entire previous message with the corrections and/or eliminations. "
+                "Don't make any other changes to your previous message. "
+                "Here are the tracks that couldn't be found:\n\n"
+                f"{unfound_tracks_string}"
+            )
+            
+            _log_to_file(GEMINI_API_LOG_FILE, f"Feedback to Gemini (chat_message_api - Correction Request): {feedback_prompt_to_gemini}")
+            correction_response = chat.send_message(feedback_prompt_to_gemini)
+            final_ai_text_to_process_for_user = correction_response.text
+            _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api - After Correction): {correction_response}")
+        
+        def final_replacer_fn(match):
             song_title = match.group(1).strip()
             artist_name = match.group(2).strip()
             track_url = _get_spotify_track_url(request, song_title, artist_name)
-            return f"[{song_title}]({track_url}) by {artist_name}" if track_url else f"{song_title} by {artist_name}"
+            if track_url:
+                return f"[{song_title}]({track_url}) by {artist_name}"
+            else:
+                return f"{song_title} by {artist_name}"
         
-        specific_pattern = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
-        processed_ai_response_text = specific_pattern.sub(replacer_fn, processed_ai_response_text)
+        processed_ai_response_text = specific_pattern.sub(final_replacer_fn, final_ai_text_to_process_for_user)
         processed_ai_response_text = re.sub(r"\${5}|@{5}", "", processed_ai_response_text)
 
         updated_history_list = []
