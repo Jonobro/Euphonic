@@ -39,6 +39,7 @@ CACHE_KEY_GROUNDED_TIMESTAMPS = 'grounded_api_call_timestamps'
 GROUNDING_API_LIMIT = 1495
 ONE_DAY_IN_SECONDS = 24 * 60 * 60
 GOOGLE_SEARCH_TOOL = Tool(google_search=GoogleSearch())
+URL_CONTEXT_TOOL = Tool(url_context=types.UrlContext())
 GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'grounding_usage.log'
 GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'gemini_api_responses.log'
 
@@ -521,12 +522,13 @@ def chat_message_api(request):
 
         client = get_gemini_client()
         
-        use_grounding = check_and_update_grounding_usage()
-        current_tools = [GOOGLE_SEARCH_TOOL] if use_grounding else None
+        # Tools for the initial user message
+        use_grounding_for_initial_message = check_and_update_grounding_usage()
+        initial_tools = [GOOGLE_SEARCH_TOOL] if use_grounding_for_initial_message else None
         
         chat_config = types.GenerateContentConfig(
             system_instruction=SYSTEM_INSTRUCTION,
-            tools=current_tools,
+            tools=initial_tools, # Default tools for the chat session
             response_modalities=["TEXT"]
         )
         chat = client.chats.create(
@@ -536,6 +538,7 @@ def chat_message_api(request):
         )
         
         _log_to_file(GEMINI_API_LOG_FILE, f"User Prompt to Gemini (chat_message_api - First Pass): {user_message}")
+        # Send user message using the default tools configured for the chat session
         response = chat.send_message(user_message)
         ai_response_text = response.text
         _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api - First Pass): {response}")
@@ -568,8 +571,19 @@ def chat_message_api(request):
                 f"{unfound_tracks_string}"
             )
             
+            # Tools specifically for the feedback message
+            feedback_specific_tools = [URL_CONTEXT_TOOL]
+            # Check grounding availability again for this specific feedback call
+            can_use_grounding_for_feedback = check_and_update_grounding_usage()
+            if can_use_grounding_for_feedback:
+                feedback_specific_tools.append(GOOGLE_SEARCH_TOOL)
+            
             _log_to_file(GEMINI_API_LOG_FILE, f"Feedback Prompt to Gemini (Correction Request): {feedback_prompt_to_gemini}")
-            correction_response = chat.send_message(feedback_prompt_to_gemini)
+            # Send the feedback message with its specific set of tools
+            correction_response = chat.send_message(
+                feedback_prompt_to_gemini,
+                tools=feedback_specific_tools
+            )
             final_ai_text_to_process_for_user = correction_response.text
             _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (After Correction): {correction_response}")
         
