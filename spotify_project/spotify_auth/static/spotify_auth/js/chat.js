@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const initialMessageFromTemplate = messageList.dataset.initialMessage;
 
     if (isInitiallyLoading) {
-        const loadingIndicator = addMessage("Welcome! We're fetching your Spotify library and preparing your initial analysis. This might take a moment...", 'ai');
+        const loadingIndicator = addMessage("Welcome! I'm fetching your Spotify library and preparing your initial analysis. This might take a moment...", 'ai');
         userInput.disabled = sendButton.disabled = true;
 
         fetch('/initialize_chat_data/', {
