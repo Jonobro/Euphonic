@@ -2,6 +2,6 @@ django==5.1.7
 gunicorn==23.0.0
 python-dotenv==1.0.1
 requests==2.32.3
-google-genai==1.11.0
+google-genai==1.19.0
 markdown==3.8
 django-redis==5.4.0
