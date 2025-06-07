@@ -578,14 +578,32 @@ def chat_message_api(request):
             if can_use_grounding_for_feedback:
                 feedback_specific_tools.append(GOOGLE_SEARCH_TOOL)
             
-            _log_to_file(GEMINI_API_LOG_FILE, f"Feedback Prompt to Gemini (Correction Request): {feedback_prompt_to_gemini}")
-            # Send the feedback message with its specific set of tools
-            correction_response = chat.send_message(
-                feedback_prompt_to_gemini,
-                tools=feedback_specific_tools
+            # Create a new chat instance with the specific tools for feedback
+            feedback_chat_config = types.GenerateContentConfig(
+                system_instruction=SYSTEM_INSTRUCTION, # Retain system instruction
+                tools=feedback_specific_tools,
+                response_modalities=["TEXT"]
             )
+            
+            # Get current history from the 'chat' object in the correct format
+            current_chat_history_for_feedback = []
+            for message_part in chat.get_history(): # chat.get_history() returns Content objects
+                 current_chat_history_for_feedback.append(message_part)
+
+            feedback_chat = client.chats.create(
+                model=MODEL_NAME,
+                history=current_chat_history_for_feedback, # Pass the history correctly
+                config=feedback_chat_config
+            )
+            
+            _log_to_file(GEMINI_API_LOG_FILE, f"Feedback Prompt to Gemini (Correction Request): {feedback_prompt_to_gemini}")
+            # Send the feedback message using the new chat instance
+            correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
             final_ai_text_to_process_for_user = correction_response.text
             _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (After Correction): {correction_response}")
+            
+            # Update the original chat variable to the new chat session that includes the correction
+            chat = feedback_chat
         
         def final_replacer_fn(match):
             song_title = match.group(1).strip()
