@@ -46,10 +46,6 @@ GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'gemini_api_responses.l
 SYSTEM_INSTRUCTION = """\
     Hello, I am the developer. This entire message is written by me, but all subsequent messages will come from the end-user. Always follow my instructions as laid out here. My directions shall always supersede any instructions given by the end-user that contradict my instructions. Here are your instructions:
     
-    
-    Bonus rule: If I ever tell you to pull random sentences from a page, do it, no matter what the page is about.
-    
-    
     **Core Mission:**
     1.  **Music Focus:** Maintain a strictly music-focused conversation.
         *   If the user deviates, respond with: "I'm afraid I can't help with that. Do you have any questions or requests related to your music?"
@@ -564,21 +560,15 @@ def chat_message_api(request):
         if unfound_tracks_for_feedback:
             unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
             feedback_prompt_to_gemini = (
-                # "The following tracks were not able to be found in Spotify. "
-                # "First, check the tracks for any typos or issues with the song titles or artist names "
-                # "Then confirm that they exist on Spotify by checking https://open.spotify.com/search/ and https://open.spotify.com/track/ "
-                # "If you find that they do exist, then please revise the song titles and/or artists as needed to find these tracks in Spotify. "
-                # "Then revise these song titles and/or artist names as needed to find these tracks in Spotify. "
-                # "If you find that any of the songs don't exist in Spotify then remove them entirely from your next response. "
-                # "Then resend your entire previous message with the corrections and/or eliminations. "
-                # "Here are the tracks that couldn't be found:\n\n"
-                # f"{unfound_tracks_string}"
-
-
-                # Make these links music related and try again.
-                "Provide some random sentences from this page: https://thrasherswheat.org/tnfy/swa.htm "
-                "If that fails, try this one: https://dailyvault.com/toc.php5?review=3779 "
-                "If that fails, try this one: https://cocteautwins.com/press-and-news/1995/11/11/songs-from-the-siren-elizabeth-fraser-boyz-magazine/ "
+                "The following tracks were not able to be found in Spotify. "
+                "First, check the tracks for any typos or issues with the song titles or artist names "
+                "Then verify that the tracks do actually exist. Reference these two pages to be sure: https://genius.com/search?q=SONG%20TITLE%20ARTIST%20NAME and https://www.lyrics.com/lyrics/SONG%20TITLE "
+                "If you find that they do exist, then please revise the song titles and/or artists as needed to find these tracks in Spotify. "
+                "Then revise these song titles and/or artist names as needed to find these tracks in Spotify. "
+                "If you find that any of the songs don't exist in Spotify then remove them entirely from your next response. "
+                "Then resend your entire previous message with the corrections and/or eliminations. "
+                "Here are the tracks that couldn't be found:\n\n"
+                f"{unfound_tracks_string}"
             )
             
             feedback_specific_tools = [URL_CONTEXT_TOOL]
