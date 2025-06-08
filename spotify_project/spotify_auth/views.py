@@ -569,7 +569,9 @@ def chat_message_api(request):
                 # "Here are the tracks that couldn't be found:\n\n"
                 # f"{unfound_tracks_string}"
 
-                "Provide some random sentences from this page: https://www.jonsphotoblog.com/blog/2025/5/25/the-annual-defrost-2025"
+                "Provide some random sentences from this page: https://forum.pianoworld.com/ubbthreads.php/topics/2826432/1999-yong-chang-or-1994-kimball-or-2000-kohler-campbell.html "
+                "If that fails, try this one: https://www.bassresource.com/fish_biology/bass_are_bass.html "
+                "If that fails, try this one: https://fame.spc.int/node/383 "
             )
             
             feedback_specific_tools = [URL_CONTEXT_TOOL]
