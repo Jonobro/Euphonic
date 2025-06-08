@@ -453,7 +453,7 @@ def initialize_chat_data_view(request):
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (library truncated)"
         
         initial_prompt = f"""Your first task will be to analyze the user's Spotify library and provide insights about their musical taste. You should do that in your first message, as soon as you receive this message. 
-        At the end of your analysis, please ask the user if they have any questions or requests related to their music.
+        At the end of your analysis, ask the user if they have any questions or requests related to their music.
         Tell them that you can create a custom playlist for them based on whatever criteria they can imagine. Tell them it can be as specific or as weird as they want.
         Provide them with the following examples of potential criteria: "Using my songs, create a playlist that would be good for a road trip with my grandma" 
         or "Create a playlist of all of my songs that were released in the 1980s" 
@@ -559,18 +559,17 @@ def chat_message_api(request):
         if unfound_tracks_for_feedback:
             unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
             feedback_prompt_to_gemini = (
-                "The following tracks were not able to be found in Spotify. "
-                "First, check the tracks for any typos or issues with the song titles or artist names "
-                "Then confirm that they exist on Spotify by checking https://open.spotify.com/search/ and https://open.spotify.com/track/ "
-                "If you find that they do exist, then please revise the song titles and/or artists as needed to find these tracks in Spotify. "
-                "Then revise these song titles and/or artist names as needed to find these tracks in Spotify. "
-                "If you find that any of the songs don't exist in Spotify then remove them entirely from your next response. "
+                # "The following tracks were not able to be found in Spotify. "
+                # "First, check the tracks for any typos or issues with the song titles or artist names "
+                # "Then confirm that they exist on Spotify by checking https://open.spotify.com/search/ and https://open.spotify.com/track/ "
+                # "If you find that they do exist, then please revise the song titles and/or artists as needed to find these tracks in Spotify. "
+                # "Then revise these song titles and/or artist names as needed to find these tracks in Spotify. "
+                # "If you find that any of the songs don't exist in Spotify then remove them entirely from your next response. "
+                # "Then resend your entire previous message with the corrections and/or eliminations. "
+                # "Here are the tracks that couldn't be found:\n\n"
+                # f"{unfound_tracks_string}"
 
-                "If you remove a song entirely, then please add the exact information about the song as listed on https://www.wikipedia.org/"
-
-                "Then resent your entire previous message with the corrections and/or eliminations. "
-                "Here are the tracks that couldn't be found:\n\n"
-                f"{unfound_tracks_string}"
+                "Provide some random sentences from this page: https://www.jonsphotoblog.com/blog/2025/5/25/the-annual-defrost-2025"
             )
             
             feedback_specific_tools = [URL_CONTEXT_TOOL]
