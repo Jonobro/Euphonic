@@ -38,8 +38,8 @@ MODEL_NAME = "gemini-2.5-flash-preview-05-20"
 CACHE_KEY_GROUNDED_TIMESTAMPS = 'grounded_api_call_timestamps'
 GROUNDING_API_LIMIT = 1495
 ONE_DAY_IN_SECONDS = 24 * 60 * 60
-GOOGLE_SEARCH_TOOL = Tool(google_search=GoogleSearch())
-URL_CONTEXT_TOOL = Tool(url_context=types.UrlContext())
+GOOGLE_SEARCH_TOOL = Tool(google_search=types.GoogleSearch())
+URL_CONTEXT_TOOL = Tool(url_context=types.UrlContext)
 GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'grounding_usage.log'
 GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'gemini_api_responses.log'
 
@@ -453,7 +453,8 @@ def initialize_chat_data_view(request):
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (library truncated)"
         
         initial_prompt = f"""Your first task will be to analyze the user's Spotify library and provide insights about their musical taste. You should do that in your first message, as soon as you receive this message. 
-        At the end of your analysis, ask the user if they have any questions or requests related to their music.
+        At the end of your analysis, first include this string to separate the sections of your response: "__________________________________________________________________" 
+        Then ask the user if they have any questions or requests related to their music.
         Tell them that you can create a custom playlist for them based on whatever criteria they can imagine. Tell them it can be as specific or as weird as they want.
         Provide them with the following examples of potential criteria: "Using my songs, create a playlist that would be good for a road trip with my grandma" 
         or "Create a playlist of all of my songs that were released in the 1980s" 
