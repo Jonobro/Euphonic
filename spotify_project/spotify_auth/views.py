@@ -39,7 +39,6 @@ CACHE_KEY_GROUNDED_TIMESTAMPS = 'grounded_api_call_timestamps'
 GROUNDING_API_LIMIT = 1495
 ONE_DAY_IN_SECONDS = 24 * 60 * 60
 GOOGLE_SEARCH_TOOL = Tool(google_search=types.GoogleSearch())
-URL_CONTEXT_TOOL = Tool(url_context=types.UrlContext)
 GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'grounding_usage.log'
 GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'gemini_api_responses.log'
 
@@ -524,12 +523,12 @@ def chat_message_api(request):
 
         client = get_gemini_client()
         
-        use_grounding_for_initial_message = check_and_update_grounding_usage()
-        initial_tools = [GOOGLE_SEARCH_TOOL] if use_grounding_for_initial_message else None
+        use_grounding_for_first_pass = check_and_update_grounding_usage()
+        first_pass_tools = [GOOGLE_SEARCH_TOOL] if use_grounding_for_first_pass else None
         
         chat_config = types.GenerateContentConfig(
             system_instruction=SYSTEM_INSTRUCTION,
-            tools=initial_tools,
+            tools=first_pass_tools,
             response_modalities=["TEXT"]
         )
         chat = client.chats.create(
@@ -560,25 +559,25 @@ def chat_message_api(request):
         if unfound_tracks_for_feedback:
             unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
             feedback_prompt_to_gemini = (
-                "The following tracks were not able to be found in Spotify. "
-                "First, check the tracks for any typos or issues with the song titles or artist names "
-                "Then verify that the tracks do actually exist. Reference these two pages to be sure: https://genius.com/search?q=SONG%20TITLE%20ARTIST%20NAME and https://www.lyrics.com/lyrics/SONG%20TITLE "
-                "If you find that they do exist, then please revise the song titles and/or artists as needed to find these tracks in Spotify. "
-                "Then revise these song titles and/or artist names as needed to find these tracks in Spotify. "
-                "If you find that any of the songs don't exist in Spotify then remove them entirely from your next response. "
-                "Then resend your entire previous message with the corrections and/or eliminations. "
-                "Here are the tracks that couldn't be found:\n\n"
+                "It's me, the developer again. Don't mention this request to the user. "
+                "The following tracks were not able to be found in Spotify:\n\n"
                 f"{unfound_tracks_string}"
+                "\nFirst, check the tracks for any typos or issues with the song titles or artist names "
+                "Then perform additional searches to verify that these tracks do actually exist and are available on Spotify. "
+                "After that, do some final research to confirm that the artist names and song titles are correct. "
+                "If you find that any of the tracks do not exist or are not available in Spotify, then remove them entirely from your next response. "
+                "If you find that the tracks do exist, then please revise the song titles and/or artist names as needed to find these tracks in Spotify. "
+                "Then resend your entire previous message with the corrections and/or eliminations. "
             )
             
-            feedback_specific_tools = [URL_CONTEXT_TOOL]
+            feedback_pass_tools = None
             can_use_grounding_for_feedback = check_and_update_grounding_usage()
             if can_use_grounding_for_feedback:
-                feedback_specific_tools.append(GOOGLE_SEARCH_TOOL)
+                feedback_pass_tools = [GOOGLE_SEARCH_TOOL]
             
             feedback_chat_config = types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION,
-                tools=feedback_specific_tools,
+                tools=feedback_pass_tools,
                 response_modalities=["TEXT"]
             )
             
