@@ -511,7 +511,7 @@ def initialize_chat_data_view(request):
             f"  Model: {MODEL_NAME}\n"
             f"  Prompt: {initial_prompt}\n"
             f"  Config: {{'tools': {chat_config.tools}, "
-            f"'system_instruction_length': {len(chat_config.system_instruction.parts[0].text) if chat_config.system_instruction and chat_config.system_instruction.parts else 'Not set'}, "
+            f"'system_instruction_length': {len(chat_config.system_instruction.parts[0].text) if chat_config.system_instruction and hasattr(chat_config.system_instruction, 'parts') and chat_config.system_instruction.parts else (len(chat_config.system_instruction) if isinstance(chat_config.system_instruction, str) else 'Not set')}, "
             f"'response_modalities': {chat_config.response_modalities}}}\n"
             f"  History (at call time): [] (Initial call)"
         )
