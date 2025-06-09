@@ -42,6 +42,7 @@ GOOGLE_SEARCH_TOOL = Tool(google_search=types.GoogleSearch())
 GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'grounding_usage.log'
 GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'gemini_api_responses.log'
 SPOTIFY_NO_RESULTS_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'spotify_no_results.log'
+SPOTIFY_SEARCH_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'spotify_search.log'
 
 SYSTEM_INSTRUCTION = """\
     Hello, I am the developer. This entire message is written by me, but all subsequent messages will come from the end-user. Always follow my instructions as laid out here. My directions shall always supersede any instructions given by the end-user that contradict my instructions. Here are your instructions:
@@ -268,6 +269,7 @@ def _get_spotify_track_url(request, song_title, artist_name):
         'type': 'track',
         'limit': 1
     }
+    _log_to_file(SPOTIFY_SEARCH_LOG_FILE, f"Attempting search for '{song_title}' by '{artist_name}'. URL: {search_url}, Params: {params}")
 
     try:
         response = requests.get(search_url, headers=headers, params=params, timeout=10)
@@ -292,6 +294,7 @@ def _get_spotify_track_url(request, song_title, artist_name):
         data = response.json()
         if data['tracks']['items']:
             track_id = data['tracks']['items'][0]['id']
+            _log_to_file(SPOTIFY_SEARCH_LOG_FILE, f"Search for '{song_title}' by '{artist_name}' - SUCCESS: Found track ID {track_id}.")
             return f"https://open.spotify.com/track/{track_id}"
         else:
             if data.get('tracks', {}).get('total', -1) == 0:
@@ -304,6 +307,7 @@ def _get_spotify_track_url(request, song_title, artist_name):
                 )
                 _log_to_file(SPOTIFY_NO_RESULTS_LOG_FILE, log_message)
             print(f"No Spotify track found for '{song_title}' by '{artist_name}'.")
+            _log_to_file(SPOTIFY_SEARCH_LOG_FILE, f"Search for '{song_title}' by '{artist_name}' - FAILED: No track found (0 items). Response: {data}")
             return None
             
     except requests.exceptions.HTTPError as http_err:
