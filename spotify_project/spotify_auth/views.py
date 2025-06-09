@@ -41,9 +41,7 @@ ONE_DAY_IN_SECONDS = 24 * 60 * 60
 GOOGLE_SEARCH_TOOL = Tool(google_search=types.GoogleSearch())
 GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'grounding_usage.log'
 GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'gemini_api_responses.log'
-SPOTIFY_NO_RESULTS_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'spotify_no_results.log'
-SPOTIFY_SEARCH_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'spotify_search.log'
-SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'spotify_raw_search_details.log'
+SPOTIFY_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'spotify_api.log'
 
 SYSTEM_INSTRUCTION = """\
     Hello, I am the developer. This entire message is written by me, but all subsequent messages will come from the end-user. Always follow my instructions as laid out here. My directions shall always supersede any instructions given by the end-user that contradict my instructions. Here are your instructions:
@@ -260,10 +258,10 @@ def _get_spotify_track_url(request, song_title, artist_name):
     access_token = request.session.get('spotify_access_token')
     if not access_token:
         print("Access token missing for Spotify search.")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"[ERROR] Access token missing for Spotify search. Song: '{song_title}', Artist: '{artist_name}'")
         return None
 
     search_url = 'https://api.spotify.com/v1/search'
-    # Use a dictionary for headers that can be updated
     current_headers = {'Authorization': f'Bearer {access_token}'}
     
     query_string = f'track:"{song_title}" artist:"{artist_name}"'
@@ -273,108 +271,79 @@ def _get_spotify_track_url(request, song_title, artist_name):
         'limit': 1
     }
     
-    # --- Attempt 1 ---
     prepared_request_attempt1 = requests.Request('GET', search_url, headers=current_headers, params=params).prepare()
-    # Existing log for basic search attempt
-    _log_to_file(SPOTIFY_SEARCH_LOG_FILE, f"Attempting search for '{song_title}' by '{artist_name}'. Exact GET request URL: {prepared_request_attempt1.url}")
+    _log_to_file(SPOTIFY_API_LOG_FILE, f"[SEARCH_ATTEMPT_1] Song: '{song_title}', Artist: '{artist_name}'. URL: {prepared_request_attempt1.url}")
 
-    response = None # Initialize response variable
+    response = None
     try:
         response = requests.get(search_url, headers=current_headers, params=params, timeout=10)
 
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, "--- Spotify API Search Call Start (Attempt 1) ---")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Raw Response:\n{response.text}")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Request URL: {prepared_request_attempt1.url}")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Request Headers: {prepared_request_attempt1.headers}")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, "--- Spotify API Search Call End ---\n")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"[RAW_API_CALL_ATTEMPT_1] URL: {prepared_request_attempt1.url}, Headers: {prepared_request_attempt1.headers}, Response Status: {response.status_code}, Response Body:\n{response.text}")
 
         if response.status_code == 401:
             print(f"Spotify search token expired for '{song_title}'. Attempting refresh.")
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"[AUTH_EXPIRED_ATTEMPT_1] Song: '{song_title}', Artist: '{artist_name}'. Attempting token refresh.")
             refreshed = _refresh_token_helper(request)
             if refreshed:
                 new_access_token = request.session.get('spotify_access_token')
                 if not new_access_token:
                     print("Access token still missing after refresh attempt.")
-                    # Log failure to get new token if necessary, though _refresh_token_helper might handle it
+                    _log_to_file(SPOTIFY_API_LOG_FILE, f"[ERROR] Access token still missing after refresh attempt. Song: '{song_title}', Artist: '{artist_name}'")
                     return None
-                current_headers['Authorization'] = f'Bearer {new_access_token}' # Update headers for retry
+                current_headers['Authorization'] = f'Bearer {new_access_token}'
                 
-                # --- Retry Attempt ---
                 prepared_request_retry = requests.Request('GET', search_url, headers=current_headers, params=params).prepare()
                 print(f"Retrying Spotify search for '{song_title}' with new token.")
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"[SEARCH_RETRY] Song: '{song_title}', Artist: '{artist_name}'. URL: {prepared_request_retry.url}")
                 
-                response_retry = None # Initialize retry response
+                response_retry = None
                 try:
                     response_retry = requests.get(search_url, headers=current_headers, params=params, timeout=10)
-                    
-                    _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, "--- Spotify API Search Call Start (Retry After Refresh) ---")
-                    _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Raw Response:\n{response_retry.text}")
-                    _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Request URL: {prepared_request_retry.url}")
-                    _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Request Headers: {prepared_request_retry.headers}")
-                    _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, "--- Spotify API Search Call End ---\n")
+                    _log_to_file(SPOTIFY_API_LOG_FILE, f"[RAW_API_CALL_RETRY] URL: {prepared_request_retry.url}, Headers: {prepared_request_retry.headers}, Response Status: {response_retry.status_code}, Response Body:\n{response_retry.text}")
                     
                     print(f"Retrying Spotify search for '{song_title}' with new token. Status: {response_retry.status_code}")
-                    response = response_retry # Update main response object
+                    response = response_retry
                 
                 except requests.exceptions.RequestException as e_retry:
-                    _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, "--- Spotify API Search Call Start (Retry After Refresh) ---")
-                    _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Request URL: {prepared_request_retry.url}")
-                    _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Request Headers: {prepared_request_retry.headers}")
-                    _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Raw Response: FAILED (Retry) - RequestException: {e_retry}")
-                    _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, "--- Spotify API Search Call End ---\n")
+                    _log_to_file(SPOTIFY_API_LOG_FILE, f"[REQUEST_EXCEPTION_RETRY] Song: '{song_title}', Artist: '{artist_name}'. URL: {prepared_request_retry.url}, Headers: {prepared_request_retry.headers}, Error: {e_retry}")
                     print(f"Request error during Spotify search retry for '{song_title}': {e_retry}")
                     return None
             else:
                 print(f"Token refresh failed during Spotify search for '{song_title}'.")
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"[ERROR] Token refresh failed. Song: '{song_title}', Artist: '{artist_name}'.")
                 return None
 
-        response.raise_for_status() # Check for other HTTP errors on the final response
+        response.raise_for_status()
         
         data = response.json()
         if data['tracks']['items']:
             track_id = data['tracks']['items'][0]['id']
-            _log_to_file(SPOTIFY_SEARCH_LOG_FILE, f"Search for '{song_title}' by '{artist_name}' - SUCCESS: Found track ID {track_id}.")
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"[SEARCH_SUCCESS] Song: '{song_title}', Artist: '{artist_name}'. Track ID: {track_id}.")
             return f"https://open.spotify.com/track/{track_id}"
         else:
-            if data.get('tracks', {}).get('total', -1) == 0:
-                log_message = (
-                    f"Spotify search returned 0 results. "
-                    f"Search URL: {search_url}, "
-                    f"Query: {query_string}, "
-                    f"Params: {params}, "
-                    f"Response Total: {data.get('tracks', {}).get('total')}"
-                )
-                _log_to_file(SPOTIFY_NO_RESULTS_LOG_FILE, log_message)
+            log_message_no_results = (
+                f"[SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'. "
+                f"Search URL: {search_url}, Query: {query_string}, Params: {params}, "
+                f"Response Total: {data.get('tracks', {}).get('total')}"
+            )
+            _log_to_file(SPOTIFY_API_LOG_FILE, log_message_no_results)
             print(f"No Spotify track found for '{song_title}' by '{artist_name}'.")
-            _log_to_file(SPOTIFY_SEARCH_LOG_FILE, f"Search for '{song_title}' by '{artist_name}' - FAILED: No track found (0 items). Response: {data}")
             return None
             
     except requests.exceptions.HTTPError as http_err:
-        # This block is hit if response.raise_for_status() raises an error.
-        # The raw response (if any) was logged before this exception.
-        print(f"HTTP error during Spotify search for '{song_title}' by '{artist_name}': {http_err} - {http_err.response.text if http_err.response else 'No response text'}")
+        err_response_text = http_err.response.text if http_err.response else 'No response text'
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"[HTTP_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {http_err}, Response: {err_response_text}. Request URL: {prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else 'N/A'}")
+        print(f"HTTP error during Spotify search for '{song_title}' by '{artist_name}': {http_err} - {err_response_text}")
         return None
     except requests.exceptions.RequestException as e:
-        # This block is hit if the initial requests.get() fails (e.g., network error).
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, "--- Spotify API Search Call Start (Attempt 1) ---")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Request URL: {prepared_request_attempt1.url}")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Request Headers: {prepared_request_attempt1.headers}")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Raw Response: FAILED (Attempt 1) - RequestException: {e}")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, "--- Spotify API Search Call End ---\n")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"[REQUEST_EXCEPTION] Song: '{song_title}', Artist: '{artist_name}'. Error: {e}. Request URL: {prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else 'N/A'}")
         print(f"Request error during Spotify search for '{song_title}' by '{artist_name}': {e}")
         return None
     except Exception as e_unexp:
-        # General unexpected errors.
         log_url = prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else "N/A"
         log_headers = prepared_request_attempt1.headers if 'prepared_request_attempt1' in locals() else current_headers
-
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, "--- Spotify API Search Call Start (Context: Unexpected Error) ---")
-        if response and hasattr(response, 'text'): # Log response if available
-             _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Raw Response (if available):\n{response.text}")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Request URL: {log_url}")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Request Headers: {log_headers}")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, f"Spotify Raw Response: FAILED - Unexpected Exception: {e_unexp}")
-        _log_to_file(SPOTIFY_RAW_SEARCH_DETAILS_LOG_FILE, "--- Spotify API Search Call End ---\n")
+        response_text_on_unexp = response.text if response and hasattr(response, 'text') else "No response object or text."
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"[UNEXPECTED_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {e_unexp}. Request URL: {log_url}, Headers: {log_headers}, Response (if available): {response_text_on_unexp}")
         print(f"Unexpected error during Spotify search for '{song_title}' by '{artist_name}': {e_unexp}")
         return None
 
