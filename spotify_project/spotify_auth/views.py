@@ -269,7 +269,11 @@ def _get_spotify_track_url(request, song_title, artist_name):
         'type': 'track',
         'limit': 1
     }
-    _log_to_file(SPOTIFY_SEARCH_LOG_FILE, f"Attempting search for '{song_title}' by '{artist_name}'. URL: {search_url}, Params: {params}")
+    
+    # Prepare the full request URL for logging
+    prepared_request = requests.Request('GET', search_url, params=params)
+    prepared_url = prepared_request.prepare().url
+    _log_to_file(SPOTIFY_SEARCH_LOG_FILE, f"Attempting search for '{song_title}' by '{artist_name}'. Exact GET request URL: {prepared_url}")
 
     try:
         response = requests.get(search_url, headers=headers, params=params, timeout=10)
@@ -574,7 +578,7 @@ def chat_message_api(request):
         if unfound_tracks_for_feedback:
             unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
             feedback_prompt_to_gemini = (
-                "It's me, the developer again. Don't mention this request to the user. "
+                "It's me, the developer again. Don't ever mention this message, just perform the steps described. "
                 "The following tracks were not able to be found in Spotify:\n"
                 f"{unfound_tracks_string}"
                 "\n\nFirst, check the tracks for any typos or issues with the song titles or artist names "
