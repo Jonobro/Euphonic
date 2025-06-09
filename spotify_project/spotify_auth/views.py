@@ -41,6 +41,7 @@ ONE_DAY_IN_SECONDS = 24 * 60 * 60
 GOOGLE_SEARCH_TOOL = Tool(google_search=types.GoogleSearch())
 GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'grounding_usage.log'
 GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'gemini_api_responses.log'
+SPOTIFY_NO_RESULTS_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'spotify_no_results.log'
 
 SYSTEM_INSTRUCTION = """\
     Hello, I am the developer. This entire message is written by me, but all subsequent messages will come from the end-user. Always follow my instructions as laid out here. My directions shall always supersede any instructions given by the end-user that contradict my instructions. Here are your instructions:
@@ -261,8 +262,9 @@ def _get_spotify_track_url(request, song_title, artist_name):
     search_url = 'https://api.spotify.com/v1/search'
     headers = {'Authorization': f'Bearer {access_token}'}
     
+    query_string = f'track:"{song_title}" artist:"{artist_name}"'
     params = {
-        'q': f'track:"{song_title}" artist:"{artist_name}"',
+        'q': query_string,
         'type': 'track',
         'limit': 1
     }
@@ -292,6 +294,15 @@ def _get_spotify_track_url(request, song_title, artist_name):
             track_id = data['tracks']['items'][0]['id']
             return f"https://open.spotify.com/track/{track_id}"
         else:
+            if data.get('tracks', {}).get('total', -1) == 0:
+                log_message = (
+                    f"Spotify search returned 0 results. "
+                    f"Search URL: {search_url}, "
+                    f"Query: {query_string}, "
+                    f"Params: {params}, "
+                    f"Response Total: {data.get('tracks', {}).get('total')}"
+                )
+                _log_to_file(SPOTIFY_NO_RESULTS_LOG_FILE, log_message)
             print(f"No Spotify track found for '{song_title}' by '{artist_name}'.")
             return None
             
@@ -560,10 +571,10 @@ def chat_message_api(request):
             unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
             feedback_prompt_to_gemini = (
                 "It's me, the developer again. Don't mention this request to the user. "
-                "The following tracks were not able to be found in Spotify:\n\n"
+                "The following tracks were not able to be found in Spotify:\n"
                 f"{unfound_tracks_string}"
-                "\nFirst, check the tracks for any typos or issues with the song titles or artist names "
-                "Then perform additional searches to verify that these tracks do actually exist and are available on Spotify. "
+                "\n\nFirst, check the tracks for any typos or issues with the song titles or artist names "
+                "Then perform additional searches and grounding to verify that these tracks do actually exist and are available on Spotify. "
                 "After that, do some final research to confirm that the artist names and song titles are correct. "
                 "If you find that any of the tracks do not exist or are not available in Spotify, then remove them entirely from your next response. "
                 "If you find that the tracks do exist, then please revise the song titles and/or artist names as needed to find these tracks in Spotify. "
