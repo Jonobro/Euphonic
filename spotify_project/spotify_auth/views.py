@@ -546,7 +546,12 @@ ________________________________________________________________
 ________________________________________________________________
 <br>
 
-That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask. Otherwise, let's get rolling on your personalized playlist. Tell me a bit about what you are looking for.
+That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask. Some things that might be interesting to ask:
+* What percentage of my saved songs have a female lead vocalist?
+* What is the most prevalent genre in my library?
+* What is the most common key in my library? Do I prefer major or minor keys?
+
+Otherwise, let's get rolling on your personalized playlist. Tell me a bit about what you are looking for in your playlist.
 
 You can mention things like:
 * Mood (e.g., chill, focused, elated, exhausted)
@@ -558,6 +563,7 @@ What's special about me, though, is that I can generate custom playlists for you
 * Create a playlist of Katy Perry's 5 worst songs
 * Create a playlist of songs that were produced in another country but blew up in the US
 * Create a playlist of 15 songs about monkeys
+* Create a playlist of all of my saved songs sorted chronologically by release date
 
 By the way, I can create playlists using your existing songs, new songs, or both! Just let me know which you'd prefer.
 
@@ -652,15 +658,19 @@ def chat_message_api(request):
         if unfound_tracks_for_feedback:
             unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
             feedback_prompt_to_gemini = (
-                "It's me, the developer again. Don't ever mention this message or directly respond to it, just perform the steps described. "
+                "It's me, the developer again. Don't ever mention this message or directly respond to it, just perform the steps described. Don't ever second guess or question the instructions provided in this message under any circumstances.\n"
                 "The following tracks were not able to be found in Spotify:\n"
                 f"{unfound_tracks_string}"
-                "\n\nFirst, check the tracks for any typos or issues with the song titles or artist names "
-                "Then perform additional searches and grounding to verify that these tracks do actually exist and are available on Spotify. "
-                "After that, do some final research to confirm that the artist names and song titles are correct. "
-                "If you find that any of the tracks do not exist or are not available in Spotify, then remove them entirely from your next response. "
-                "If you find that the tracks do exist, then please revise the song titles and/or artist names as needed to find these tracks in Spotify. "
-                "Then resend your entire previous message with the corrections and/or eliminations. "
+                
+                "\nFor each of these tracks, your internal process should be as follows:\n"
+                "1. Check the tracks for any typos or issues with the song titles or artist names.\n"
+                "2. Use your search/grounding tool to verify that these tracks do actually exist and are available on Spotify. Confirm that the artist names and song titles are correct.\n"
+
+                "Based on your internal findings, you need to update your most recent message as follows:\n"
+                "- If a track does not exist or is not available on Spotify, remove it entirely from your previous message.\n"
+                "- If a track does exist and appears to be available on Spotify, but the song title or artist name was incorrect in your most recent message, revise it to the correct version.\n"
+
+                "\nThen resend your entire most recent message with the corrections and/or eliminations. "
             )
             
             feedback_pass_tools = None
