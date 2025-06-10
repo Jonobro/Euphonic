@@ -521,6 +521,11 @@ def initialize_chat_data_view(request):
         initial_analysis_text_from_gemini = response.text
         _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (initialize_chat_data_view):\n{response}")
 
+        # Add null check
+        if initial_analysis_text_from_gemini is None:
+            initial_analysis_text_from_gemini = ""
+            _log_to_file(GENERAL_LOG_FILE, "initial_analysis_text_from_gemini was None, setting to empty string")
+
         def clean_markers_for_initial_display(match):
             song_title = match.group(1).strip()
             artist_name = match.group(2).strip()
@@ -625,6 +630,11 @@ def chat_message_api(request):
         ai_response_text = response.text
         _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api - First Pass):\n{response}")
 
+        # Add null check
+        if ai_response_text is None:
+            ai_response_text = ""
+            _log_to_file(GENERAL_LOG_FILE, "ai_response_text was None, setting to empty string")
+
         unfound_tracks_for_feedback = [] 
         specific_pattern = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
         
@@ -715,7 +725,17 @@ def chat_message_api(request):
             final_ai_text_to_process_for_user = correction_response.text
             _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api - Feedback Pass):\n{correction_response}")
             
+            # Add null check
+            if final_ai_text_to_process_for_user is None:
+                final_ai_text_to_process_for_user = ""
+                _log_to_file(GENERAL_LOG_FILE, "final_ai_text_to_process_for_user was None after feedback, setting to empty string")
+            
             chat = feedback_chat
+        
+        # Add null check before regex operations
+        if final_ai_text_to_process_for_user is None:
+            final_ai_text_to_process_for_user = ai_response_text or ""
+            _log_to_file(GENERAL_LOG_FILE, "final_ai_text_to_process_for_user was None, using ai_response_text or empty string")
         
         def final_replacer_fn(match):
             song_title = match.group(1).strip()
