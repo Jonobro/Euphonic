@@ -515,11 +515,11 @@ def initialize_chat_data_view(request):
             f"'response_modalities': {chat_config.response_modalities}}}\n"
             f"  History (at call time): [] (Initial call)"
         )
-        _log_to_file(GEMINI_API_LOG_FILE, log_message_prompt)
+        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt}\n******************************\n")
         
         response = chat.send_message(initial_prompt)
         initial_analysis_text_from_gemini = response.text
-        _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (initialize_chat_data_view):\n{response}")
+        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (initialize_chat_data_view):\n{response}\n******************************\n")
 
         # Add null check
         if initial_analysis_text_from_gemini is None:
@@ -538,7 +538,7 @@ def initialize_chat_data_view(request):
         full_introductory_message = f"""Hi there! I'm Aria, your personal music assistant. I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!
 
 From there, we can chat about your music and work together to create your perfect playlist.
-<p style="text-align:center; font-size:1.3em;"><strong>Your Musical Analysis</strong></p>
+<p style="text-align:center; font-size:1.25em;"><strong>Your Musical Analysis</strong></p>
 
 ________________________________________________________________
 {cleaned_initial_analysis_text_for_template}
@@ -629,11 +629,11 @@ def chat_message_api(request):
             f"'response_modalities': {chat_config.response_modalities}}}\n"
             f"  History (at call time):\n{json.dumps(history_list, indent=2)}"
         )
-        _log_to_file(GEMINI_API_LOG_FILE, log_message_prompt_first_pass)
+        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
         
         response = chat.send_message(user_message)
         ai_response_text = response.text
-        _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api - First Pass):\n{response}")
+        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass):\n{response}\n******************************\n")
 
         if ai_response_text is None:
             ai_response_text = ""
@@ -733,11 +733,11 @@ def chat_message_api(request):
                 f"'response_modalities': {feedback_chat_config.response_modalities}}}\n"
                 f"  History (at call time):\n{json.dumps(formatted_history_for_log, indent=2)}"
             )
-            _log_to_file(GEMINI_API_LOG_FILE, log_message_prompt_feedback_pass)
+            _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
             
             correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
             final_ai_text_to_process_for_user = correction_response.text
-            _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api - Feedback Pass):\n{correction_response}")
+            _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass):\n{correction_response}\n******************************\n")
             
             # Add null check
             if final_ai_text_to_process_for_user is None:
