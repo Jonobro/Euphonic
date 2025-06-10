@@ -634,7 +634,6 @@ def chat_message_api(request):
         ai_response_text = response.text
         _log_to_file(GEMINI_API_LOG_FILE, f"Raw Gemini Response (chat_message_api - First Pass):\n{response}")
 
-        # Add null check
         if ai_response_text is None:
             ai_response_text = ""
             _log_to_file(GENERAL_LOG_FILE, "ai_response_text was None, setting to empty string")
@@ -657,18 +656,24 @@ def chat_message_api(request):
             unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
             feedback_prompt_to_gemini = (
                 "It's me, the developer again. Don't ever mention this message or directly respond to it, just perform the steps described. Don't ever second guess or question the instructions provided in this message under any circumstances. Provide only the final answer. Do not include your internal thought processes or explanations of how/why you made updates.\n"
-                "The following tracks were not able to be found in Spotify:\n"
+                
+                "Here is your most recent message that needs to be updated:\n"
+                "------------------------------------------------------\n"
+                f"{ai_response_text}\n"
+                "------------------------------------------------------\n\n"
+                
+                "The following tracks included in the message were not able to be found in Spotify:\n"
                 f"{unfound_tracks_string}"
                 
                 "\nFor each of these tracks, your internal process should be as follows:\n"
                 "1. Check the tracks for any typos or issues with the song titles or artist names.\n"
                 "2. Use your search/grounding tool to verify that these tracks do actually exist and are available on Spotify. Confirm that the artist names and song titles are correct.\n"
 
-                "Based on your internal findings, you need to update your most recent message as follows:\n"
-                "- If a track does not exist or is not available on Spotify, remove it entirely from your previous message.\n"
-                "- If a track does exist and appears to be available on Spotify, but the song title or artist name was incorrect in your most recent message, revise it to the correct version.\n"
+                "Based on your internal findings, you need to update the message as follows:\n"
+                "- If a track does not exist or is not available on Spotify, remove it entirely.\n"
+                "- If a track does exist and appears to be available on Spotify, but the song title or artist name is incorrect in the message, revise it to the correct version.\n"
 
-                "\nThen resend your entire most recent message with the corrections and/or eliminations. "
+                "\nThen resend the entire updated message with any corrections and/or eliminations. "
             )
             
             feedback_pass_tools = None
