@@ -532,30 +532,31 @@ def initialize_chat_data_view(request):
 
         full_introductory_message = f"""Hi there! I'm Aria, your personal music assistant. I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!
 
-From there, we can chat about your music and work together to create your perfect playlist!
-
-__________________________________________________________________
-
-{markdown(cleaned_initial_analysis_text_for_template)}
-
-__________________________________________________________________
+From there, we can chat about your music and work together to create your perfect playlist.
+<br>
+________________________________________________________________
+<br>
+{cleaned_initial_analysis_text_for_template}
+<br>
+________________________________________________________________
+<br>
 
 That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask. Otherwise, let's get rolling on your personalized playlist. Tell me a bit about what you are looking for.
 
- You can mention things like:
-            - Mood (e.g., chill, focused, elated, exhausted)
-            - Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
-            - Favorite artists or specific songs you love (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
-            - A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
+You can mention things like:
+    * Mood (e.g., chill, focused, elated, exhausted)
+    * Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
+    * Favorite artists or specific songs you love (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
+    * A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
 
 What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
-            - Create a playlist of Katy Perry's 5 worst songs
-            - Create a playlist of songs that were produced in another country but blew up in the US
-            - Create a playlist of 15 songs about monkeys
+    * Create a playlist of Katy Perry's 5 worst songs
+    * Create a playlist of songs that were produced in another country but blew up in the US
+    * Create a playlist of 15 songs about monkeys
 
 By the way, I can create playlists using your existing songs, new songs, or both! Just let me know which you'd prefer.
 
-Let's get started! What can I do for you?
+I've talked too much - let's get started! What can I do for you?
 """
         history_list = []
         original_history = chat.get_history()
@@ -711,7 +712,20 @@ def chat_message_api(request):
 
         updated_history_list = []
         for message_part in chat.get_history():
-             updated_history_list.append({'role': message_part.role, 'parts': [{'text': p.text for p in message_part.parts}]})
+             if hasattr(message_part, 'role') and hasattr(message_part, 'parts'):
+                 current_parts = []
+                 if hasattr(message_part.parts, '__iter__'):
+                     for p in message_part.parts:
+                         if hasattr(p, 'text'):
+                             current_parts.append({'text': p.text})
+                         else:
+                             _log_to_file(GENERAL_LOG_FILE, f"Malformed part in chat history: {type(p)} - {str(p)[:200]}")
+                 else:
+                     _log_to_file(GENERAL_LOG_FILE, f"message_part.parts is not iterable for role {message_part.role}: {type(message_part.parts)}")
+                 
+                 updated_history_list.append({'role': message_part.role, 'parts': current_parts})
+             else:
+                 _log_to_file(GENERAL_LOG_FILE, f"Skipping unexpected item in chat history: {type(message_part)} - {str(message_part)[:200]}")
         
         request.session['chat_history'] = updated_history_list
         request.session.modified = True
