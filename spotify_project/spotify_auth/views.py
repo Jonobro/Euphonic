@@ -561,7 +561,7 @@ What's special about me, though, is that I can generate custom playlists for you
 
 By the way, I can create playlists using your existing songs, new songs, or both! Just let me know which you'd prefer.
 
-I've talked too much -- let's get started! What can I do for you?
+I've talked too much — let's get started! What can I do for you?
 """
         history_list = []
         original_history = chat.get_history()

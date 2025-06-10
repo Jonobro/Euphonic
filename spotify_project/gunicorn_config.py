@@ -17,7 +17,7 @@ timeout = 1000
 max_requests = 1000
 max_requests_jitter = 50
 
-errorlog = "logs/error.log"
+errorlog = "logs/gunicorn.log"
 accesslog = "logs/access.log"
 loglevel = "info"
 
