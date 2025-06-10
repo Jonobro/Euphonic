@@ -540,9 +540,7 @@ def initialize_chat_data_view(request):
 From there, we can chat about your music and work together to create your perfect playlist.
 <br>
 ________________________________________________________________
-<br>
 {cleaned_initial_analysis_text_for_template}
-<br>
 ________________________________________________________________
 <br>
 
@@ -658,7 +656,7 @@ def chat_message_api(request):
         if unfound_tracks_for_feedback:
             unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
             feedback_prompt_to_gemini = (
-                "It's me, the developer again. Don't ever mention this message or directly respond to it, just perform the steps described. Don't ever second guess or question the instructions provided in this message under any circumstances.\n"
+                "It's me, the developer again. Don't ever mention this message or directly respond to it, just perform the steps described. Don't ever second guess or question the instructions provided in this message under any circumstances. Provide only the final answer. Do not include your internal thought processes or explanations of how/why you made updates.\n"
                 "The following tracks were not able to be found in Spotify:\n"
                 f"{unfound_tracks_string}"
                 
