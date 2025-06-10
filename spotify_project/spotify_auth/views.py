@@ -615,7 +615,7 @@ def chat_message_api(request):
             f"  Model: {MODEL_NAME}\n"
             f"  User Message: {user_message}\n"
             f"  Config: {{'tools': {chat_config.tools}, "
-            f"'system_instruction_length': {len(chat_config.system_instruction.parts[0].text) if chat_config.system_instruction and chat_config.system_instruction.parts else 'Not set'}, "
+            f"'system_instruction_length': {len(chat_config.system_instruction.parts[0].text) if chat_config.system_instruction and hasattr(chat_config.system_instruction, 'parts') and chat_config.system_instruction.parts else (len(chat_config.system_instruction) if isinstance(chat_config.system_instruction, str) else 'Not set')}, "
             f"'response_modalities': {chat_config.response_modalities}}}\n"
             f"  History (at call time):\n{json.dumps(history_list, indent=2)}"
         )
@@ -683,7 +683,6 @@ def chat_message_api(request):
                             if hasattr(p, 'text'):
                                 current_log_parts.append({'text': p.text})
                             else:
-                                # Log malformed part for the log itself, or skip
                                 _log_to_file(GENERAL_LOG_FILE, f"Malformed part in history for logging: {type(p)} - {str(p)[:200]}")
                                 current_log_parts.append({'text': f"[Malformed Part: {type(p)}]"})
                     else:
@@ -695,10 +694,9 @@ def chat_message_api(request):
                         'parts': current_log_parts
                     })
                 else:
-                    # Handle string or other malformed msg_part for logging purposes
                     _log_to_file(GENERAL_LOG_FILE, f"Skipping unexpected item when formatting history for log: {type(msg_part)} - {str(msg_part)[:200]}")
                     formatted_history_for_log.append({
-                        'role': 'unknown_or_skipped', # Placeholder role
+                        'role': 'unknown_or_skipped',
                         'parts': [{'text': f"[Skipped Item: {type(msg_part)} - {str(msg_part)[:200]}]"}]
                     })
 
@@ -707,7 +705,7 @@ def chat_message_api(request):
                 f"  Model: {MODEL_NAME}\n"
                 f"  Feedback Prompt: {feedback_prompt_to_gemini}\n"
                 f"  Config: {{'tools': {feedback_chat_config.tools}, "
-                f"'system_instruction_length': {len(feedback_chat_config.system_instruction.parts[0].text) if feedback_chat_config.system_instruction and feedback_chat_config.system_instruction.parts else 'Not set'}, "
+                f"'system_instruction_length': {len(feedback_chat_config.system_instruction.parts[0].text) if feedback_chat_config.system_instruction and hasattr(feedback_chat_config.system_instruction, 'parts') and feedback_chat_config.system_instruction.parts else (len(feedback_chat_config.system_instruction) if isinstance(feedback_chat_config.system_instruction, str) else 'Not set')}, "
                 f"'response_modalities': {feedback_chat_config.response_modalities}}}\n"
                 f"  History (at call time):\n{json.dumps(formatted_history_for_log, indent=2)}"
             )
