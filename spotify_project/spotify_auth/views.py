@@ -18,8 +18,8 @@ from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 from django.views.decorators.cache import never_cache
 from pathlib import Path
 from markdown import markdown
-import time 
-from django.core.cache import cache 
+import time
+from django.core.cache import cache
 
 def generate_code_verifier(length=64):
     possible_chars = string.ascii_letters + string.digits + '-._~'
@@ -556,7 +556,7 @@ What's special about me, though, is that I can generate custom playlists for you
 
 By the way, I can create playlists using your existing songs, new songs, or both! Just let me know which you'd prefer.
 
-I've talked too much - let's get started! What can I do for you?
+I've talked too much -- let's get started! What can I do for you?
 """
         history_list = []
         original_history = chat.get_history()
@@ -676,10 +676,31 @@ def chat_message_api(request):
             
             formatted_history_for_log = []
             for msg_part in current_chat_history_for_feedback:
-                formatted_history_for_log.append({
-                    'role': msg_part.role,
-                    'parts': [{'text': p.text} for p in msg_part.parts]
-                })
+                if hasattr(msg_part, 'role') and hasattr(msg_part, 'parts'):
+                    current_log_parts = []
+                    if hasattr(msg_part.parts, '__iter__'):
+                        for p in msg_part.parts:
+                            if hasattr(p, 'text'):
+                                current_log_parts.append({'text': p.text})
+                            else:
+                                # Log malformed part for the log itself, or skip
+                                _log_to_file(GENERAL_LOG_FILE, f"Malformed part in history for logging: {type(p)} - {str(p)[:200]}")
+                                current_log_parts.append({'text': f"[Malformed Part: {type(p)}]"})
+                    else:
+                        _log_to_file(GENERAL_LOG_FILE, f"msg_part.parts not iterable for logging for role {msg_part.role}: {type(msg_part.parts)}")
+                        current_log_parts.append({'text': f"[Non-iterable Parts for role {msg_part.role}]"})
+                    
+                    formatted_history_for_log.append({
+                        'role': msg_part.role,
+                        'parts': current_log_parts
+                    })
+                else:
+                    # Handle string or other malformed msg_part for logging purposes
+                    _log_to_file(GENERAL_LOG_FILE, f"Skipping unexpected item when formatting history for log: {type(msg_part)} - {str(msg_part)[:200]}")
+                    formatted_history_for_log.append({
+                        'role': 'unknown_or_skipped', # Placeholder role
+                        'parts': [{'text': f"[Skipped Item: {type(msg_part)} - {str(msg_part)[:200]}]"}]
+                    })
 
             log_message_prompt_feedback_pass = (
                 f"Gemini API Call (chat_message_api - Feedback Pass):\n"
