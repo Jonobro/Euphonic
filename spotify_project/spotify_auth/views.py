@@ -539,6 +539,8 @@ def initialize_chat_data_view(request):
 
 From there, we can chat about your music and work together to create your perfect playlist.
 <br>
+<br>
+<p style="text-align:center; font-size:1.3em;"><strong>Your Musical Analysis</strong></p>
 ________________________________________________________________
 {cleaned_initial_analysis_text_for_template}
 ________________________________________________________________
