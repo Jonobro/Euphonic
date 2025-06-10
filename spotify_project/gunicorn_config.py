@@ -19,6 +19,9 @@ max_requests_jitter = 50
 
 errorlog = "logs/gunicorn.log"
 accesslog = "logs/access.log"
+pidfile = "logs/gunicorn.pid"
 loglevel = "info"
+
+capture_output = True
 
 proc_name = "spotify_project"

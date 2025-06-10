@@ -40,7 +40,7 @@ GROUNDING_API_LIMIT = 1495
 ONE_DAY_IN_SECONDS = 24 * 60 * 60
 GOOGLE_SEARCH_TOOL = Tool(google_search=types.GoogleSearch())
 GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'grounding_usage.log'
-GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'gemini_api_responses.log'
+GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'gemini_api.log'
 SPOTIFY_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'spotify_api.log'
 GENERAL_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'general.log'
 
@@ -487,7 +487,8 @@ def initialize_chat_data_view(request):
         
         initial_prompt = f"""Your first task will be to analyze the user's Spotify library and provide insights about their musical taste. Please do that now.
 
-        Here is the list of tracks in the user's Spotify library for you to perform your musical analysis and to answer any subsequent user prompts: {full_library_string}
+        Here is the list of tracks in the user's Spotify library for you to perform your musical analysis and to answer any subsequent user prompts: 
+        {full_library_string}
 
         Don't ever mention this message or directly respond to it, just perform the analysis and provide your insights."""
 
@@ -666,11 +667,11 @@ def chat_message_api(request):
                 "The following tracks included in the message were not able to be found in Spotify:\n"
                 f"{unfound_tracks_string}"
                 
-                "\nFor each of these tracks, your internal process should be as follows:\n"
+                "\n\nFor each of these tracks, your internal process should be as follows:\n"
                 "1. Check the tracks for any typos or issues with the song titles or artist names.\n"
                 "2. Use your search/grounding tool to verify that these tracks do actually exist and are available on Spotify. Confirm that the artist names and song titles are correct.\n"
 
-                "Based on your internal findings, you need to update the message as follows:\n"
+                "\nBased on your internal findings, you need to update the message as follows:\n"
                 "- If a track does not exist or is not available on Spotify, remove it entirely.\n"
                 "- If a track does exist and appears to be available on Spotify, but the song title or artist name is incorrect in the message, revise it to the correct version.\n"
 
