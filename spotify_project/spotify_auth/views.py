@@ -538,10 +538,8 @@ def initialize_chat_data_view(request):
         full_introductory_message = f"""Hi there! I'm Aria, your personal music assistant. I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!
 
 From there, we can chat about your music and work together to create your perfect playlist.
-<br>
-<br>
 <p style="text-align:center; font-size:1.3em;"><strong>Your Musical Analysis</strong></p>
-________________________________________________________________
+_______________________________________________________________
 {cleaned_initial_analysis_text_for_template}
 ________________________________________________________________
 <br>
