@@ -544,15 +544,15 @@ ________________________________________________________________
 That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask. Otherwise, let's get rolling on your personalized playlist. Tell me a bit about what you are looking for.
 
 You can mention things like:
-    * Mood (e.g., chill, focused, elated, exhausted)
-    * Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
-    * Favorite artists or specific songs you love (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
-    * A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
+* Mood (e.g., chill, focused, elated, exhausted)
+* Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
+* Favorite artists or specific songs you love (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
+* A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
 
 What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
-    * Create a playlist of Katy Perry's 5 worst songs
-    * Create a playlist of songs that were produced in another country but blew up in the US
-    * Create a playlist of 15 songs about monkeys
+* Create a playlist of Katy Perry's 5 worst songs
+* Create a playlist of songs that were produced in another country but blew up in the US
+* Create a playlist of 15 songs about monkeys
 
 By the way, I can create playlists using your existing songs, new songs, or both! Just let me know which you'd prefer.
 
