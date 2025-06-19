@@ -745,7 +745,106 @@ def chat_message_api(request):
                 final_ai_text_to_process_for_user = ""
                 _log_to_file(GENERAL_LOG_FILE, "final_ai_text_to_process_for_user was None after feedback, setting to empty string")
             
-            chat = feedback_chat
+            # Second validation pass - check if any tracks are still unfound
+            still_unfound_tracks_for_removal = []
+            corrected_song_mentions = specific_pattern.findall(final_ai_text_to_process_for_user)
+            
+            for song_title_match, artist_name_match in corrected_song_mentions:
+                song_title = song_title_match.strip()
+                artist_name = artist_name_match.strip()
+                track_url = _get_spotify_track_url(request, song_title, artist_name)
+                if not track_url:
+                    still_unfound_tracks_for_removal.append(f"- {song_title} by {artist_name}")
+            
+            # If there are still unfound tracks, send another feedback for removal
+            if still_unfound_tracks_for_removal:
+                still_unfound_tracks_string = "\n".join(still_unfound_tracks_for_removal)
+                removal_prompt_to_gemini = (
+                    "It's me, the developer again. Don't ever mention this message or directly respond to it, just perform the steps described. Don't ever second guess or question the instructions provided in this message under any circumstances. Provide only the final answer. Do not include your internal thought processes or explanations of how/why you made updates.\n"
+                    
+                    "Here is your most recent message that needs to be updated:\n"
+                    "------------------------------------------------------\n"
+                    f"{final_ai_text_to_process_for_user}\n"
+                    "------------------------------------------------------\n\n"
+                    
+                    "The following tracks included in the message are still not able to be found in Spotify and need to be completely removed:\n"
+                    f"{still_unfound_tracks_string}"
+                    
+                    "\n\nYou need to update the message by completely removing all mentions of these tracks. Do not try to correct them or find alternatives - simply remove them entirely from your response.\n"
+                    
+                    "\nThen resend the entire updated message with these tracks removed. "
+                )
+                
+                removal_pass_tools = None
+                can_use_grounding_for_removal = check_and_update_grounding_usage()
+                if can_use_grounding_for_removal:
+                    removal_pass_tools = [GOOGLE_SEARCH_TOOL]
+                
+                removal_chat_config = types.GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION,
+                    tools=removal_pass_tools,
+                    response_modalities=["TEXT"]
+                )
+                
+                current_chat_history_for_removal = []
+                for message_part in feedback_chat.get_history():
+                     current_chat_history_for_removal.append(message_part)
+
+                removal_chat = client.chats.create(
+                    model=MODEL_NAME,
+                    history=current_chat_history_for_removal,
+                    config=removal_chat_config
+                )
+                
+                formatted_history_for_removal_log = []
+                for msg_part in current_chat_history_for_removal:
+                    if hasattr(msg_part, 'role') and hasattr(msg_part, 'parts'):
+                        current_log_parts = []
+                        if hasattr(msg_part.parts, '__iter__'):
+                            for p in msg_part.parts:
+                                if hasattr(p, 'text'):
+                                    current_log_parts.append({'text': p.text})
+                                else:
+                                    _log_to_file(GENERAL_LOG_FILE, f"Malformed part in history for removal logging: {type(p)} - {str(p)[:200]}")
+                                    current_log_parts.append({'text': f"[Malformed Part: {type(p)}]"})
+                        else:
+                            _log_to_file(GENERAL_LOG_FILE, f"msg_part.parts not iterable for removal logging for role {msg_part.role}: {type(msg_part.parts)}")
+                            current_log_parts.append({'text': f"[Non-iterable Parts for role {msg_part.role}]"})
+                        
+                        formatted_history_for_removal_log.append({
+                            'role': msg_part.role,
+                            'parts': current_log_parts
+                        })
+                    else:
+                        _log_to_file(GENERAL_LOG_FILE, f"Skipping unexpected item when formatting history for removal log: {type(msg_part)} - {str(msg_part)[:200]}")
+                        formatted_history_for_removal_log.append({
+                            'role': 'unknown_or_skipped',
+                            'parts': [{'text': f"[Skipped Item: {type(msg_part)} - {str(msg_part)[:200]}]"}]
+                        })
+
+                log_message_prompt_removal_pass = (
+                    f"Gemini API Call (chat_message_api - Removal Pass):\n"
+                    f"  Model: {MODEL_NAME}\n"
+                    f"  Removal Prompt: {removal_prompt_to_gemini}\n"
+                    f"  Config: {{'tools': {removal_chat_config.tools}, "
+                    f"'system_instruction_length': {len(removal_chat_config.system_instruction.parts[0].text) if removal_chat_config.system_instruction and hasattr(removal_chat_config.system_instruction, 'parts') and removal_chat_config.system_instruction.parts else (len(removal_chat_config.system_instruction) if isinstance(removal_chat_config.system_instruction, str) else 'Not set')}, "
+                    f"'response_modalities': {removal_chat_config.response_modalities}}}\n"
+                    f"  History (at call time):\n{json.dumps(formatted_history_for_removal_log, indent=2)}"
+                )
+                _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
+                
+                final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
+                final_ai_text_to_process_for_user = final_removal_response.text
+                _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass):\n{final_removal_response}\n******************************\n")
+                
+                # Add null check
+                if final_ai_text_to_process_for_user is None:
+                    final_ai_text_to_process_for_user = ""
+                    _log_to_file(GENERAL_LOG_FILE, "final_ai_text_to_process_for_user was None after removal, setting to empty string")
+                
+                chat = removal_chat
+            else:
+                chat = feedback_chat
         
         # Add null check before regex operations
         if final_ai_text_to_process_for_user is None:
