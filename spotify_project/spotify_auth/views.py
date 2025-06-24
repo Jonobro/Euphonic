@@ -62,6 +62,7 @@ SYSTEM_INSTRUCTION = """\
         *   If two artists sing the same song, pick the more relevant artist and exclude the other one. For instance, rather than say "All Along the Watchtower by Bob Dylan or Jimi Hendrix", you need to choose one of the two artists.
     4.  **Song Formatting:**
         *   Format ALL song mentions as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@
+        *   Make sure the entire song title is enclosed in the $ signs and the entire artist name is enclosed in the @ signs.
         *   Make sure there are no spaces between the five $ signs or between the five @ signs.
         *   Make sure there are no spaces between the $ signs and the song title and make sure there are no spaces between the @ signs and the artist name.
         *   Do not add backticks around song titles or artist names.
@@ -547,8 +548,8 @@ ________________________________________________________________
 <br>
 
 That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask. Some things that might be interesting to ask:
-* What percentage of my saved songs have a female lead vocalist?
 * What is the most prevalent genre in my library?
+* What percentage of my saved songs have a female lead vocalist?
 * What is the most common key in my library? Do I prefer major or minor keys?
 
 Otherwise, let's get rolling on your personalized playlist. Tell me a bit about what you are looking for in your playlist.
