@@ -21,7 +21,7 @@ RUN chmod +x /app/docker-entrypoint.sh
 RUN useradd -m appuser
 
 # Create necessary directories before changing ownership
-RUN mkdir -p /app/staticfiles /app/logs
+RUN mkdir -p /app/staticfiles /app/logs /app/logs/custom_logs
 
 # Change ownership of the entire app directory to the non-root user
 RUN chown -R appuser:appuser /app
