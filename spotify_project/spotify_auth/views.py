@@ -434,11 +434,11 @@ def chat_view(request):
     if not request.session.get('spotify_access_token'):
         return redirect(reverse('spotify_login'))
 
-    chat_history = request.session.get('chat_history', [])
-    is_loading_initial = not chat_history
+    final_chat_history = request.session.get('final_chat_history', [])
+    is_loading_initial = not final_chat_history
 
     return render(request, 'spotify_auth/chat.html', {
-        'chat_history_json': json.dumps(chat_history),
+        'chat_history_json': json.dumps(final_chat_history),
         'is_loading_initial_data': is_loading_initial
     })
 
@@ -449,9 +449,9 @@ def initialize_chat_data_view(request):
     if not request.session.get('spotify_access_token'):
         return JsonResponse({'error': 'User not authenticated'}, status=401)
 
-    if request.session.get('chat_history'):
+    if request.session.get('final_chat_history'):
         first_ai_message = "Chat already initialized."
-        for entry in request.session.get('chat_history', []):
+        for entry in request.session.get('final_chat_history', []):
             if entry.get('role') == 'model':
                 first_ai_message = entry['parts'][0]['text']
                 break
@@ -571,6 +571,10 @@ I've talked too much — let's get started! What can I do for you?
             history_list.append({'role': 'model', 'parts': [{'text': full_introductory_message}]})
 
         request.session['chat_history'] = history_list
+        
+        final_history_list = [{'role': 'model', 'parts': [{'text': full_introductory_message}]}]
+        request.session['final_chat_history'] = final_history_list
+        
         request.session.modified = True
 
         return JsonResponse({'analysis_result': full_introductory_message})
@@ -879,6 +883,12 @@ Now, provide only the complete, updated "<text_to_edit>" with the tracks removed
                  _log_to_file(GENERAL_LOG_FILE, f"Skipping unexpected item in chat history: {type(message_part)} - {str(message_part)[:200]}")
         
         request.session['chat_history'] = updated_history_list
+        
+        final_history_list = request.session.get('final_chat_history', [])
+        final_history_list.append({'role': 'user', 'parts': [{'text': user_message}]})
+        final_history_list.append({'role': 'model', 'parts': [{'text': processed_ai_response_text}]})
+        request.session['final_chat_history'] = final_history_list
+        
         request.session.modified = True
 
         return JsonResponse({'response': processed_ai_response_text})
