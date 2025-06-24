@@ -3,7 +3,7 @@ services:
     build: .
     volumes:
       - static_volume:/app/staticfiles
-      - ./logs:/app/logs
+      - logs_volume:/app/logs
     env_file:
       - .env
     environment:
@@ -54,6 +54,7 @@ services:
 
 volumes:
   static_volume:
+  logs_volume:
   certbot_certs:
   certbot_www:
   redis_data:
