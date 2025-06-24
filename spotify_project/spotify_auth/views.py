@@ -434,22 +434,11 @@ def chat_view(request):
     if not request.session.get('spotify_access_token'):
         return redirect(reverse('spotify_login'))
 
-    chat_history = request.session.get('chat_history')
-    initial_analysis_for_template = None
-    is_loading_initial = False
+    chat_history = request.session.get('chat_history', [])
+    is_loading_initial = not chat_history
 
-    if not chat_history:
-        is_loading_initial = True
-    else:
-        for entry in chat_history:
-            if entry.get('role') == 'model':
-                initial_analysis_for_template = entry['parts'][0]['text']
-                break
-        if not initial_analysis_for_template:
-            initial_analysis_for_template = "Welcome back! How can I assist you with your music today?"
-    
     return render(request, 'spotify_auth/chat.html', {
-        'analysis_result': initial_analysis_for_template,
+        'chat_history_json': json.dumps(chat_history),
         'is_loading_initial_data': is_loading_initial
     })
 

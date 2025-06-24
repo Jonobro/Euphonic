@@ -85,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const isInitiallyLoading = messageList.dataset.isLoadingInitial === 'true';
-    const initialMessageFromTemplate = messageList.dataset.initialMessage;
 
     if (isInitiallyLoading) {
         const loadingIndicatorBaseText = "Welcome! I'm fetching your Spotify library and preparing your initial analysis. This might take a moment";
@@ -139,9 +138,24 @@ document.addEventListener('DOMContentLoaded', () => {
                  userInput.focus();
             }
         });
-    } else if (initialMessageFromTemplate) {
-        try { addMessage(JSON.parse(`"${initialMessageFromTemplate}"`), 'ai'); }
-        catch { addMessage(initialMessageFromTemplate, 'ai'); }
+    } else {
+        const chatHistoryDataElement = document.getElementById('chat-history-data');
+        if (chatHistoryDataElement) {
+            try {
+                const history = JSON.parse(chatHistoryDataElement.textContent);
+                if (Array.isArray(history)) {
+                    history.forEach(message => {
+                        if (message.role && message.parts && message.parts[0] && message.parts[0].text) {
+                            const sender = message.role === 'model' ? 'ai' : 'user';
+                            addMessage(message.parts[0].text, sender);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Could not parse chat history:", e);
+                addMessage("Sorry, there was an error loading your chat history.", 'ai');
+            }
+        }
     }
     
     scrollToBottom();

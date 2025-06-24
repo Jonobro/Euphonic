@@ -21,8 +21,7 @@
         </div>
         <div id="chat-container">
             <div id="message-list" 
-                 {% if is_loading_initial_data %}data-is-loading-initial="true"{% endif %}
-                 {% if analysis_result and not is_loading_initial_data %}data-initial-message="{{ analysis_result|escapejs }}"{% endif %}>
+                 {% if is_loading_initial_data %}data-is-loading-initial="true"{% endif %}>
             </div>
             <div id="chat-input-area">
                 <textarea id="user-input" placeholder="Ask follow-up questions or request playlists..."></textarea>
@@ -35,6 +34,9 @@
         <img src="{% static 'spotify_auth/images/Full_Logo_Green_RGB.svg' %}" alt="Spotify Logo" class="spotify-logo">
     </div>
     
+    <script id="chat-history-data" type="application/json">
+        {{ chat_history_json|safe }}
+    </script>
     <script src="{% static 'spotify_auth/js/chat.js' %}"></script>
 </body>
 </html>
