@@ -681,7 +681,7 @@ Your internal process for each track listed above:
     - If a track does not exist or is not available on Spotify, remove it entirely.
 </correction_rules>
 
-Now provide only the complete, updated "<text_to_edit>" with the corrections applied. Again, your final output must be ONLY the full, corrected "<text_to_edit>". Do not add any conversational text, preambles, or explanations about what you have changed.
+Now provide only the complete, updated "<text_to_edit>" with the corrections applied. Your final output must be ONLY the full, corrected "<text_to_edit>". Do not add any conversational text, preambles, or explanations about what you have changed.
 """
             
             feedback_pass_tools = None
@@ -781,7 +781,7 @@ The following tracks must be completely removed from "<text_to_edit>". Do not tr
 </tracks_to_remove>
 </correction_rules>
 
-Now, provide only the complete, updated "<text_to_edit>" with the tracks removed.
+Now, provide only the complete, updated "<text_to_edit>" with the tracks removed. Do not add any conversational text, preambles, or explanations about what you have removed.
 """
                 
                 removal_pass_tools = None
