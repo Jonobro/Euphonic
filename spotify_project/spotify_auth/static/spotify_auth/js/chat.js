@@ -4,18 +4,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageList = document.getElementById('message-list');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    if (window.marked) {
-        marked.setOptions({ gfm: true, breaks: true, headerIds: false, mangle: false, smartLists: true, smartypants: true });
-    }
-
     // Configure marked.js to open links in a new tab
     const renderer = new marked.Renderer();
     const originalLinkRenderer = renderer.link;
     renderer.link = (href, title, text) => {
         const link = originalLinkRenderer.call(renderer, href, title, text);
-        // Add target="_blank" to the link
-        return link.replace(/<a /, '<a target="_blank" ');
+        // Add target="_blank" and rel attributes for security and new tab functionality
+        return link.replace(/^<a/, '<a target="_blank" rel="noopener noreferrer"');
     };
+
+    if (window.marked) {
+        marked.setOptions({ 
+            gfm: true, 
+            breaks: true, 
+            headerIds: false, 
+            mangle: false, 
+            smartLists: true, 
+            smartypants: true,
+            renderer: renderer
+        });
+    }
 
     const scrollToBottom = () => {
         messageList.scrollTo({ top: messageList.scrollHeight });
