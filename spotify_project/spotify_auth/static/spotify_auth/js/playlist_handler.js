@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const messageList = document.getElementById('message-list');
-    const csrfToken = document.querySelector('[name=csrf-token]').content;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
     function processMessageForPlaylist(messageElement) {
         if (!messageElement.classList.contains('ai-message')) {
