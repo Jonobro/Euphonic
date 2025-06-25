@@ -753,7 +753,7 @@ def chat_message_api(request):
             unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
             feedback_prompt_to_gemini = f"""<instructions>
 You are in "correction mode". Your task is to silently edit the provided text based on the rules below.
-Your final output must be ONLY the full, corrected text. Do not add any conversational text, preambles, or explanations about what you have changed.
+Your final output must be ONLY the full, corrected text. Do not add any conversational text, preambles, or explanations about what you have changed. There should be NO additional text before OR after the corrected text.
 </instructions>
 
 <text_to_edit>
@@ -774,7 +774,7 @@ Your internal process for each track listed above:
     - If a track does not exist or is not available on Spotify, remove it entirely.
 </correction_rules>
 
-Now provide only the complete, updated "<text_to_edit>" with the corrections applied. Your final output must be ONLY the full, corrected "<text_to_edit>". Do not add any conversational text, preambles, or explanations about what you have changed.
+Now provide only the complete, updated "<text_to_edit>" with the corrections applied. Your final output must be ONLY the full, corrected "<text_to_edit>". Do not add any conversational text, preambles, or explanations about what you have changed. There should be NO additional text before OR after the corrected text.
 """
             
             feedback_pass_tools = None
@@ -860,7 +860,7 @@ Now provide only the complete, updated "<text_to_edit>" with the corrections app
                 still_unfound_tracks_string = "\n".join(still_unfound_tracks_for_removal)
                 removal_prompt_to_gemini = f"""<instructions>
 You are in "final correction mode". Your task is to silently edit the provided text by removing specific tracks.
-Your final output must ONLY be the full, edited text. Do not add any conversational text, preambles, or explanations about what you have removed.
+Your final output must ONLY be the full, edited text. Do not add any conversational text, preambles, or explanations about what you have removed. There should be NO additional text before OR after the corrected text.
 </instructions>
 
 <text_to_edit>
@@ -874,7 +874,7 @@ The following tracks must be completely removed from "<text_to_edit>". Do not tr
 </tracks_to_remove>
 </correction_rules>
 
-Now, provide only the complete, updated "<text_to_edit>" with the tracks removed. Do not add any conversational text, preambles, or explanations about what you have removed.
+Now, provide only the complete, updated "<text_to_edit>" with the tracks removed. Do not add any conversational text, preambles, or explanations about what you have removed. There should be NO additional text before OR after the corrected text.
 """
                 
                 removal_pass_tools = None
