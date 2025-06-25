@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         messageList.scrollTo({ top: messageList.scrollHeight });
     };
 
-    const addMessage = (text, sender) => {
+    const addMessage = (text, sender, shouldScroll = true) => {
         const msg = document.createElement('div');
         msg.className = `message ${sender}-message`;
         if (window.marked && window.DOMPurify) {
@@ -43,7 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
             msg.textContent = text;
         }
         messageList.append(msg);
-        scrollToBottom();
+        if (shouldScroll) {
+            scrollToBottom();
+        }
         return msg;
     };
 
@@ -71,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        addMessage(text, 'user');
+        const userMessageElement = addMessage(text, 'user');
         userInput.value = '';
         userInput.disabled = sendButton.disabled = true;
         
@@ -86,7 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const reply = await sendMessageToBackend(text);
             clearInterval(thinkingInterval);
             if (thinkingMsgElement) thinkingMsgElement.remove(); 
-            addMessage(reply, 'ai');
+            addMessage(reply, 'ai', false);
+            userMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (e) {
             clearInterval(thinkingInterval);
             if (thinkingMsgElement) thinkingMsgElement.remove(); 
