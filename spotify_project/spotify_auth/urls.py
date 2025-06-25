@@ -9,4 +9,5 @@ urlpatterns = [
     path('chat/', views.chat_view, name='chat'),
     path('initialize_chat_data/', views.initialize_chat_data_view, name='initialize_chat_data'),
     path('chat_message_api/', views.chat_message_api, name='chat_message_api'),
+    path('create_playlist_api/', views.create_playlist_api, name='create_playlist_api'),
 ]
