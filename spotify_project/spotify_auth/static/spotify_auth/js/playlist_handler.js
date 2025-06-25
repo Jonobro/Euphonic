@@ -55,16 +55,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             })
                         });
 
-                        const result = await response.json();
-
                         if (response.ok) {
+                            const result = await response.json();
                             const successMessage = document.createElement('p');
                             successMessage.className = 'save-playlist-success';
                             successMessage.innerHTML = `Playlist "<a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
                             buttonContainer.innerHTML = '';
                             buttonContainer.appendChild(successMessage);
                         } else {
-                            throw new Error(result.error || 'Failed to save playlist.');
+                            let errorText = `Server error: ${response.status}`;
+                            try {
+                                // Try to get a specific error message from a JSON response
+                                const errorResult = await response.json();
+                                errorText = errorResult.error || errorText;
+                            } catch (e) {
+                                // The response was not JSON, so we use the generic error.
+                                console.error("Could not parse error response as JSON.");
+                            }
+                            throw new Error(errorText);
                         }
                     } catch (error) {
                         buttonContainer.innerHTML = '';
