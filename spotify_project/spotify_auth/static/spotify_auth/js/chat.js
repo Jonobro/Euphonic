@@ -33,7 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const msg = document.createElement('div');
         msg.className = `message ${sender}-message`;
         if (window.marked && window.DOMPurify) {
-            try { msg.innerHTML = DOMPurify.sanitize(marked.parse(text || '')); }
+            try {
+                const dirtyHtml = marked.parse(text || '');
+                // Allow the 'target' attribute so links can open in a new tab.
+                msg.innerHTML = DOMPurify.sanitize(dirtyHtml, { ADD_ATTR: ['target'] });
+            }
             catch { msg.textContent = text; }
         } else {
             msg.textContent = text;
