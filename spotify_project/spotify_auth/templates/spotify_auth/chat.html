@@ -44,11 +44,11 @@
         const csrfToken = document.querySelector('[name=csrf-token]').content;
 
         function processMessageForPlaylist(messageElement) {
-            if (!messageElement.classList.contains('message-model')) {
+            if (!messageElement.classList.contains('ai-message')) {
                 return;
             }
 
-            const content = messageElement.querySelector('.message-content');
+            const content = messageElement;
             if (!content) return;
 
             const playlistNameRegex = /\+\+\+\+\+(.*?)\+\+\+\+\+/;
