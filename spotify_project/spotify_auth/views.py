@@ -546,7 +546,7 @@ def initialize_chat_data_view(request):
         log_message_prompt = (
             f"Gemini API Call (initialize_chat_data_view):\n"
             f"  Prompt: {initial_prompt}\n"
-            f"  Config: {{'tools': {chat_config.tools}, "
+            f"  Config: {{'tools': {chat_config.tools}}}"
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt}\n******************************\n")
         
@@ -741,7 +741,7 @@ def chat_message_api(request):
         log_message_prompt_first_pass = (
             f"Gemini API Call (chat_message_api - First Pass):\n"
             f"  User Message: {user_message}\n"
-            f"  Config: {{'tools': {chat_config.tools}\n"
+            f"  Config: {{'tools': {chat_config.tools}}}\n"
             f"  History (at call time):\n{json.dumps(history_list, indent=2)}"
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
@@ -827,7 +827,7 @@ Now provide only the complete, updated <text_to_edit> with the corrections appli
             log_message_prompt_feedback_pass = (
                 f"Gemini API Call (chat_message_api - Feedback Pass):\n"
                 f"  Feedback Prompt: {feedback_prompt_to_gemini}\n"
-                f"  Config: {{'tools': {feedback_chat_config.tools}, "
+                f"  Config: {{'tools': {feedback_chat_config.tools}}}"
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
             
@@ -883,7 +883,7 @@ Now provide only the complete, updated <text_to_edit> with the tracks removed.
                 log_message_prompt_removal_pass = (
                     f"Gemini API Call (chat_message_api - Removal Pass):\n"
                     f"  Removal Prompt: {removal_prompt_to_gemini}\n"
-                    f"  Config: {{'tools': {removal_chat_config.tools}, "
+                    f"  Config: {{'tools': {removal_chat_config.tools}}}"
                 )
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
                 
@@ -910,7 +910,6 @@ Now provide only the complete, updated <text_to_edit> with the tracks removed.
         
         processed_ai_response_text = specific_pattern.sub(final_replacer_fn, final_ai_text_to_process_for_user)
         processed_ai_response_text = re.sub(r"\${5}|@{5}", "", processed_ai_response_text)
-        processed_ai_response_text = re.sub(r"^<br>", "", processed_ai_response_text)
 
         history_list.append({'role': 'user', 'parts': [{'text': user_message}]})
         history_list.append({'role': 'model', 'parts': [{'text': final_ai_text_to_process_for_user}]})

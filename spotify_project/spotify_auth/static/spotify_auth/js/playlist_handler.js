@@ -16,12 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (match && match[1]) {
             const playlistNameHTML = match[1].trim();
             
-            // Create a temporary element to decode HTML entities
             const decoder = document.createElement('textarea');
             decoder.innerHTML = playlistNameHTML;
             const playlistName = decoder.value;
 
-            content.innerHTML = content.innerHTML.replace(playlistNameRegex, '').trim();
+            const removalRegex = /(?:<br>)?\+\+\+\+\+.*?\+\+\+\+\+/;
+            content.innerHTML = content.innerHTML.replace(removalRegex, '').trim();
 
             const trackLinks = Array.from(content.querySelectorAll('a[href^="https://open.spotify.com/track/"]'));
             
@@ -71,11 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else {
                             let errorText = `Server error: ${response.status}`;
                             try {
-                                // Try to get a specific error message from a JSON response
                                 const errorResult = await response.json();
                                 errorText = errorResult.error || errorText;
                             } catch (e) {
-                                // The response was not JSON, so we use the generic error.
                                 console.error("Could not parse error response as JSON.");
                             }
                             throw new Error(errorText);
