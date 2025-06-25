@@ -14,7 +14,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from google import genai
 from google.genai import types
-from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
+from google.genai.types import Tool, GenerateContentConfig, GoogleSearch, HarmCategory, HarmBlockThreshold
 from django.views.decorators.cache import never_cache
 from pathlib import Path
 from markdown import markdown
@@ -39,6 +39,14 @@ CACHE_KEY_GROUNDED_TIMESTAMPS = 'grounded_api_call_timestamps'
 GROUNDING_API_LIMIT = 1495
 ONE_DAY_IN_SECONDS = 24 * 60 * 60
 GOOGLE_SEARCH_TOOL = Tool(google_search=types.GoogleSearch())
+
+SAFETY_SETTINGS = {
+    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+}
+
 GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'grounding_usage.log'
 GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'gemini_api.log'
 SPOTIFY_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'spotify_api.log'
@@ -512,7 +520,8 @@ def initialize_chat_data_view(request):
         chat_config = types.GenerateContentConfig(
             system_instruction=SYSTEM_INSTRUCTION,
             tools=current_tools,
-            response_modalities=["TEXT"]
+            response_modalities=["TEXT"],
+            safety_settings=SAFETY_SETTINGS
         )
         chat = client.chats.create(
             model=MODEL_NAME,
@@ -708,7 +717,8 @@ def chat_message_api(request):
         chat_config = types.GenerateContentConfig(
             system_instruction=SYSTEM_INSTRUCTION,
             tools=first_pass_tools,
-            response_modalities=["TEXT"]
+            response_modalities=["TEXT"],
+            safety_settings=SAFETY_SETTINGS
         )
         chat = client.chats.create(
             model=MODEL_NAME,
@@ -785,7 +795,8 @@ Now provide only the complete, updated "<text_to_edit>" with the corrections app
             feedback_chat_config = types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION,
                 tools=feedback_pass_tools,
-                response_modalities=["TEXT"]
+                response_modalities=["TEXT"],
+                safety_settings=SAFETY_SETTINGS
             )
             
             current_chat_history_for_feedback = []
@@ -885,7 +896,8 @@ Now, provide only the complete, updated "<text_to_edit>" with the tracks removed
                 removal_chat_config = types.GenerateContentConfig(
                     system_instruction=SYSTEM_INSTRUCTION,
                     tools=removal_pass_tools,
-                    response_modalities=["TEXT"]
+                    response_modalities=["TEXT"],
+                    safety_settings=SAFETY_SETTINGS
                 )
                 
                 current_chat_history_for_removal = []
