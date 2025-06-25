@@ -94,6 +94,7 @@ SYSTEM_INSTRUCTION = """\
         *   Aim for playlists of approximately 50 songs.
         *   Adjust length based on the specificity of the request (e.g., using only user's saved songs can result in fewer songs) or if the user specifies a desired length.
         *   If more than 50 songs closely match criteria, include them, but never exceed 250 songs per playlist.
+        *   Don't ever mention the number of songs in a playlist.
     6.  **Song Descriptions:** Include descriptions for songs in a playlist only if contextually warranted and beneficial to the user's request. Generally, omit them.
     7.  **Playlist Naming:** When generating a playlist, you must give it a name. Include the playlist name on its own line before the list of songs, enclosing it with + signs in this exact format: +++++Playlist Name+++++
 
@@ -591,6 +592,7 @@ You can mention things like:
 * A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
 
 What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
+* Give me a playlist of new songs that I might like based on my saved songs
 * Create a playlist of Katy Perry's 5 worst songs
 * Create a playlist of songs that were produced in another country but blew up in the US
 * Create a playlist of 15 songs about monkeys
@@ -908,6 +910,7 @@ Now provide only the complete, updated <text_to_edit> with the tracks removed.
         
         processed_ai_response_text = specific_pattern.sub(final_replacer_fn, final_ai_text_to_process_for_user)
         processed_ai_response_text = re.sub(r"\${5}|@{5}", "", processed_ai_response_text)
+        processed_ai_response_text = re.sub(r"^<br>", "", processed_ai_response_text)
 
         history_list.append({'role': 'user', 'parts': [{'text': user_message}]})
         history_list.append({'role': 'model', 'parts': [{'text': final_ai_text_to_process_for_user}]})
