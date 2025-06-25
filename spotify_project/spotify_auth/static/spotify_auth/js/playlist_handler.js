@@ -1,0 +1,96 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const messageList = document.getElementById('message-list');
+    const csrfToken = document.querySelector('[name=csrf-token]').content;
+
+    function processMessageForPlaylist(messageElement) {
+        if (!messageElement.classList.contains('ai-message')) {
+            return;
+        }
+
+        const content = messageElement;
+        if (!content) return;
+
+        const playlistNameRegex = /\+\+\+\+\+(.*?)\+\+\+\+\+/;
+        const match = content.innerHTML.match(playlistNameRegex);
+
+        if (match && match[1]) {
+            const playlistName = match[1].trim();
+            content.innerHTML = content.innerHTML.replace(playlistNameRegex, '').trim();
+
+            const trackLinks = Array.from(content.querySelectorAll('a[href^="https://open.spotify.com/track/"]'));
+            
+            if (trackLinks.length > 0) {
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'save-playlist-container';
+                buttonContainer.style.marginTop = '1em';
+                
+                const saveButton = document.createElement('button');
+                saveButton.className = 'button save-playlist-button';
+                saveButton.textContent = `Save Playlist "${playlistName}" to Spotify`;
+                
+                buttonContainer.appendChild(saveButton);
+                content.appendChild(buttonContainer);
+
+                saveButton.addEventListener('click', async () => {
+                    saveButton.disabled = true;
+                    saveButton.textContent = 'Saving...';
+
+                    const trackUris = trackLinks.map(link => {
+                        const url = new URL(link.href);
+                        const trackId = url.pathname.split('/').pop();
+                        return `spotify:track:${trackId}`;
+                    });
+
+                    try {
+                        const response = await fetch(`/create_playlist/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                            body: JSON.stringify({
+                                name: playlistName,
+                                track_uris: trackUris,
+                                description: `A playlist named "${playlistName}" created by Euphonic Intelligence.`
+                            })
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            const successMessage = document.createElement('p');
+                            successMessage.className = 'save-playlist-success';
+                            successMessage.innerHTML = `Playlist "<a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
+                            buttonContainer.innerHTML = '';
+                            buttonContainer.appendChild(successMessage);
+                        } else {
+                            throw new Error(result.error || 'Failed to save playlist.');
+                        }
+                    } catch (error) {
+                        buttonContainer.innerHTML = '';
+                        const errorMessage = document.createElement('p');
+                        errorMessage.className = 'save-playlist-error';
+                        errorMessage.style.color = '#ff4d4d';
+                        errorMessage.textContent = `Error: ${error.message}`;
+                        buttonContainer.appendChild(errorMessage);
+                    }
+                });
+            }
+        }
+    }
+
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === 1) {
+                    const messages = node.matches('.message') ? [node] : node.querySelectorAll('.message');
+                    messages.forEach(processMessageForPlaylist);
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('#message-list .message').forEach(processMessageForPlaylist);
+
+    observer.observe(messageList, { childList: true, subtree: true });
+});
