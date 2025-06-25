@@ -14,7 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const match = content.innerHTML.match(playlistNameRegex);
 
         if (match && match[1]) {
-            const playlistName = match[1].trim();
+            const playlistNameHTML = match[1].trim();
+            
+            // Create a temporary element to decode HTML entities
+            const decoder = document.createElement('textarea');
+            decoder.innerHTML = playlistNameHTML;
+            const playlistName = decoder.value;
+
             content.innerHTML = content.innerHTML.replace(playlistNameRegex, '').trim();
 
             const trackLinks = Array.from(content.querySelectorAll('a[href^="https://open.spotify.com/track/"]'));
