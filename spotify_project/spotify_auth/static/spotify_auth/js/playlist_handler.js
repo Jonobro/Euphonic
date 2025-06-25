@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     try {
-                        const response = await fetch(`/create_playlist/`, {
+                        const response = await fetch(`/create_playlist_api/`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
