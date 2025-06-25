@@ -543,12 +543,8 @@ def initialize_chat_data_view(request):
 
         log_message_prompt = (
             f"Gemini API Call (initialize_chat_data_view):\n"
-            f"  Model: {MODEL_NAME}\n"
             f"  Prompt: {initial_prompt}\n"
             f"  Config: {{'tools': {chat_config.tools}, "
-            f"'system_instruction_length': {len(chat_config.system_instruction.parts[0].text) if chat_config.system_instruction and hasattr(chat_config.system_instruction, 'parts') and chat_config.system_instruction.parts else (len(chat_config.system_instruction) if isinstance(chat_config.system_instruction, str) else 'Not set')}, "
-            f"'response_modalities': {chat_config.response_modalities}}}\n"
-            f"  History (at call time): [] (Initial call)"
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt}\n******************************\n")
         
@@ -741,11 +737,8 @@ def chat_message_api(request):
         
         log_message_prompt_first_pass = (
             f"Gemini API Call (chat_message_api - First Pass):\n"
-            f"  Model: {MODEL_NAME}\n"
             f"  User Message: {user_message}\n"
             f"  Config: {{'tools': {chat_config.tools}, "
-            f"'system_instruction_length': {len(chat_config.system_instruction.parts[0].text) if chat_config.system_instruction and hasattr(chat_config.system_instruction, 'parts') and chat_config.system_instruction.parts else (len(chat_config.system_instruction) if isinstance(chat_config.system_instruction, str) else 'Not set')}, "
-            f"'response_modalities': {chat_config.response_modalities}}}\n"
             f"  History (at call time):\n{json.dumps(history_list, indent=2)}"
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
@@ -774,30 +767,42 @@ def chat_message_api(request):
 
         if unfound_tracks_for_feedback:
             unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
-            feedback_prompt_to_gemini = f"""<instructions>
-You are in "correction mode". Your task is to silently edit the provided text based on the rules below.
-Your final output must be ONLY the full, corrected text. Do not add any conversational text, preambles, or explanations about what you have changed. There should be NO additional text before OR after the corrected text.
-</instructions>
+            feedback_prompt_to_gemini = f"""You are an AI Spotify playlist correction bot. Your task is to silently edit the provided <text_to_edit> based on the rules and instructions outlined below.
+
+Your final output must be ONLY the full, corrected <text_to_edit>. Do not add any conversational text, preambles, thought processes, or explanations about what you have changed. There should be NO additional text before OR after the corrected text.
 
 <text_to_edit>
 {ai_response_text}
 </text_to_edit>
 
-<correction_rules>
-The following tracks were not found on Spotify. You must correct them.
+The following tracks in <text_to_edit> were not found on Spotify. You must correct them.
+
 <tracks_to_correct>
 {unfound_tracks_string}
 </tracks_to_correct>
 
-Your internal process for each track listed above:
+Here is the internal process you should follow for each track listed above:
 1. Check the tracks for any typos or issues with the song titles or artist names.
 2. Use your search/grounding tool to verify that these tracks do actually exist and are available on Spotify. Confirm that the artist names and song titles are correct.
-3. Update "<text_to_edit>" with your findings:
+3. Update <text_to_edit> with your findings:
     - If a track exists and appears to be available on Spotify, but the song title or artist name is incorrect in the provided text, revise it to the correct version.
     - If a track does not exist or is not available on Spotify, remove it entirely.
-</correction_rules>
 
-Now provide only the complete, updated "<text_to_edit>" with the corrections applied. Your final output must be ONLY the full, corrected "<text_to_edit>". Do not add any conversational text, preambles, or explanations about what you have changed. There should be NO additional text before OR after the corrected text.
+Additional rules:
+1. Do not add any new songs to the playlist present in <text_to_edit>. You should only make corrections to the existing songs. If you remove a song from the playlist, you should not try to replace it with a new song.
+2. Song formatting:
+* Format ALL song mentions as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@
+* Make sure the entire song title is enclosed in the $ signs and the entire artist name is enclosed in the @ signs.
+* Make sure there are no spaces between the five $ signs or between the five @ signs.
+* Make sure there are no spaces between the $ signs and the song title and make sure there are no spaces between the @ signs and the artist name.
+* Do not add backticks around song titles or artist names.
+* If a song features another artist, the closing @@@@@ must come *after* the primary artist's name and *before* "ft.". Example: $$$$$Song Title$$$$$ by @@@@@Artist 1@@@@@ ft. Artist 2
+* If a song has multiple collaborating artists, always separate them with commas as shown in this example: $$$$$Song Title$$$$$ by @@@@@Artist 1,Artist 2,Artist 3@@@@@
+* Artist names mentioned *without* a song title should NOT have `@` formatting (e.g., "What do you think of Taylor Swift?").
+3. Use your search/grounding tool for every edit you make to ensure accuracy.
+4. Don't alter the formatting of <text_to_edit>.
+
+Now provide only the complete, updated <text_to_edit> with the corrections applied. Your final output must be ONLY the full, corrected <text_to_edit>. Do not add any conversational text, preambles, thought processes, or explanations about what you have changed. There should be NO additional text before OR after the corrected text.
 """
             
             feedback_pass_tools = None
@@ -806,56 +811,20 @@ Now provide only the complete, updated "<text_to_edit>" with the corrections app
                 feedback_pass_tools = [GOOGLE_SEARCH_TOOL]
             
             feedback_chat_config = types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION,
                 tools=feedback_pass_tools,
                 response_modalities=["TEXT"],
                 safety_settings=SAFETY_SETTINGS
             )
-            
-            current_chat_history_for_feedback = []
-            for message_part in chat.get_history():
-                 current_chat_history_for_feedback.append(message_part)
 
             feedback_chat = client.chats.create(
                 model=MODEL_NAME,
-                history=current_chat_history_for_feedback,
                 config=feedback_chat_config
             )
-            
-            formatted_history_for_log = []
-            for msg_part in current_chat_history_for_feedback:
-                if hasattr(msg_part, 'role') and hasattr(msg_part, 'parts'):
-                    current_log_parts = []
-                    if hasattr(msg_part.parts, '__iter__'):
-                        for p in msg_part.parts:
-                            if hasattr(p, 'text'):
-                                current_log_parts.append({'text': p.text})
-                            else:
-                                _log_to_file(GENERAL_LOG_FILE, f"Malformed part in history for logging: {type(p)} - {str(p)[:200]}")
-                                current_log_parts.append({'text': f"[Malformed Part: {type(p)}]"})
-                    else:
-                        _log_to_file(GENERAL_LOG_FILE, f"msg_part.parts not iterable for logging for role {msg_part.role}: {type(msg_part.parts)}")
-                        current_log_parts.append({'text': f"[Non-iterable Parts for role {msg_part.role}]"})
-                    
-                    formatted_history_for_log.append({
-                        'role': msg_part.role,
-                        'parts': current_log_parts
-                    })
-                else:
-                    _log_to_file(GENERAL_LOG_FILE, f"Skipping unexpected item when formatting history for log: {type(msg_part)} - {str(msg_part)[:200]}")
-                    formatted_history_for_log.append({
-                        'role': 'unknown_or_skipped',
-                        'parts': [{'text': f"[Skipped Item: {type(msg_part)} - {str(msg_part)[:200]}]"}]
-                    })
 
             log_message_prompt_feedback_pass = (
                 f"Gemini API Call (chat_message_api - Feedback Pass):\n"
-                f"  Model: {MODEL_NAME}\n"
                 f"  Feedback Prompt: {feedback_prompt_to_gemini}\n"
                 f"  Config: {{'tools': {feedback_chat_config.tools}, "
-                f"'system_instruction_length': {len(feedback_chat_config.system_instruction.parts[0].text) if feedback_chat_config.system_instruction and hasattr(feedback_chat_config.system_instruction, 'parts') and feedback_chat_config.system_instruction.parts else (len(feedback_chat_config.system_instruction) if isinstance(feedback_chat_config.system_instruction, str) else 'Not set')}, "
-                f"'response_modalities': {feedback_chat_config.response_modalities}}}\n"
-                f"  History (at call time):\n{json.dumps(formatted_history_for_log, indent=2)}"
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
             
@@ -863,12 +832,10 @@ Now provide only the complete, updated "<text_to_edit>" with the corrections app
             final_ai_text_to_process_for_user = correction_response.text
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass):\n{correction_response}\n******************************\n")
             
-            # Add null check
             if final_ai_text_to_process_for_user is None:
                 final_ai_text_to_process_for_user = ""
                 _log_to_file(GENERAL_LOG_FILE, "final_ai_text_to_process_for_user was None after feedback, setting to empty string")
             
-            # Second validation pass - check if any tracks are still unfound
             still_unfound_tracks_for_removal = []
             corrected_song_mentions = specific_pattern.findall(final_ai_text_to_process_for_user)
             
@@ -879,84 +846,41 @@ Now provide only the complete, updated "<text_to_edit>" with the corrections app
                 if not track_url:
                     still_unfound_tracks_for_removal.append(f"- {song_title} by {artist_name}")
             
-            # If there are still unfound tracks, send another feedback for removal
             if still_unfound_tracks_for_removal:
                 still_unfound_tracks_string = "\n".join(still_unfound_tracks_for_removal)
-                removal_prompt_to_gemini = f"""<instructions>
-You are in "final correction mode". Your task is to silently edit the provided text by removing specific tracks.
-Your final output must ONLY be the full, edited text. Do not add any conversational text, preambles, or explanations about what you have removed. There should be NO additional text before OR after the corrected text.
-</instructions>
+                removal_prompt_to_gemini = f"""You are an AI Spotify playlist correction bot. Your task is to silently edit the provided <text_to_edit> based on the rules and instructions outlined below.
+
+Your final output must be ONLY the full, corrected <text_to_edit>. Do not add any conversational text, preambles, thought processes, or explanations about what you have changed. There should be NO additional text before OR after the corrected text. Do not alter the formatting of <text_to_edit>.
 
 <text_to_edit>
 {final_ai_text_to_process_for_user}
 </text_to_edit>
 
-<correction_rules>
-The following tracks must be completely removed from "<text_to_edit>". Do not try to correct them or find alternatives, just remove them.
+The following tracks in <text_to_edit> were not found on Spotify. You must remove them. Do not try to correct them or find replacements, just remove them entirely. No additions or alterations should be made to <text_to_edit>, only eliminations.
+
 <tracks_to_remove>
 {still_unfound_tracks_string}
 </tracks_to_remove>
-</correction_rules>
 
-Now, provide only the complete, updated "<text_to_edit>" with the tracks removed. Do not add any conversational text, preambles, or explanations about what you have removed. There should be NO additional text before OR after the corrected text.
+Now provide only the complete, updated <text_to_edit> with the tracks removed.
 """
                 
                 removal_pass_tools = None
-                can_use_grounding_for_removal = check_and_update_grounding_usage()
-                if can_use_grounding_for_removal:
-                    removal_pass_tools = [GOOGLE_SEARCH_TOOL]
-                
                 removal_chat_config = types.GenerateContentConfig(
-                    system_instruction=SYSTEM_INSTRUCTION,
                     tools=removal_pass_tools,
                     response_modalities=["TEXT"],
                     safety_settings=SAFETY_SETTINGS
                 )
-                
-                current_chat_history_for_removal = []
-                for message_part in feedback_chat.get_history():
-                     current_chat_history_for_removal.append(message_part)
 
                 removal_chat = client.chats.create(
                     model=MODEL_NAME,
-                    history=current_chat_history_for_removal,
                     config=removal_chat_config
                 )
-                
-                formatted_history_for_removal_log = []
-                for msg_part in current_chat_history_for_removal:
-                    if hasattr(msg_part, 'role') and hasattr(msg_part, 'parts'):
-                        current_log_parts = []
-                        if hasattr(msg_part.parts, '__iter__'):
-                            for p in msg_part.parts:
-                                if hasattr(p, 'text'):
-                                    current_log_parts.append({'text': p.text})
-                                else:
-                                    _log_to_file(GENERAL_LOG_FILE, f"Malformed part in history for removal logging: {type(p)} - {str(p)[:200]}")
-                                    current_log_parts.append({'text': f"[Malformed Part: {type(p)}]"})
-                        else:
-                            _log_to_file(GENERAL_LOG_FILE, f"msg_part.parts not iterable for removal logging for role {msg_part.role}: {type(msg_part.parts)}")
-                            current_log_parts.append({'text': f"[Non-iterable Parts for role {msg_part.role}]"})
-                        
-                        formatted_history_for_removal_log.append({
-                            'role': msg_part.role,
-                            'parts': current_log_parts
-                        })
-                    else:
-                        _log_to_file(GENERAL_LOG_FILE, f"Skipping unexpected item when formatting history for removal log: {type(msg_part)} - {str(msg_part)[:200]}")
-                        formatted_history_for_removal_log.append({
-                            'role': 'unknown_or_skipped',
-                            'parts': [{'text': f"[Skipped Item: {type(msg_part)} - {str(msg_part)[:200]}]"}]
-                        })
 
                 log_message_prompt_removal_pass = (
                     f"Gemini API Call (chat_message_api - Removal Pass):\n"
-                    f"  Model: {MODEL_NAME}\n"
                     f"  Removal Prompt: {removal_prompt_to_gemini}\n"
                     f"  Config: {{'tools': {removal_chat_config.tools}, "
-                    f"'system_instruction_length': {len(removal_chat_config.system_instruction.parts[0].text) if removal_chat_config.system_instruction and hasattr(removal_chat_config.system_instruction, 'parts') and removal_chat_config.system_instruction.parts else (len(removal_chat_config.system_instruction) if isinstance(removal_chat_config.system_instruction, str) else 'Not set')}, "
-                    f"'response_modalities': {removal_chat_config.response_modalities}}}\n"
-                    f"  History (at call time):\n{json.dumps(formatted_history_for_removal_log, indent=2)}"
                 )
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
                 
@@ -964,16 +888,10 @@ Now, provide only the complete, updated "<text_to_edit>" with the tracks removed
                 final_ai_text_to_process_for_user = final_removal_response.text
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass):\n{final_removal_response}\n******************************\n")
                 
-                # Add null check
                 if final_ai_text_to_process_for_user is None:
                     final_ai_text_to_process_for_user = ""
                     _log_to_file(GENERAL_LOG_FILE, "final_ai_text_to_process_for_user was None after removal, setting to empty string")
-                
-                chat = removal_chat
-            else:
-                chat = feedback_chat
         
-        # Add null check before regex operations
         if final_ai_text_to_process_for_user is None:
             final_ai_text_to_process_for_user = ai_response_text or ""
             _log_to_file(GENERAL_LOG_FILE, "final_ai_text_to_process_for_user was None, using ai_response_text or empty string")
@@ -990,24 +908,9 @@ Now, provide only the complete, updated "<text_to_edit>" with the tracks removed
         processed_ai_response_text = specific_pattern.sub(final_replacer_fn, final_ai_text_to_process_for_user)
         processed_ai_response_text = re.sub(r"\${5}|@{5}", "", processed_ai_response_text)
 
-        updated_history_list = []
-        for message_part in chat.get_history():
-             if hasattr(message_part, 'role') and hasattr(message_part, 'parts'):
-                 current_parts = []
-                 if hasattr(message_part.parts, '__iter__'):
-                     for p in message_part.parts:
-                         if hasattr(p, 'text'):
-                             current_parts.append({'text': p.text})
-                         else:
-                             _log_to_file(GENERAL_LOG_FILE, f"Malformed part in chat history: {type(p)} - {str(p)[:200]}")
-                 else:
-                     _log_to_file(GENERAL_LOG_FILE, f"message_part.parts is not iterable for role {message_part.role}: {type(message_part.parts)}")
-                 
-                 updated_history_list.append({'role': message_part.role, 'parts': current_parts})
-             else:
-                 _log_to_file(GENERAL_LOG_FILE, f"Skipping unexpected item in chat history: {type(message_part)} - {str(message_part)[:200]}")
-        
-        request.session['chat_history'] = updated_history_list
+        history_list.append({'role': 'user', 'parts': [{'text': user_message}]})
+        history_list.append({'role': 'model', 'parts': [{'text': final_ai_text_to_process_for_user}]})
+        request.session['chat_history'] = history_list
         
         final_history_list = request.session.get('final_chat_history', [])
         final_history_list.append({'role': 'user', 'parts': [{'text': user_message}]})
