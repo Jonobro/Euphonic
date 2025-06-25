@@ -12,9 +12,6 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 if not SECRET_KEY:
     raise ValueError("DJANGO_SECRET_KEY environment variable is required. Please set it.")
 
-# Set to true only for development. Turn off in production using .env file!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
-
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS','localhost,127.0.0.1').split(',')
 
 INSTALLED_APPS = [

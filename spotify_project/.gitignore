@@ -11,4 +11,6 @@ db.sqlite3-journal
 # Logs
 *.log
 logs/
+
+# Debugging
 temp_spotify_search.py
