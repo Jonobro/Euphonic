@@ -8,6 +8,15 @@ document.addEventListener('DOMContentLoaded', () => {
         marked.setOptions({ gfm: true, breaks: true, headerIds: false, mangle: false, smartLists: true, smartypants: true });
     }
 
+    // Configure marked.js to open links in a new tab
+    const renderer = new marked.Renderer();
+    const originalLinkRenderer = renderer.link;
+    renderer.link = (href, title, text) => {
+        const link = originalLinkRenderer.call(renderer, href, title, text);
+        // Add target="_blank" to the link
+        return link.replace(/<a /, '<a target="_blank" ');
+    };
+
     const scrollToBottom = () => {
         messageList.scrollTo({ top: messageList.scrollHeight });
     };
