@@ -40,12 +40,24 @@ GROUNDING_API_LIMIT = 1495
 ONE_DAY_IN_SECONDS = 24 * 60 * 60
 GOOGLE_SEARCH_TOOL = Tool(google_search=types.GoogleSearch())
 
-SAFETY_SETTINGS = {
-    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-}
+SAFETY_SETTINGS = [
+    {
+        "category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        "threshold": HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+        "category": HarmCategory.HARM_CATEGORY_HARASSMENT,
+        "threshold": HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+        "category": HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        "threshold": HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+        "category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        "threshold": HarmBlockThreshold.BLOCK_NONE,
+    },
+]
 
 GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'grounding_usage.log'
 GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'gemini_api.log'
