@@ -145,7 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.error) {
                 addMessage(`Initialization failed: ${data.error}`, 'ai');
             } else if (data.analysis_result) {
-                addMessage(data.analysis_result, 'ai');
+                const analysisMessageElement = addMessage(data.analysis_result, 'ai', false);
+                analysisMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
             messageList.removeAttribute('data-is-loading-initial');
         })
