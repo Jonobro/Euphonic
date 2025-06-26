@@ -121,6 +121,54 @@ SYSTEM_INSTRUCTION = """\
     - Use `-` or `*` for bullet lists.
     """
 
+FEEDBACK_SYSTEM_INSTRUCTION = """You are a Spotify playlist correction bot.
+You will be provided with a block of text labeled <text_to_edit> which contains a playlist of songs.
+You will also be provided with a list of tracks labeled <tracks_to_correct>.
+Your task is to silently edit the provided <text_to_edit> based on the rules and instructions outlined below.
+
+Here is the internal process you will follow for each track listed in <tracks_to_correct>:
+1. Check the tracks for any typos or issues with the song titles or artist names.
+2. Use your search/grounding tool to verify that these tracks do actually exist and are available on Spotify. Confirm that the artist names and song titles are correct.
+3. Update <text_to_edit> as follows:
+    - If a track exists and appears to be available on Spotify, but the song title or artist name is incorrect in <text_to_edit>, revise it to the correct version.
+    - If a track does not exist or is not available on Spotify, remove it entirely from <text_to_edit>.
+
+Here are the rules you must follow:
+1. Your final output must be ONLY the full, corrected <text_to_edit>. Do not add any conversational text, preambles, thought processes, or explanations about what you have changed. There should be NO additional text before OR after the corrected <text_to_edit>.
+2. Do not add any new songs to the playlist present in <text_to_edit>. You should only make corrections to the existing songs.
+3. If you remove a song from the playlist, you should not try to replace it with a new song. Simply remove it.
+4. Use your search/grounding tool for every edit you make to ensure accuracy. You should search for each track present in <tracks_to_correct>.
+5. Do not provide any details about your research or search results.
+6. Don't alter the formatting of <text_to_edit>.
+7. Do not provide any details regarding the correction process.
+8. Do not provide any information about why the song titles or artist names were incorrect. Simply correct them as needed.
+9. Do not mention any song removals.
+10. Do not mention any alterations to song titles or artist names.
+11. Do not describe any actions you take as you make the corrections.
+12. Song formatting:
+* Format ALL song mentions as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@
+* Make sure the entire song title is enclosed in the $ signs and the entire artist name is enclosed in the @ signs.
+* Make sure there are no spaces between the five $ signs or between the five @ signs.
+* Make sure there are no spaces between the $ signs and the song title and make sure there are no spaces between the @ signs and the artist name.
+* Do not add backticks around song titles or artist names.
+* If a song features another artist, the closing @@@@@ must come *after* the primary artist's name and *before* "ft.". Example: $$$$$Song Title$$$$$ by @@@@@Artist 1@@@@@ ft. Artist 2
+* If a song has multiple collaborating artists, always separate them with commas as shown in this example: $$$$$Song Title$$$$$ by @@@@@Artist 1,Artist 2,Artist 3@@@@@
+* Artist names mentioned *without* a song title should NOT have `@` formatting (e.g., "What do you think of Taylor Swift?").
+"""
+
+REMOVAL_SYSTEM_INSTRUCTION = """You are a song removal bot.
+You will be provided with a block of text labeled <text_to_edit> which contains a playlist of songs.
+You will also be provided with a list of tracks labeled <tracks_to_remove>.
+Your task is to entirely remove each of the tracks in <tracks_to_remove> from the provided <text_to_edit>. Do not try to correct them or find replacements, just remove them entirely.
+
+Here are the rules you must follow:
+* No additions or alterations should be made to <text_to_edit>, only eliminations.
+* Your final output must be ONLY the updated <text_to_edit> with the tracks removed.
+* Do not add any conversational text, preambles, thought processes, details, or explanations about the track removals. Do not provide any details regarding the removal process.
+* There should be NO additional text before OR after the updated <text_to_edit> in your final output.
+* Do not alter the formatting of <text_to_edit>.
+"""
+
 def _log_to_file(log_file_path, message):
     try:
         log_file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -645,7 +693,6 @@ def create_playlist_api(request):
         if not playlist_name or not track_uris:
             return JsonResponse({'error': 'Playlist name and track URIs are required.'}, status=400)
 
-        # 1. Create playlist
         create_playlist_url = f'https://api.spotify.com/v1/users/{user_id}/playlists'
         playlist_data = {
             'name': playlist_name,
@@ -675,7 +722,6 @@ def create_playlist_api(request):
         playlist_id = playlist_info['id']
         playlist_url = playlist_info['external_urls']['spotify']
 
-        # 2. Add tracks to playlist
         add_tracks_url = f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks'
         for i in range(0, len(track_uris), 100):
             chunk = track_uris[i:i+100]
@@ -770,42 +816,16 @@ def chat_message_api(request):
 
         if unfound_tracks_for_feedback:
             unfound_tracks_string = "\n".join(unfound_tracks_for_feedback)
-            feedback_prompt_to_gemini = f"""You are an AI Spotify playlist correction bot. Your task is to silently edit the provided <text_to_edit> based on the rules and instructions outlined below.
-
-Your final output must be ONLY the full, corrected <text_to_edit>. Do not add any conversational text, preambles, thought processes, or explanations about what you have changed. There should be NO additional text before OR after the corrected text.
+            feedback_prompt_to_gemini = f"""
+The tracks listed under the <tracks_to_correct> tag were not found on Spotify and need to be edited in the <text_to_edit> below. When you finish, provide the complete, final <text_to_edit> without any additional commentary or explanation.
 
 <text_to_edit>
 {ai_response_text}
 </text_to_edit>
 
-The following tracks in <text_to_edit> were not found on Spotify. You must correct them.
-
 <tracks_to_correct>
 {unfound_tracks_string}
 </tracks_to_correct>
-
-Here is the internal process you should follow for each track listed above:
-1. Check the tracks for any typos or issues with the song titles or artist names.
-2. Use your search/grounding tool to verify that these tracks do actually exist and are available on Spotify. Confirm that the artist names and song titles are correct.
-3. Update <text_to_edit> with your findings:
-    - If a track exists and appears to be available on Spotify, but the song title or artist name is incorrect in the provided text, revise it to the correct version.
-    - If a track does not exist or is not available on Spotify, remove it entirely.
-
-Additional rules:
-1. Do not add any new songs to the playlist present in <text_to_edit>. You should only make corrections to the existing songs. If you remove a song from the playlist, you should not try to replace it with a new song.
-2. Song formatting:
-* Format ALL song mentions as follows: $$$$$Song Title$$$$$ by @@@@@Artist Name@@@@@
-* Make sure the entire song title is enclosed in the $ signs and the entire artist name is enclosed in the @ signs.
-* Make sure there are no spaces between the five $ signs or between the five @ signs.
-* Make sure there are no spaces between the $ signs and the song title and make sure there are no spaces between the @ signs and the artist name.
-* Do not add backticks around song titles or artist names.
-* If a song features another artist, the closing @@@@@ must come *after* the primary artist's name and *before* "ft.". Example: $$$$$Song Title$$$$$ by @@@@@Artist 1@@@@@ ft. Artist 2
-* If a song has multiple collaborating artists, always separate them with commas as shown in this example: $$$$$Song Title$$$$$ by @@@@@Artist 1,Artist 2,Artist 3@@@@@
-* Artist names mentioned *without* a song title should NOT have `@` formatting (e.g., "What do you think of Taylor Swift?").
-3. Use your search/grounding tool for every edit you make to ensure accuracy.
-4. Don't alter the formatting of <text_to_edit>.
-
-Now provide only the complete, updated <text_to_edit> with the corrections applied. Your final output must be ONLY the full, corrected <text_to_edit>. Do not add any conversational text, preambles, thought processes, or explanations about what you have changed. There should be NO additional text before OR after the corrected text.
 """
             
             feedback_pass_tools = None
@@ -814,6 +834,7 @@ Now provide only the complete, updated <text_to_edit> with the corrections appli
                 feedback_pass_tools = [GOOGLE_SEARCH_TOOL]
             
             feedback_chat_config = types.GenerateContentConfig(
+                system_instruction=FEEDBACK_SYSTEM_INSTRUCTION,
                 tools=feedback_pass_tools,
                 response_modalities=["TEXT"],
                 safety_settings=SAFETY_SETTINGS
@@ -851,25 +872,20 @@ Now provide only the complete, updated <text_to_edit> with the corrections appli
             
             if still_unfound_tracks_for_removal:
                 still_unfound_tracks_string = "\n".join(still_unfound_tracks_for_removal)
-                removal_prompt_to_gemini = f"""You are an AI Spotify playlist correction bot. Your task is to silently edit the provided <text_to_edit> based on the rules and instructions outlined below.
-
-Your final output must be ONLY the full, corrected <text_to_edit>. Do not add any conversational text, preambles, thought processes, or explanations about what you have changed. There should be NO additional text before OR after the corrected text. Do not alter the formatting of <text_to_edit>.
+                removal_prompt_to_gemini = f"""Remove the tracks listed in <tracks_to_remove> from <text_to_edit> and provide the final updated text without any additional commentary or explanation.
 
 <text_to_edit>
 {final_ai_text_to_process_for_user}
 </text_to_edit>
 
-The following tracks in <text_to_edit> were not found on Spotify. You must remove them. Do not try to correct them or find replacements, just remove them entirely. No additions or alterations should be made to <text_to_edit>, only eliminations.
-
 <tracks_to_remove>
 {still_unfound_tracks_string}
 </tracks_to_remove>
-
-Now provide only the complete, updated <text_to_edit> with the tracks removed.
 """
                 
                 removal_pass_tools = None
                 removal_chat_config = types.GenerateContentConfig(
+                    system_instruction=REMOVAL_SYSTEM_INSTRUCTION,
                     tools=removal_pass_tools,
                     response_modalities=["TEXT"],
                     safety_settings=SAFETY_SETTINGS
