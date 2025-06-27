@@ -617,7 +617,7 @@ def initialize_chat_data_view(request):
 
         specific_pattern = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
         cleaned_initial_analysis_text_for_template = specific_pattern.sub(clean_markers_for_initial_display, initial_analysis_text_from_gemini)
-        cleaned_initial_analysis_text_for_template = re.sub(r"\${5}|@{5}", "", cleaned_initial_analysis_text_for_template)
+        cleaned_initial_analysis_text_for_template = re.sub(r"[\$@]{3,}", "", cleaned_initial_analysis_text_for_template)
 
         full_introductory_message = f"""Hi there! I'm Aria, your personal music assistant. I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!
 
@@ -641,12 +641,13 @@ You can mention things like:
 * Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
 * Favorite artists or specific songs you love (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
 * A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
+* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven by Led Zeppelin)
 
 What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
 * Give me a playlist of new songs that I might like based on my saved songs
 * Create a playlist of Katy Perry's 5 worst songs
-* Create a playlist of songs that were produced in another country but blew up in the US
-* Create a playlist of 15 songs about monkeys
+* Make a playlist of songs that were produced in another country but blew up in the US
+* Give me a playlist of 15 songs about monkeys
 * Create a playlist of all of my saved songs sorted chronologically by release date
 
 By the way, I can create playlists using your existing songs, new songs, or both! Just let me know which you'd prefer.
@@ -771,6 +772,16 @@ def chat_message_api(request):
              return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
 
         client = get_gemini_client()
+
+        track_url_cache = {}
+        def get_cached_spotify_track_url(song_title, artist_name):
+            cache_key = (song_title.strip().lower(), artist_name.strip().lower())
+            if cache_key in track_url_cache:
+                return track_url_cache[cache_key]
+            
+            track_url = _get_spotify_track_url(request, song_title, artist_name)
+            track_url_cache[cache_key] = track_url
+            return track_url
         
         use_grounding_for_first_pass = check_and_update_grounding_usage()
         first_pass_tools = [GOOGLE_SEARCH_TOOL] if use_grounding_for_first_pass else None
@@ -811,7 +822,7 @@ def chat_message_api(request):
         for song_title_match, artist_name_match in all_song_mentions:
             song_title = song_title_match.strip()
             artist_name = artist_name_match.strip()
-            track_url = _get_spotify_track_url(request, song_title, artist_name)
+            track_url = get_cached_spotify_track_url(song_title, artist_name)
             if not track_url:
                 unfound_tracks_for_feedback.append(f"- {song_title} by {artist_name}")
 
@@ -868,7 +879,7 @@ def chat_message_api(request):
             for song_title_match, artist_name_match in corrected_song_mentions:
                 song_title = song_title_match.strip()
                 artist_name = artist_name_match.strip()
-                track_url = _get_spotify_track_url(request, song_title, artist_name)
+                track_url = get_cached_spotify_track_url(song_title, artist_name)
                 if not track_url:
                     still_unfound_tracks_for_removal.append(f"- {song_title} by {artist_name}")
             
@@ -920,14 +931,14 @@ def chat_message_api(request):
         def final_replacer_fn(match):
             song_title = match.group(1).strip()
             artist_name = match.group(2).strip()
-            track_url = _get_spotify_track_url(request, song_title, artist_name)
+            track_url = get_cached_spotify_track_url(song_title, artist_name)
             if track_url:
                 return f"[{song_title}]({track_url}) by {artist_name}"
             else:
                 return f"{song_title} by {artist_name}"
         
         processed_ai_response_text = specific_pattern.sub(final_replacer_fn, final_ai_text_to_process_for_user)
-        processed_ai_response_text = re.sub(r"\${5}|@{5}", "", processed_ai_response_text)
+        processed_ai_response_text = re.sub(r"[\$@]{3,}", "", processed_ai_response_text)
 
         history_list.append({'role': 'user', 'parts': [{'text': user_message}]})
         history_list.append({'role': 'model', 'parts': [{'text': final_ai_text_to_process_for_user}]})

@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
             decoder.innerHTML = playlistNameHTML;
             const playlistName = decoder.value;
 
-            const removalRegex = /\+\+\+\+\+.*?\+\+\+\+\+(?:<br>)?/; // Revise as needed based on typical outputs from Gemini
+            const removalRegex = /\+\+\+\+\+.*?\+\+\+\+\+(?:<br>)?/;
             content.innerHTML = content.innerHTML.replace(removalRegex, '').trim();
 
             const trackLinks = Array.from(content.querySelectorAll('a[href^="https://open.spotify.com/track/"]'));

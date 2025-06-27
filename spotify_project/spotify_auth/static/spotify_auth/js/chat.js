@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
             clearInterval(loadingInterval);
             if (loadingIndicator) loadingIndicator.remove();
-            addMessage(`Sorry, an error occurred during initialization: ${error.message}`, 'ai');
+            addMessage('Sorry, there was a problem initializing the chat. Please refresh the page to try again.', 'ai');
             console.error("Initialization error:", error);
         })
         .finally(() => {
