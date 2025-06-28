@@ -602,6 +602,11 @@ def initialize_chat_data_view(request):
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt}\n******************************\n")
         
         response = chat.send_message(initial_prompt)
+
+        if not request.session.get('spotify_access_token'):
+            _log_to_file(GENERAL_LOG_FILE, "User logged out during Gemini request (initialization). Ignoring response.")
+            return JsonResponse({'error': 'User disconnected'}, status=499)
+
         initial_analysis_text_from_gemini = response.text
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (initialize_chat_data_view):\n{response}\n******************************\n")
 
@@ -807,6 +812,11 @@ def chat_message_api(request):
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
         
         response = chat.send_message(user_message)
+
+        if not request.session.get('spotify_access_token'):
+            _log_to_file(GENERAL_LOG_FILE, "User logged out during Gemini request (first pass). Ignoring response.")
+            return JsonResponse({'error': 'User disconnected'}, status=499)
+
         ai_response_text = response.text
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass):\n{response}\n******************************\n")
 
@@ -866,6 +876,11 @@ def chat_message_api(request):
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
             
             correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
+
+            if not request.session.get('spotify_access_token'):
+                _log_to_file(GENERAL_LOG_FILE, "User logged out during Gemini request (feedback pass). Ignoring response.")
+                return JsonResponse({'error': 'User disconnected'}, status=499)
+
             final_ai_text_to_process_for_user = correction_response.text
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass):\n{correction_response}\n******************************\n")
             
@@ -917,6 +932,11 @@ def chat_message_api(request):
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
                 
                 final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
+
+                if not request.session.get('spotify_access_token'):
+                    _log_to_file(GENERAL_LOG_FILE, "User logged out during Gemini request (removal pass). Ignoring response.")
+                    return JsonResponse({'error': 'User disconnected'}, status=499)
+
                 final_ai_text_to_process_for_user = final_removal_response.text
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass):\n{final_removal_response}\n******************************\n")
                 
