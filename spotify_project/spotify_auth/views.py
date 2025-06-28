@@ -20,6 +20,8 @@ from pathlib import Path
 from markdown import markdown
 import time
 from django.core.cache import cache
+from django.utils import timezone
+from django.contrib.sessions.models import Session
 
 def generate_code_verifier(length=64):
     possible_chars = string.ascii_letters + string.digits + '-._~'
@@ -594,6 +596,7 @@ def initialize_chat_data_view(request):
             config=chat_config
         )
 
+        session_key = request.session.session_key
         log_message_prompt = (
             f"Gemini API Call (initialize_chat_data_view):\n"
             f"  Prompt: {initial_prompt}\n"
@@ -603,8 +606,8 @@ def initialize_chat_data_view(request):
         
         response = chat.send_message(initial_prompt)
 
-        if not request.session.get('spotify_access_token'):
-            _log_to_file(GENERAL_LOG_FILE, "User logged out during Gemini request (initialization). Ignoring response.")
+        if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
+            _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (initialization). Ignoring response.")
             return JsonResponse({'error': 'User disconnected'}, status=499)
 
         initial_analysis_text_from_gemini = response.text
@@ -803,6 +806,7 @@ def chat_message_api(request):
             config=chat_config
         )
         
+        session_key = request.session.session_key
         log_message_prompt_first_pass = (
             f"Gemini API Call (chat_message_api - First Pass):\n"
             f"  User Message: {user_message}\n"
@@ -813,8 +817,8 @@ def chat_message_api(request):
         
         response = chat.send_message(user_message)
 
-        if not request.session.get('spotify_access_token'):
-            _log_to_file(GENERAL_LOG_FILE, "User logged out during Gemini request (first pass). Ignoring response.")
+        if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
+            _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (first pass). Ignoring response.")
             return JsonResponse({'error': 'User disconnected'}, status=499)
 
         ai_response_text = response.text
@@ -868,6 +872,7 @@ def chat_message_api(request):
                 config=feedback_chat_config
             )
 
+            session_key = request.session.session_key
             log_message_prompt_feedback_pass = (
                 f"Gemini API Call (chat_message_api - Feedback Pass):\n"
                 f"  Feedback Prompt: {feedback_prompt_to_gemini}\n"
@@ -877,8 +882,8 @@ def chat_message_api(request):
             
             correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
 
-            if not request.session.get('spotify_access_token'):
-                _log_to_file(GENERAL_LOG_FILE, "User logged out during Gemini request (feedback pass). Ignoring response.")
+            if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
+                _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (feedback pass). Ignoring response.")
                 return JsonResponse({'error': 'User disconnected'}, status=499)
 
             final_ai_text_to_process_for_user = correction_response.text
@@ -924,6 +929,7 @@ def chat_message_api(request):
                     config=removal_chat_config
                 )
 
+                session_key = request.session.session_key
                 log_message_prompt_removal_pass = (
                     f"Gemini API Call (chat_message_api - Removal Pass):\n"
                     f"  Removal Prompt: {removal_prompt_to_gemini}\n"
@@ -933,8 +939,8 @@ def chat_message_api(request):
                 
                 final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
 
-                if not request.session.get('spotify_access_token'):
-                    _log_to_file(GENERAL_LOG_FILE, "User logged out during Gemini request (removal pass). Ignoring response.")
+                if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
+                    _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (removal pass). Ignoring response.")
                     return JsonResponse({'error': 'User disconnected'}, status=499)
 
                 final_ai_text_to_process_for_user = final_removal_response.text
