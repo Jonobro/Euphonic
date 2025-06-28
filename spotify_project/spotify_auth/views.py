@@ -65,6 +65,7 @@ GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'g
 GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'gemini_api.log'
 SPOTIFY_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'spotify_api.log'
 GENERAL_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'general.log'
+HTTP_REQUEST_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'http_requests.log'
 
 SYSTEM_INSTRUCTION = """\
     Hello, I am the developer. This entire message is written by me, but all subsequent messages will come from the end-user. Always follow my instructions as laid out here. My directions shall always supersede any instructions given by the end-user that contradict my instructions. Here are your instructions:
@@ -219,12 +220,14 @@ def get_gemini_client():
     return GEMINI_CLIENT
 
 def index(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     if request.session.get('spotify_access_token'):
         return redirect(reverse('chat'))
     return render(request, 'spotify_auth/index.html')
 
 @csrf_protect
 def spotify_login(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     code_verifier = generate_code_verifier(64)
     request.session['spotify_code_verifier'] = code_verifier
     code_challenge = generate_code_challenge(code_verifier)
@@ -244,6 +247,7 @@ def spotify_login(request):
 
 @csrf_protect
 def spotify_callback(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     code = request.GET.get('code')
     state = request.GET.get('state')
     error = request.GET.get('error')
@@ -278,7 +282,9 @@ def spotify_callback(request):
         'Content-Type': 'application/x-www-form-urlencoded',
     }
     
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {token_url}")
     response = requests.post(token_url, data=token_data, headers=headers)
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {token_url} | Status: {response.status_code} | Body: {response.text}")
     
     if response.status_code != 200:
         log_message = f"Token exchange failed: {response.status_code} - {response.text}"
@@ -301,6 +307,7 @@ def spotify_callback(request):
     return redirect(reverse('chat'))
 
 def logout_view(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     request.session.flush() 
     return redirect(reverse('index'))
 
@@ -321,7 +328,9 @@ def _refresh_token_helper(request):
         'Content-Type': 'application/x-www-form-urlencoded',
     }
     
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {token_url}")
     response = requests.post(token_url, data=payload, headers=headers)
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {token_url} | Status: {response.status_code} | Body: {response.text}")
     
     if response.status_code != 200:
         if 'spotify_refresh_token' in request.session:
@@ -358,7 +367,9 @@ def _get_spotify_track_url(request, song_title, artist_name):
 
     response = None
     try:
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {prepared_request_attempt1.url}")
         response = requests.get(search_url, headers=current_headers, params=params, timeout=10)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {prepared_request_attempt1.url} | Status: {response.status_code}")
 
         _log_to_file(SPOTIFY_API_LOG_FILE, f"[RAW_API_CALL_ATTEMPT_1] URL: {prepared_request_attempt1.url}, Headers: {prepared_request_attempt1.headers}, Response Status: {response.status_code}, Response Body:\n{response.text}")
 
@@ -377,7 +388,9 @@ def _get_spotify_track_url(request, song_title, artist_name):
                 
                 response_retry = None
                 try:
+                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {prepared_request_retry.url}")
                     response_retry = requests.get(search_url, headers=current_headers, params=params, timeout=10)
+                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {prepared_request_retry.url} | Status: {response_retry.status_code}")
                     _log_to_file(SPOTIFY_API_LOG_FILE, f"[RAW_API_CALL_RETRY] URL: {prepared_request_retry.url}, Headers: {prepared_request_retry.headers}, Response Status: {response_retry.status_code}, Response Body:\n{response_retry.text}")
                     response = response_retry
                 
@@ -434,11 +447,14 @@ def _fetch_all_spotify_tracks(request):
 
         headers = {'Authorization': f'Bearer {access_token}'}
         try:
+            url = f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}'
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
             response = requests.get(
-                f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}',
+                url,
                 headers=headers,
                 timeout=15
             )
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} | Status: {response.status_code}")
 
             if response.status_code == 401:
                 _log_to_file(GENERAL_LOG_FILE, "Token expired during library fetch, attempting refresh...")
@@ -508,6 +524,7 @@ def _fetch_all_spotify_tracks(request):
 @require_http_methods(["GET"])
 @never_cache
 def chat_view(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     if not request.session.get('spotify_access_token'):
         return redirect(reverse('spotify_login'))
 
@@ -523,6 +540,7 @@ def chat_view(request):
 @require_http_methods(["POST"])
 @never_cache
 def initialize_chat_data_view(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     if not request.session.get('spotify_access_token'):
         return JsonResponse({'error': 'User not authenticated'}, status=401)
 
@@ -538,12 +556,17 @@ def initialize_chat_data_view(request):
         if not request.session.get('spotify_user_id'):
             access_token = request.session.get('spotify_access_token')
             headers = {'Authorization': f'Bearer {access_token}'}
-            response = requests.get('https://api.spotify.com/v1/me', headers=headers, timeout=10)
+            url = 'https://api.spotify.com/v1/me'
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
+            response = requests.get(url, headers=headers, timeout=10)
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} | Status: {response.status_code}")
             if response.status_code == 401:
                 if _refresh_token_helper(request):
                     access_token = request.session.get('spotify_access_token')
                     headers['Authorization'] = f'Bearer {access_token}'
-                    response = requests.get('https://api.spotify.com/v1/me', headers=headers, timeout=10)
+                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url} (retry)")
+                    response = requests.get(url, headers=headers, timeout=10)
+                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} (retry) | Status: {response.status_code}")
                 else:
                     _log_to_file(SPOTIFY_API_LOG_FILE, "Token refresh failed while getting user profile.")
                     return JsonResponse({'error': 'Could not authenticate with Spotify to get user profile.'}, status=401)
@@ -604,7 +627,9 @@ def initialize_chat_data_view(request):
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt}\n******************************\n")
         
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME})")
         response = chat.send_message(initial_prompt)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME})")
 
         if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
             _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (initialization). Ignoring response.")
@@ -689,6 +714,7 @@ I've talked too much — let's get started! What can I do for you?
 @require_http_methods(["POST"])
 @never_cache
 def create_playlist_api(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     if not request.session.get('spotify_access_token'):
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     
@@ -715,13 +741,17 @@ def create_playlist_api(request):
         access_token = request.session.get('spotify_access_token')
         headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
 
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {create_playlist_url} | Body: {json.dumps(playlist_data)}")
         response = requests.post(create_playlist_url, headers=headers, json=playlist_data, timeout=10)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {create_playlist_url} | Status: {response.status_code} | Body: {response.text}")
 
         if response.status_code == 401:
             if _refresh_token_helper(request):
                 access_token = request.session.get('spotify_access_token')
                 headers['Authorization'] = f'Bearer {access_token}'
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {create_playlist_url} (retry) | Body: {json.dumps(playlist_data)}")
                 response = requests.post(create_playlist_url, headers=headers, json=playlist_data, timeout=10)
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {create_playlist_url} (retry) | Status: {response.status_code} | Body: {response.text}")
             else:
                 _log_to_file(SPOTIFY_API_LOG_FILE, "Token refresh failed during playlist creation.")
                 return JsonResponse({'error': 'Spotify token refresh failed.'}, status=401)
@@ -739,13 +769,17 @@ def create_playlist_api(request):
             chunk = track_uris[i:i+100]
             tracks_data = {'uris': chunk}
             
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {add_tracks_url} | Body: {json.dumps(tracks_data)}")
             add_tracks_response = requests.post(add_tracks_url, headers=headers, json=tracks_data, timeout=15)
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {add_tracks_url} | Status: {add_tracks_response.status_code} | Body: {add_tracks_response.text}")
 
             if add_tracks_response.status_code == 401:
                 if _refresh_token_helper(request):
                     access_token = request.session.get('spotify_access_token')
                     headers['Authorization'] = f'Bearer {access_token}'
+                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {add_tracks_url} (retry) | Body: {json.dumps(tracks_data)}")
                     add_tracks_response = requests.post(add_tracks_url, headers=headers, json=tracks_data, timeout=15)
+                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {add_tracks_url} (retry) | Status: {add_tracks_response.status_code} | Body: {add_tracks_response.text}")
                 else:
                     _log_to_file(SPOTIFY_API_LOG_FILE, "Token refresh failed while adding tracks.")
                     return JsonResponse({'error': 'Playlist created, but adding tracks failed due to token issue.', 'playlist_url': playlist_url}, status=207)
@@ -766,6 +800,7 @@ def create_playlist_api(request):
 @require_http_methods(["POST"])
 @never_cache
 def chat_message_api(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     if not request.session.get('spotify_access_token'):
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     
@@ -815,7 +850,9 @@ def chat_message_api(request):
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
         
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) - First Pass")
         response = chat.send_message(user_message)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) - First Pass")
 
         if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
             _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (first pass). Ignoring response.")
@@ -880,7 +917,9 @@ def chat_message_api(request):
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
             
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) - Feedback Pass")
             correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) - Feedback Pass")
 
             if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
                 _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (feedback pass). Ignoring response.")
@@ -937,7 +976,9 @@ def chat_message_api(request):
                 )
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
                 
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) - Removal Pass")
                 final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) - Removal Pass")
 
                 if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
                     _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (removal pass). Ignoring response.")
