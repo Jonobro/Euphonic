@@ -11,7 +11,7 @@ workers = min(calculated_workers, MAX_WORKERS)
 worker_class = "sync"
 
 # Timeout (seconds)
-timeout = 1000
+timeout = 500
 
 # Maximum number of requests a worker will process before restarting
 max_requests = 1000
