@@ -637,11 +637,13 @@ def initialize_chat_data_view(request):
             _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (initialization). Ignoring response.")
             return JsonResponse({'error': 'User disconnected'}, status=499)
 
-        initial_analysis_text_from_gemini = response.parts[-1].text if response.parts else ""
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (initialize_chat_data_view):\n{response}\n******************************\n")
 
-        if response.parts and len(response.parts) > 1:
-            discarded_parts_text = [p.text for p in response.parts[:-1] if hasattr(p, 'text')]
+        content_parts = response.candidates[0].content.parts if response.candidates else []
+        initial_analysis_text_from_gemini = content_parts[-1].text if content_parts else ""
+
+        if len(content_parts) > 1:
+            discarded_parts_text = [p.text for p in content_parts[:-1] if hasattr(p, 'text')]
             if discarded_parts_text:
                 log_message = f"NOTE: The following text part(s) from Gemini were discarded (initialize_chat_data_view): {json.dumps(discarded_parts_text)}"
                 _log_to_file(GEMINI_API_LOG_FILE, log_message)
@@ -851,11 +853,13 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         response = chat.send_message(user_message)
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
 
-        ai_response_text = response.parts[-1].text if response.parts else ""
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
 
-        if response.parts and len(response.parts) > 1:
-            discarded_parts_text = [p.text for p in response.parts[:-1] if hasattr(p, 'text')]
+        content_parts = response.candidates[0].content.parts if response.candidates else []
+        ai_response_text = content_parts[-1].text if content_parts else ""
+
+        if len(content_parts) > 1:
+            discarded_parts_text = [p.text for p in content_parts[:-1] if hasattr(p, 'text')]
             if discarded_parts_text:
                 log_message = f"NOTE: The following text part(s) from Gemini were discarded (First Pass - Task {task_id}): {json.dumps(discarded_parts_text)}"
                 _log_to_file(GEMINI_API_LOG_FILE, log_message)
@@ -919,11 +923,13 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
 
-            final_ai_text_to_process_for_user = correction_response.parts[-1].text if correction_response.parts else ""
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
             
-            if correction_response.parts and len(correction_response.parts) > 1:
-                discarded_parts_text = [p.text for p in correction_response.parts[:-1] if hasattr(p, 'text')]
+            content_parts = correction_response.candidates[0].content.parts if correction_response.candidates else []
+            final_ai_text_to_process_for_user = content_parts[-1].text if content_parts else ""
+            
+            if len(content_parts) > 1:
+                discarded_parts_text = [p.text for p in content_parts[:-1] if hasattr(p, 'text')]
                 if discarded_parts_text:
                     log_message = f"NOTE: The following text part(s) from Gemini were discarded (Feedback Pass - Task {task_id}): {json.dumps(discarded_parts_text)}"
                     _log_to_file(GEMINI_API_LOG_FILE, log_message)
@@ -979,11 +985,13 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                 final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
                 _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
 
-                final_ai_text_to_process_for_user = final_removal_response.parts[-1].text if final_removal_response.parts else ""
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass - Task {task_id}):\n{final_removal_response}\n******************************\n")
                 
-                if final_removal_response.parts and len(final_removal_response.parts) > 1:
-                    discarded_parts_text = [p.text for p in final_removal_response.parts[:-1] if hasattr(p, 'text')]
+                content_parts = final_removal_response.candidates[0].content.parts if final_removal_response.candidates else []
+                final_ai_text_to_process_for_user = content_parts[-1].text if content_parts else ""
+                
+                if len(content_parts) > 1:
+                    discarded_parts_text = [p.text for p in content_parts[:-1] if hasattr(p, 'text')]
                     if discarded_parts_text:
                         log_message = f"NOTE: The following text part(s) from Gemini were discarded (Removal Pass - Task {task_id}): {json.dumps(discarded_parts_text)}"
                         _log_to_file(GEMINI_API_LOG_FILE, log_message)
