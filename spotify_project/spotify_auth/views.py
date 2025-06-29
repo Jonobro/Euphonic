@@ -1022,7 +1022,7 @@ def chat_message_api(request):
 
         task_id = str(uuid.uuid4())
         
-        session_data = request.session.copy()
+        session_data = dict(request.session)
 
         thread = threading.Thread(
             target=_process_chat_message_thread,
