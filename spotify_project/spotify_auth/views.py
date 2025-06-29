@@ -76,7 +76,7 @@ SYSTEM_INSTRUCTION = """\
     1.  **Music Focus:** Maintain a strictly music-focused conversation.
         *   If the user deviates, respond with: "I'm afraid I can't help with that. Do you have any questions or requests related to your music?"
         *   Gently guide users back to music-related topics, with the goal of creating custom playlists or helping them discover new music.
-    2.  **Clarification:** Always ask for clarification on vague, ambiguous, or unclear user prompts before selecting songs.
+    2.  **Clarification:** Always ask for clarification on vague, ambiguous, or unclear user prompts before selecting songs, but take care to avoid asking too many questions in a row.
 
     **Playlist & Song Rules:**
     3.  **Song Selection:**
@@ -1011,14 +1011,24 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         processed_ai_response_text = specific_pattern.sub(final_replacer_fn, final_ai_text_to_process_for_user)
         processed_ai_response_text = re.sub(r"[\$@]{3,}", "", processed_ai_response_text)
 
-        history_list.append({'role': 'user', 'parts': [{'text': user_message}]})
-        history_list.append({'role': 'model', 'parts': [{'text': final_ai_text_to_process_for_user}]})
-        mock_request.session['chat_history'] = history_list
-        
-        final_history_list = mock_request.session.get('final_chat_history', [])
-        final_history_list.append({'role': 'user', 'parts': [{'text': user_message}]})
-        final_history_list.append({'role': 'model', 'parts': [{'text': processed_ai_response_text}]})
-        mock_request.session['final_chat_history'] = final_history_list
+        # Get the updated history from the chat object and convert it to a serializable format
+        updated_history = chat.get_history()
+        serializable_history = [
+            {'role': c.role, 'parts': [{'text': p.text} for p in c.parts]}
+            for c in updated_history
+        ]
+
+        # Update the last model message in the history with our processed versions
+        if serializable_history and serializable_history[-1]['role'] == 'model':
+            # For the history sent back to Gemini next time
+            chat_history_for_session = [item for item in serializable_history]
+            chat_history_for_session[-1]['parts'] = [{'text': final_ai_text_to_process_for_user}]
+            mock_request.session['chat_history'] = chat_history_for_session
+
+            # For the history displayed to the user
+            final_history_for_session = [item for item in serializable_history]
+            final_history_for_session[-1]['parts'] = [{'text': processed_ai_response_text}]
+            mock_request.session['final_chat_history'] = final_history_for_session
         
         result = {
             'response': processed_ai_response_text,
@@ -1081,7 +1091,7 @@ def stream_chat_response(request, task_id):
                     else:
                         request.session.clear()
                         request.session.update(result['session_data'])
-                        request.session.modified = True
+                        request.session.save()
                         
                         data = {'response': result['response']}
                         yield f"data: {json.dumps(data)}\n\n"
