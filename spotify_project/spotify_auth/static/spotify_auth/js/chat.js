@@ -49,10 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return msg;
     };
 
-    const listenForResponse = (taskId, thinkingMsgElement, userMessageElement) => {
+    const listenForResponse = (taskId, thinkingMsgElement, userMessageElement, thinkingInterval) => {
         const eventSource = new EventSource(`/stream_chat_response/${taskId}/`);
 
         const cleanup = () => {
+            clearInterval(thinkingInterval);
             eventSource.close();
             if (thinkingMsgElement) thinkingMsgElement.remove();
             userInput.disabled = sendButton.disabled = false;
@@ -116,8 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const { task_id } = await res.json();
-            clearInterval(thinkingInterval);
-            listenForResponse(task_id, thinkingMsgElement, userMessageElement);
+            listenForResponse(task_id, thinkingMsgElement, userMessageElement, thinkingInterval);
 
         } catch (e) {
             clearInterval(thinkingInterval);

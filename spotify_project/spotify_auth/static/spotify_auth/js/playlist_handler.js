@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const trackLinks = Array.from(content.querySelectorAll('a[href^="https://open.spotify.com/track/"]'));
             
             if (trackLinks.length > 0) {
+                messageElement.classList.add('has-playlist-button');
                 const buttonContainer = document.createElement('div');
                 buttonContainer.className = 'save-playlist-container';
                 buttonContainer.style.marginTop = '1em';

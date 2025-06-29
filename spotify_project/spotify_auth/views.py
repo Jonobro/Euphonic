@@ -640,7 +640,6 @@ def initialize_chat_data_view(request):
         initial_analysis_text_from_gemini = response.text
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (initialize_chat_data_view):\n{response}\n******************************\n")
 
-        # Add null check
         if initial_analysis_text_from_gemini is None:
             initial_analysis_text_from_gemini = ""
             _log_to_file(GENERAL_LOG_FILE, "initial_analysis_text_from_gemini was None, setting to empty string")
@@ -799,12 +798,7 @@ def create_playlist_api(request):
         return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
 
 def _process_chat_message_thread(session_data, user_message, task_id):
-    """
-    This function runs in a separate thread to process the chat message
-    without blocking the main request. It operates on a copy of session data.
-    """
     try:
-        # This is a simple object to mimic the request for functions that need request.session
         class MockRequest:
             def __init__(self, session_dict):
                 self.session = session_dict
@@ -1052,7 +1046,6 @@ def stream_chat_response(request, task_id):
                         error_data = {'message': result['error']}
                         yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
                     else:
-                        # Update session with the data from the completed task
                         request.session.clear()
                         request.session.update(result['session_data'])
                         request.session.modified = True

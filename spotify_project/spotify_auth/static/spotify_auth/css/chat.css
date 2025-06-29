@@ -99,6 +99,10 @@ h1 {
     border-bottom-left-radius: 5px;
 }
 
+.ai-message.has-playlist-button {
+    padding-bottom: 25px;
+}
+
 .user-message {
     background-color:rgb(30, 200, 90);
     color: #ffffff;
