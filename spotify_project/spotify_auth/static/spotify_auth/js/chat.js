@@ -49,17 +49,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return msg;
     };
 
-    const sendMessageToBackend = async (message) => {
-        const res = await fetch('/chat_message_api/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-            body: JSON.stringify({ message })
+    const listenForResponse = (taskId, thinkingMsgElement, userMessageElement) => {
+        const eventSource = new EventSource(`/stream_chat_response/${taskId}/`);
+
+        const cleanup = () => {
+            eventSource.close();
+            if (thinkingMsgElement) thinkingMsgElement.remove();
+            userInput.disabled = sendButton.disabled = false;
+            userInput.focus();
+        };
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.response) {
+                addMessage(data.response, 'ai', false);
+                userMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            cleanup();
+        };
+
+        eventSource.addEventListener('stream_error', (event) => {
+            const data = JSON.parse(event.data);
+            addMessage(`Sorry, an error occurred: ${data.message}`, 'ai');
+            cleanup();
         });
-        if (!res.ok) {
-            const err = (await res.json().catch(() => ({}))).error || `Server error: ${res.status}`;
-            throw new Error(err);
-        }
-        return (await res.json()).response;
+
+        eventSource.onerror = (err) => {
+            addMessage('A connection error occurred. Please try again.', 'ai');
+            console.error("EventSource failed:", err);
+            cleanup();
+        };
     };
 
     const handleSend = async () => {
@@ -85,16 +104,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 400);
 
         try {
-            const reply = await sendMessageToBackend(text);
+            const res = await fetch('/chat_message_api/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ message: text })
+            });
+
+            if (!res.ok) {
+                const err = (await res.json().catch(() => ({}))).error || `Server error: ${res.status}`;
+                throw new Error(err);
+            }
+
+            const { task_id } = await res.json();
             clearInterval(thinkingInterval);
-            if (thinkingMsgElement) thinkingMsgElement.remove(); 
-            addMessage(reply, 'ai', false);
-            userMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            listenForResponse(task_id, thinkingMsgElement, userMessageElement);
+
         } catch (e) {
             clearInterval(thinkingInterval);
             if (thinkingMsgElement) thinkingMsgElement.remove(); 
             addMessage(`Sorry, ${e.message}`, 'ai');
-        } finally {
             userInput.disabled = sendButton.disabled = false;
             userInput.focus();
         }

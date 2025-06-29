@@ -6,11 +6,13 @@ import requests
 from urllib.parse import urlencode
 import json
 import re
+import uuid
+import threading
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_protect
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.http import require_http_methods
 from google import genai
 from google.genai import types
@@ -796,24 +798,20 @@ def create_playlist_api(request):
         _log_to_file(GENERAL_LOG_FILE, f"Error in create_playlist_api: {e}")
         return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
 
-@csrf_protect
-@require_http_methods(["POST"])
-@never_cache
-def chat_message_api(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
-    if not request.session.get('spotify_access_token'):
-        return JsonResponse({'error': 'User not authenticated'}, status=401)
-    
+def _process_chat_message_thread(session_data, user_message, task_id):
+    """
+    This function runs in a separate thread to process the chat message
+    without blocking the main request. It operates on a copy of session data.
+    """
     try:
-        data = json.loads(request.body)
-        user_message = data.get('message')
-        if not user_message:
-            return JsonResponse({'error': 'No message provided'}, status=400)
+        # This is a simple object to mimic the request for functions that need request.session
+        class MockRequest:
+            def __init__(self, session_dict):
+                self.session = session_dict
 
-        history_list = request.session.get('chat_history', [])
-        if not history_list:
-             return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
-
+        mock_request = MockRequest(session_data)
+        
+        history_list = mock_request.session.get('chat_history', [])
         client = get_gemini_client()
 
         track_url_cache = {}
@@ -822,7 +820,7 @@ def chat_message_api(request):
             if cache_key in track_url_cache:
                 return track_url_cache[cache_key]
             
-            track_url = _get_spotify_track_url(request, song_title, artist_name)
+            track_url = _get_spotify_track_url(mock_request, song_title, artist_name)
             track_url_cache[cache_key] = track_url
             return track_url
         
@@ -841,29 +839,22 @@ def chat_message_api(request):
             config=chat_config
         )
         
-        session_key = request.session.session_key
         log_message_prompt_first_pass = (
-            f"Gemini API Call (chat_message_api - First Pass):\n"
+            f"Gemini API Call (chat_message_api - First Pass - Task {task_id}):\n"
             f"  User Message: {user_message}\n"
             f"  Config: {{'tools': {chat_config.tools}}}\n"
             f"  History (at call time):\n{json.dumps(history_list, indent=2)}"
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
         
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) - First Pass")
         response = chat.send_message(user_message)
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) - First Pass")
-
-        if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
-            _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (first pass). Ignoring response.")
-            return JsonResponse({'error': 'User disconnected'}, status=499)
 
         ai_response_text = response.text
-        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass):\n{response}\n******************************\n")
+        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
 
         if ai_response_text is None:
             ai_response_text = ""
-            _log_to_file(GENERAL_LOG_FILE, "ai_response_text was None, setting to empty string")
+            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: ai_response_text was None, setting to empty string")
 
         unfound_tracks_for_feedback = [] 
         specific_pattern = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
@@ -909,28 +900,21 @@ def chat_message_api(request):
                 config=feedback_chat_config
             )
 
-            session_key = request.session.session_key
             log_message_prompt_feedback_pass = (
-                f"Gemini API Call (chat_message_api - Feedback Pass):\n"
+                f"Gemini API Call (chat_message_api - Feedback Pass - Task {task_id}):\n"
                 f"  Feedback Prompt: {feedback_prompt_to_gemini}\n"
                 f"  Config: {{'tools': {feedback_chat_config.tools}}}"
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
             
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) - Feedback Pass")
             correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) - Feedback Pass")
-
-            if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
-                _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (feedback pass). Ignoring response.")
-                return JsonResponse({'error': 'User disconnected'}, status=499)
 
             final_ai_text_to_process_for_user = correction_response.text
-            _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass):\n{correction_response}\n******************************\n")
+            _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
             
             if final_ai_text_to_process_for_user is None:
                 final_ai_text_to_process_for_user = ""
-                _log_to_file(GENERAL_LOG_FILE, "final_ai_text_to_process_for_user was None after feedback, setting to empty string")
+                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: final_ai_text_to_process_for_user was None after feedback, setting to empty string")
             
             still_unfound_tracks_for_removal = []
             corrected_song_mentions = specific_pattern.findall(final_ai_text_to_process_for_user)
@@ -968,32 +952,25 @@ def chat_message_api(request):
                     config=removal_chat_config
                 )
 
-                session_key = request.session.session_key
                 log_message_prompt_removal_pass = (
-                    f"Gemini API Call (chat_message_api - Removal Pass):\n"
+                    f"Gemini API Call (chat_message_api - Removal Pass - Task {task_id}):\n"
                     f"  Removal Prompt: {removal_prompt_to_gemini}\n"
                     f"  Config: {{'tools': {removal_chat_config.tools}}}"
                 )
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
                 
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) - Removal Pass")
                 final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) - Removal Pass")
-
-                if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
-                    _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (removal pass). Ignoring response.")
-                    return JsonResponse({'error': 'User disconnected'}, status=499)
 
                 final_ai_text_to_process_for_user = final_removal_response.text
-                _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass):\n{final_removal_response}\n******************************\n")
+                _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass - Task {task_id}):\n{final_removal_response}\n******************************\n")
                 
                 if final_ai_text_to_process_for_user is None:
                     final_ai_text_to_process_for_user = ""
-                    _log_to_file(GENERAL_LOG_FILE, "final_ai_text_to_process_for_user was None after removal, setting to empty string")
+                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: final_ai_text_to_process_for_user was None after removal, setting to empty string")
         
         if final_ai_text_to_process_for_user is None:
             final_ai_text_to_process_for_user = ai_response_text or ""
-            _log_to_file(GENERAL_LOG_FILE, "final_ai_text_to_process_for_user was None, using ai_response_text or empty string")
+            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: final_ai_text_to_process_for_user was None, using ai_response_text or empty string")
         
         def final_replacer_fn(match):
             song_title = match.group(1).strip()
@@ -1009,19 +986,95 @@ def chat_message_api(request):
 
         history_list.append({'role': 'user', 'parts': [{'text': user_message}]})
         history_list.append({'role': 'model', 'parts': [{'text': final_ai_text_to_process_for_user}]})
-        request.session['chat_history'] = history_list
+        mock_request.session['chat_history'] = history_list
         
-        final_history_list = request.session.get('final_chat_history', [])
+        final_history_list = mock_request.session.get('final_chat_history', [])
         final_history_list.append({'role': 'user', 'parts': [{'text': user_message}]})
         final_history_list.append({'role': 'model', 'parts': [{'text': processed_ai_response_text}]})
-        request.session['final_chat_history'] = final_history_list
+        mock_request.session['final_chat_history'] = final_history_list
         
-        request.session.modified = True
+        result = {
+            'response': processed_ai_response_text,
+            'session_data': mock_request.session
+        }
+        cache.set(task_id, result, timeout=300)
 
-        return JsonResponse({'response': processed_ai_response_text})
+    except Exception as e:
+        _log_to_file(GENERAL_LOG_FILE, f"Error in chat processing thread for task {task_id}: {e}")
+        cache.set(task_id, {'error': 'An unexpected error occurred processing your message.'}, timeout=300)
+
+@csrf_protect
+@require_http_methods(["POST"])
+@never_cache
+def chat_message_api(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
+    if not request.session.get('spotify_access_token'):
+        return JsonResponse({'error': 'User not authenticated'}, status=401)
+    
+    try:
+        data = json.loads(request.body)
+        user_message = data.get('message')
+        if not user_message:
+            return JsonResponse({'error': 'No message provided'}, status=400)
+
+        if not request.session.get('chat_history'):
+             return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
+
+        task_id = str(uuid.uuid4())
+        
+        session_data = request.session.copy()
+
+        thread = threading.Thread(
+            target=_process_chat_message_thread,
+            args=(session_data, user_message, task_id)
+        )
+        thread.daemon = True
+        thread.start()
+
+        return JsonResponse({'task_id': task_id})
 
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in chat_message_api POST: {e}")
         return JsonResponse({'error': 'An unexpected error occurred processing your message.'}, status=500)
+
+@require_http_methods(["GET"])
+@never_cache
+def stream_chat_response(request, task_id):
+    def event_stream():
+        try:
+            # Loop for a max of 500 seconds
+            for _ in range(500):
+                result = cache.get(task_id)
+                if result:
+                    if 'error' in result:
+                        error_data = {'message': result['error']}
+                        yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+                    else:
+                        # Update session with the data from the completed task
+                        request.session.clear()
+                        request.session.update(result['session_data'])
+                        request.session.modified = True
+                        
+                        data = {'response': result['response']}
+                        yield f"data: {json.dumps(data)}\n\n"
+                    
+                    cache.delete(task_id)
+                    break 
+                else:
+                    yield ":\n\n"
+                    time.sleep(1)
+            else: 
+                error_data = {'message': 'Request timed out.'}
+                yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+        except GeneratorExit:
+            _log_to_file(GENERAL_LOG_FILE, f"SSE stream for task {task_id} closed by client.")
+        except Exception as e:
+            _log_to_file(GENERAL_LOG_FILE, f"Error in SSE stream for task {task_id}: {e}")
+            error_data = {'message': 'A server error occurred during streaming.'}
+            yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+
+    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    return response
