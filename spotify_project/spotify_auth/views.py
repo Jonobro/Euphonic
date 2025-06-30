@@ -430,6 +430,8 @@ def _get_spotify_track_url(request, song_title, artist_name):
         return None
 
 def _fetch_page_worker(offset, access_token, limit):
+    worker_id = threading.get_ident()
+    _log_to_file(GENERAL_LOG_FILE, f"Worker {worker_id}: Fetching songs {offset} - {offset + limit - 1}")
     headers = {'Authorization': f'Bearer {access_token}'}
     url = f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}'
     
@@ -455,6 +457,7 @@ def _fetch_page_worker(offset, access_token, limit):
                 'name': track.get('name'),
                 'artists': ', '.join([a.get('name') for a in track.get('artists', [])])
             })
+        _log_to_file(GENERAL_LOG_FILE, f"Worker {worker_id}: Successfully fetched {len(page_simplified_tracks)} songs from offset {offset}")
         return {'status': 'success', 'tracks': page_simplified_tracks}
 
     except requests.exceptions.RequestException as e:
@@ -1039,7 +1042,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                             log_message_discarded = f"NOTE: The following text part(s) from Gemini were discarded (Removal Pass - Task {task_id}): {json.dumps(discarded_text)}"
                             _log_to_file(GEMINI_API_LOG_FILE, log_message_discarded)
 
-                    removal_content_parts = removal_content_parts[split_index:]
+                removal_content_parts = removal_content_parts[split_index:]
                 
                 final_ai_text_to_process_for_user = " ".join([p.text for p in removal_content_parts if hasattr(p, 'text')])
 
