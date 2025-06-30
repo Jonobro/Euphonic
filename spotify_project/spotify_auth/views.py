@@ -865,7 +865,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
 
-        initial_content_parts = response.candidates[0].content.parts if response.candidates else []
+        initial_content_parts = (response.candidates[0].content.parts if response.candidates and response.candidates[0].content else []) or []
         ai_response_text = response.text
 
         if ai_response_text is None:
@@ -875,7 +875,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         unfound_tracks_for_feedback = [] 
         specific_pattern = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
         
-        all_song_mentions = list(set(specific_pattern.findall(ai_response_text)))
+        all_song_mentions = specific_pattern.findall(ai_response_text)
 
         tracks_to_search = [{'title': song[0].strip(), 'artist': song[1].strip()} for song in all_song_mentions]
         
@@ -885,13 +885,10 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             failed_searches = []
             
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                future_to_track = {
-                    executor.submit(_get_spotify_track_url, mock_request, track['title'], track['artist']): track 
-                    for track in tracks_to_search
-                }
+                futures = [executor.submit(_get_spotify_track_url, mock_request, track['title'], track['artist']) for track in tracks_to_search]
                 
-                for future in concurrent.futures.as_completed(future_to_track):
-                    track = future_to_track[future]
+                for i, future in enumerate(futures):
+                    track = tracks_to_search[i]
                     cache_key = (track['title'].lower(), track['artist'].lower())
                     try:
                         status, url = future.result()
@@ -1056,8 +1053,8 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass - Task {task_id}):\n{final_removal_response}\n******************************\n")
 
                 removal_content_parts = final_removal_response.candidates[0].content.parts if final_removal_response.candidates else []
-                if len(removal_content_parts) > len(initial_content_parts):
-                    num_to_potentially_remove = len(removal_content_parts) - len(initial_content_parts)
+                if len(removal_content_parts) > len(correction_content_parts):
+                    num_to_potentially_remove = len(removal_content_parts) - len(correction_content_parts)
                     
                     split_index = num_to_potentially_remove
                     for i, part in enumerate(removal_content_parts[:num_to_potentially_remove]):
