@@ -345,10 +345,11 @@ def _refresh_token_helper(request):
     return True
 
 def _get_spotify_track_url(request, song_title, artist_name):
+    worker_id = threading.get_ident()
     access_token = request.session.get('spotify_access_token')
     if not access_token:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"[ERROR] Access token missing for Spotify search. Song: '{song_title}', Artist: '{artist_name}'")
-        return None
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [ERROR] Access token missing for Spotify search. Song: '{song_title}', Artist: '{artist_name}'")
+        return 'error', None
 
     search_url = 'https://api.spotify.com/v1/search'
     current_headers = {'Authorization': f'Bearer {access_token}'}
@@ -361,7 +362,7 @@ def _get_spotify_track_url(request, song_title, artist_name):
     }
     
     prepared_request_attempt1 = requests.Request('GET', search_url, headers=current_headers, params=params).prepare()
-    _log_to_file(SPOTIFY_API_LOG_FILE, f"[SEARCH_ATTEMPT_1] Song: '{song_title}', Artist: '{artist_name}'. URL: {prepared_request_attempt1.url}")
+    _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [SEARCH_ATTEMPT_1] Song: '{song_title}', Artist: '{artist_name}'. URL: {prepared_request_attempt1.url}")
 
     response = None
     try:
@@ -369,69 +370,45 @@ def _get_spotify_track_url(request, song_title, artist_name):
         response = requests.get(search_url, headers=current_headers, params=params, timeout=10)
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {prepared_request_attempt1.url} | Status: {response.status_code}")
 
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"[RAW_API_CALL_ATTEMPT_1] URL: {prepared_request_attempt1.url}, Headers: {prepared_request_attempt1.headers}, Response Status: {response.status_code}, Response Body:\n{response.text}")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [RAW_API_CALL_ATTEMPT_1] URL: {prepared_request_attempt1.url}, Headers: {prepared_request_attempt1.headers}, Response Status: {response.status_code}, Response Body:\n{response.text}")
 
         if response.status_code == 401:
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"[AUTH_EXPIRED_ATTEMPT_1] Song: '{song_title}', Artist: '{artist_name}'. Attempting token refresh.")
-            refreshed = _refresh_token_helper(request)
-            if refreshed:
-                new_access_token = request.session.get('spotify_access_token')
-                if not new_access_token:
-                    _log_to_file(SPOTIFY_API_LOG_FILE, f"[ERROR] Access token still missing after refresh attempt. Song: '{song_title}', Artist: '{artist_name}'")
-                    return None
-                current_headers['Authorization'] = f'Bearer {new_access_token}'
-                
-                prepared_request_retry = requests.Request('GET', search_url, headers=current_headers, params=params).prepare()
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"[SEARCH_RETRY] Song: '{song_title}', Artist: '{artist_name}'. URL: {prepared_request_retry.url}")
-                
-                response_retry = None
-                try:
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {prepared_request_retry.url}")
-                    response_retry = requests.get(search_url, headers=current_headers, params=params, timeout=10)
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {prepared_request_retry.url} | Status: {response_retry.status_code}")
-                    _log_to_file(SPOTIFY_API_LOG_FILE, f"[RAW_API_CALL_RETRY] URL: {prepared_request_retry.url}, Headers: {prepared_request_retry.headers}, Response Status: {response_retry.status_code}, Response Body:\n{response_retry.text}")
-                    response = response_retry
-                
-                except requests.exceptions.RequestException as e_retry:
-                    _log_to_file(SPOTIFY_API_LOG_FILE, f"[REQUEST_EXCEPTION_RETRY] Song: '{song_title}', Artist: '{artist_name}'. URL: {prepared_request_retry.url}, Headers: {prepared_request_retry.headers}, Error: {e_retry}")
-                    return None
-            else:
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"[ERROR] Token refresh failed. Song: '{song_title}', Artist: '{artist_name}'.")
-                return None
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [AUTH_EXPIRED_ATTEMPT_1] Song: '{song_title}', Artist: '{artist_name}'.")
+            return 'auth_error', None
 
         response.raise_for_status()
         
         data = response.json()
         if data['tracks']['items']:
             track_id = data['tracks']['items'][0]['id']
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"[SEARCH_SUCCESS] Song: '{song_title}', Artist: '{artist_name}'. Track ID: {track_id}.")
-            return f"https://open.spotify.com/track/{track_id}"
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [SEARCH_SUCCESS] Song: '{song_title}', Artist: '{artist_name}'. Track ID: {track_id}.")
+            return 'success', f"https://open.spotify.com/track/{track_id}"
         else:
             log_message_no_results = (
-                f"[SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'. "
+                f"Worker {worker_id}: [SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'. "
                 f"Search URL: {search_url}, Query: {query_string}, Params: {params}, "
                 f"Response Total: {data.get('tracks', {}).get('total')}"
             )
             _log_to_file(SPOTIFY_API_LOG_FILE, log_message_no_results)
-            return None
+            return 'not_found', None
             
     except requests.exceptions.HTTPError as http_err:
         err_response_text = http_err.response.text if http_err.response else 'No response text'
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"[HTTP_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {http_err}, Response: {err_response_text}. Request URL: {prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else 'N/A'}")
-        return None
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [HTTP_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {http_err}, Response: {err_response_text}. Request URL: {prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else 'N/A'}")
+        return 'error', None
     except requests.exceptions.RequestException as e:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"[REQUEST_EXCEPTION] Song: '{song_title}', Artist: '{artist_name}'. Error: {e}. Request URL: {prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else 'N/A'}")
-        return None
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [REQUEST_EXCEPTION] Song: '{song_title}', Artist: '{artist_name}'. Error: {e}. Request URL: {prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else 'N/A'}")
+        return 'error', None
     except Exception as e_unexp:
         log_url = prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else "N/A"
         log_headers = prepared_request_attempt1.headers if 'prepared_request_attempt1' in locals() else current_headers
         response_text_on_unexp = response.text if response and hasattr(response, 'text') else "No response object or text."
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"[UNEXPECTED_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {e_unexp}. Request URL: {log_url}, Headers: {log_headers}, Response (if available): {response_text_on_unexp}")
-        return None
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [UNEXPECTED_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {e_unexp}. Request URL: {log_url}, Headers: {log_headers}, Response (if available): {response_text_on_unexp}")
+        return 'error', None
 
 def _fetch_page_worker(offset, access_token, limit):
     worker_id = threading.get_ident()
-    _log_to_file(GENERAL_LOG_FILE, f"Worker {worker_id}: Fetching songs {offset} - {offset + limit - 1}")
+    _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: Fetching songs {offset} - {offset + limit - 1}")
     headers = {'Authorization': f'Bearer {access_token}'}
     url = f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}'
     
@@ -457,14 +434,14 @@ def _fetch_page_worker(offset, access_token, limit):
                 'name': track.get('name'),
                 'artists': ', '.join([a.get('name') for a in track.get('artists', [])])
             })
-        _log_to_file(GENERAL_LOG_FILE, f"Worker {worker_id}: Successfully fetched {len(page_simplified_tracks)} songs from offset {offset}")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: Successfully fetched {len(page_simplified_tracks)} songs from offset {offset}")
         return {'status': 'success', 'tracks': page_simplified_tracks}
 
     except requests.exceptions.RequestException as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error fetching Spotify tracks batch starting at offset {offset}: {e}")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Error fetching Spotify tracks batch starting at offset {offset}: {e}")
         return {'status': 'error', 'offset': offset, 'error': str(e)}
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Unexpected error processing Spotify batch at offset {offset}: {e}")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Unexpected error processing Spotify batch at offset {offset}: {e}")
         return {'status': 'error', 'offset': offset, 'error': str(e)}
 
 def _fetch_all_spotify_tracks(request):
@@ -473,7 +450,7 @@ def _fetch_all_spotify_tracks(request):
     
     access_token = request.session.get('spotify_access_token')
     if not access_token:
-        _log_to_file(GENERAL_LOG_FILE, "Access token missing during library fetch.")
+        _log_to_file(SPOTIFY_API_LOG_FILE, "Access token missing during library fetch.")
         return None, False
 
     headers = {'Authorization': f'Bearer {access_token}'}
@@ -484,9 +461,9 @@ def _fetch_all_spotify_tracks(request):
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} | Status: {response.status_code}")
         
         if response.status_code == 401:
-            _log_to_file(GENERAL_LOG_FILE, "Token expired on initial library fetch, attempting refresh...")
+            _log_to_file(SPOTIFY_API_LOG_FILE, "Token expired on initial library fetch, attempting refresh...")
             if not _refresh_token_helper(request):
-                _log_to_file(GENERAL_LOG_FILE, "Token refresh failed during initial library fetch.")
+                _log_to_file(SPOTIFY_API_LOG_FILE, "Token refresh failed during initial library fetch.")
                 return None, False
             access_token = request.session.get('spotify_access_token')
             headers['Authorization'] = f'Bearer {access_token}'
@@ -498,7 +475,7 @@ def _fetch_all_spotify_tracks(request):
         total = data.get('total', 0)
         
     except requests.exceptions.RequestException as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error fetching total track count: {e}")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Error fetching total track count: {e}")
         return None, False
 
     if total == 0:
@@ -509,7 +486,7 @@ def _fetch_all_spotify_tracks(request):
     simplified_tracks = []
     max_tracks_to_fetch = 20000
     if total > max_tracks_to_fetch:
-        _log_to_file(GENERAL_LOG_FILE, f"User library has {total} tracks, which is larger than the limit of {max_tracks_to_fetch}. Only fetching the first {max_tracks_to_fetch}.")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"User library has {total} tracks, which is larger than the limit of {max_tracks_to_fetch}. Only fetching the first {max_tracks_to_fetch}.")
         total = max_tracks_to_fetch
 
     offsets_to_fetch = list(range(0, total, limit))
@@ -535,17 +512,17 @@ def _fetch_all_spotify_tracks(request):
         offsets_to_fetch = next_offsets_to_fetch
         if auth_error_detected:
             retries -= 1
-            _log_to_file(GENERAL_LOG_FILE, "Token expired during library fetch batch, attempting refresh...")
+            _log_to_file(SPOTIFY_API_LOG_FILE, "Token expired during library fetch batch, attempting refresh...")
             if not _refresh_token_helper(request):
-                _log_to_file(GENERAL_LOG_FILE, "Token refresh failed. Aborting library fetch.")
+                _log_to_file(SPOTIFY_API_LOG_FILE, "Token refresh failed. Aborting library fetch.")
                 return None, False
         else:
             if offsets_to_fetch:
-                _log_to_file(GENERAL_LOG_FILE, f"Failed to fetch {len(offsets_to_fetch)} pages due to non-authentication errors. Library will be incomplete.")
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch {len(offsets_to_fetch)} pages due to non-authentication errors. Library will be incomplete.")
             break
 
     if not simplified_tracks and total > 0:
-        _log_to_file(GENERAL_LOG_FILE, "Failed to fetch any tracks, though total was > 0.")
+        _log_to_file(SPOTIFY_API_LOG_FILE, "Failed to fetch any tracks, though total was > 0.")
         return None, False
 
     request.session[session_key_tracks] = simplified_tracks
@@ -845,9 +822,19 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             if cache_key in track_url_cache:
                 return track_url_cache[cache_key]
             
-            track_url = _get_spotify_track_url(mock_request, song_title, artist_name)
-            track_url_cache[cache_key] = track_url
-            return track_url
+            status, track_url = _get_spotify_track_url(mock_request, song_title, artist_name)
+            
+            if status == 'auth_error':
+                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token expired during single track search for '{song_title}', attempting refresh...")
+                if _refresh_token_helper(mock_request):
+                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token refresh successful, retrying search for '{song_title}'...")
+                    status, track_url = _get_spotify_track_url(mock_request, song_title, artist_name)
+                else:
+                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token refresh failed. Aborting single track search for '{song_title}'.")
+
+            final_url = track_url if status == 'success' else None
+            track_url_cache[cache_key] = final_url
+            return final_url
         
         use_grounding_for_first_pass = check_and_update_grounding_usage()
         first_pass_tools = [GOOGLE_SEARCH_TOOL] if use_grounding_for_first_pass else None
@@ -888,13 +875,60 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         unfound_tracks_for_feedback = [] 
         specific_pattern = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
         
-        all_song_mentions = specific_pattern.findall(ai_response_text)
+        all_song_mentions = list(set(specific_pattern.findall(ai_response_text)))
+
+        tracks_to_search = [{'title': song[0].strip(), 'artist': song[1].strip()} for song in all_song_mentions]
+        
+        retries = 2
+        while tracks_to_search and retries > 0:
+            auth_error_detected = False
+            failed_searches = []
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                future_to_track = {
+                    executor.submit(_get_spotify_track_url, mock_request, track['title'], track['artist']): track 
+                    for track in tracks_to_search
+                }
+                
+                for future in concurrent.futures.as_completed(future_to_track):
+                    track = future_to_track[future]
+                    cache_key = (track['title'].lower(), track['artist'].lower())
+                    try:
+                        status, url = future.result()
+                        if status == 'success':
+                            track_url_cache[cache_key] = url
+                        elif status == 'not_found':
+                            track_url_cache[cache_key] = None
+                        elif status == 'auth_error':
+                            auth_error_detected = True
+                            failed_searches.append(track)
+                        else:
+                            track_url_cache[cache_key] = None
+                    except Exception as e:
+                        _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error processing search result for {track['title']}: {e}")
+                        track_url_cache[cache_key] = None
+
+            tracks_to_search = failed_searches
+            if auth_error_detected:
+                retries -= 1
+                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token expired during parallel track search, attempting refresh...")
+                if not _refresh_token_helper(mock_request):
+                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token refresh failed. Aborting track search.")
+                    for track in tracks_to_search:
+                        cache_key = (track['title'].lower(), track['artist'].lower())
+                        track_url_cache[cache_key] = None
+                    break
+            else:
+                for track in tracks_to_search:
+                    cache_key = (track['title'].lower(), track['artist'].lower())
+                    track_url_cache[cache_key] = None
+                break
 
         for song_title_match, artist_name_match in all_song_mentions:
             song_title = song_title_match.strip()
             artist_name = artist_name_match.strip()
-            track_url = get_cached_spotify_track_url(song_title, artist_name)
-            if not track_url:
+            cache_key = (song_title.lower(), artist_name.lower())
+            if track_url_cache.get(cache_key) is None:
                 unfound_tracks_for_feedback.append(f"- {song_title} by {artist_name}")
 
         final_ai_text_to_process_for_user = ai_response_text
