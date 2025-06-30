@@ -8,6 +8,7 @@ import json
 import re
 import uuid
 import threading
+import concurrent.futures
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.urls import reverse
@@ -428,89 +429,121 @@ def _get_spotify_track_url(request, song_title, artist_name):
         _log_to_file(SPOTIFY_API_LOG_FILE, f"[UNEXPECTED_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {e_unexp}. Request URL: {log_url}, Headers: {log_headers}, Response (if available): {response_text_on_unexp}")
         return None
 
+def _fetch_page_worker(offset, access_token, limit):
+    headers = {'Authorization': f'Bearer {access_token}'}
+    url = f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}'
+    
+    try:
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
+        response = requests.get(url, headers=headers, timeout=15)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} | Status: {response.status_code}")
+
+        if response.status_code == 401:
+            return {'status': 'auth_error', 'offset': offset}
+
+        response.raise_for_status()
+        
+        data = response.json()
+        items = data.get('items', [])
+        
+        page_simplified_tracks = []
+        for item in items:
+            track = item.get('track')
+            if not track: continue
+            page_simplified_tracks.append({
+                'id': track.get('id'),
+                'name': track.get('name'),
+                'artists': ', '.join([a.get('name') for a in track.get('artists', [])])
+            })
+        return {'status': 'success', 'tracks': page_simplified_tracks}
+
+    except requests.exceptions.RequestException as e:
+        _log_to_file(GENERAL_LOG_FILE, f"Error fetching Spotify tracks batch starting at offset {offset}: {e}")
+        return {'status': 'error', 'offset': offset, 'error': str(e)}
+    except Exception as e:
+        _log_to_file(GENERAL_LOG_FILE, f"Unexpected error processing Spotify batch at offset {offset}: {e}")
+        return {'status': 'error', 'offset': offset, 'error': str(e)}
+
 def _fetch_all_spotify_tracks(request):
     session_key_tracks = 'spotify_user_tracks'
-    
-    simplified_tracks = []
     limit = 50
-    offset = 0
-    total = None
+    
+    access_token = request.session.get('spotify_access_token')
+    if not access_token:
+        _log_to_file(GENERAL_LOG_FILE, "Access token missing during library fetch.")
+        return None, False
 
-    while True:
-        access_token = request.session.get('spotify_access_token')
-        if not access_token:
-            _log_to_file(GENERAL_LOG_FILE, "Access token missing during library fetch.")
-            return None, False
+    headers = {'Authorization': f'Bearer {access_token}'}
+    url = f'https://api.spotify.com/v1/me/tracks?limit=1&offset=0'
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url} (for total count)")
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} | Status: {response.status_code}")
+        
+        if response.status_code == 401:
+            _log_to_file(GENERAL_LOG_FILE, "Token expired on initial library fetch, attempting refresh...")
+            if not _refresh_token_helper(request):
+                _log_to_file(GENERAL_LOG_FILE, "Token refresh failed during initial library fetch.")
+                return None, False
+            access_token = request.session.get('spotify_access_token')
+            headers['Authorization'] = f'Bearer {access_token}'
+            response = requests.get(url, headers=headers, timeout=15)
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} (retry) | Status: {response.status_code}")
 
-        headers = {'Authorization': f'Bearer {access_token}'}
-        try:
-            url = f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}'
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
-            response = requests.get(
-                url,
-                headers=headers,
-                timeout=15
-            )
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} | Status: {response.status_code}")
+        response.raise_for_status()
+        data = response.json()
+        total = data.get('total', 0)
+        
+    except requests.exceptions.RequestException as e:
+        _log_to_file(GENERAL_LOG_FILE, f"Error fetching total track count: {e}")
+        return None, False
 
-            if response.status_code == 401:
-                _log_to_file(GENERAL_LOG_FILE, "Token expired during library fetch, attempting refresh...")
-                refresh_success = _refresh_token_helper(request)
-                if not refresh_success:
-                    _log_to_file(GENERAL_LOG_FILE, "Token refresh failed during library fetch.")
-                    return None, False
-                continue
+    if total == 0:
+        request.session[session_key_tracks] = []
+        request.session.modified = True
+        return [], True
 
-            response.raise_for_status()
+    simplified_tracks = []
+    max_tracks_to_fetch = 20000
+    if total > max_tracks_to_fetch:
+        _log_to_file(GENERAL_LOG_FILE, f"User library has {total} tracks, which is larger than the limit of {max_tracks_to_fetch}. Only fetching the first {max_tracks_to_fetch}.")
+        total = max_tracks_to_fetch
 
-            data = response.json()
-            items = data.get('items', [])
-            if not items and offset > 0:
-                 break
-            if not items and offset == 0 and data.get('total', 0) == 0:
-                break
-
-
-            for item in items:
-                track = item.get('track')
-                if not track:
-                    continue
-
-                track_name = track.get('name')
-                track_id = track.get('id')
-                artist_names = [a.get('name') for a in track.get('artists', [])]
-
-                simplified_tracks.append({
-                    'id': track_id,
-                    'name': track_name,
-                    'artists': ', '.join(artist_names)
-                })
-
-            if total is None:
-                total = data.get('total')
-
-            offset += len(items)
-
-            if not items and offset >= total: 
-                break
+    offsets_to_fetch = list(range(0, total, limit))
+    
+    retries = 2
+    while offsets_to_fetch and retries > 0:
+        auth_error_detected = False
+        next_offsets_to_fetch = []
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            current_access_token = request.session.get('spotify_access_token')
+            future_to_offset = {executor.submit(_fetch_page_worker, offset, current_access_token, limit): offset for offset in offsets_to_fetch}
             
-            if total is not None and offset >= total:
-                break
-            
-            if not items:
-                break
+            for future in concurrent.futures.as_completed(future_to_offset):
+                result = future.result()
+                if result['status'] == 'success':
+                    simplified_tracks.extend(result['tracks'])
+                else:
+                    next_offsets_to_fetch.append(result['offset'])
+                    if result['status'] == 'auth_error':
+                        auth_error_detected = True
 
+        offsets_to_fetch = next_offsets_to_fetch
+        if auth_error_detected:
+            retries -= 1
+            _log_to_file(GENERAL_LOG_FILE, "Token expired during library fetch batch, attempting refresh...")
+            if not _refresh_token_helper(request):
+                _log_to_file(GENERAL_LOG_FILE, "Token refresh failed. Aborting library fetch.")
+                return None, False
+        else:
+            if offsets_to_fetch:
+                _log_to_file(GENERAL_LOG_FILE, f"Failed to fetch {len(offsets_to_fetch)} pages due to non-authentication errors. Library will be incomplete.")
+            break
 
-            if offset > 20000:
-                _log_to_file(GENERAL_LOG_FILE, f"Exiting due to excessively large library (processed {offset} tracks)")
-                break
-
-        except requests.exceptions.RequestException as e:
-            _log_to_file(GENERAL_LOG_FILE, f"Error fetching Spotify tracks batch starting at offset {offset}: {e}")
-            return None, False
-        except Exception as e:
-             _log_to_file(GENERAL_LOG_FILE, f"Unexpected error processing Spotify batch at offset {offset}: {e}")
-             return None, False
+    if not simplified_tracks and total > 0:
+        _log_to_file(GENERAL_LOG_FILE, "Failed to fetch any tracks, though total was > 0.")
+        return None, False
 
     request.session[session_key_tracks] = simplified_tracks
     request.session.modified = True
