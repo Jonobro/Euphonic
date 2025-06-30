@@ -1073,7 +1073,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                             log_message_discarded = f"NOTE: The following text part(s) from Gemini were discarded (Removal Pass - Task {task_id}): {json.dumps(discarded_text)}"
                             _log_to_file(GEMINI_API_LOG_FILE, log_message_discarded)
 
-                removal_content_parts = removal_content_parts[split_index:]
+                    removal_content_parts = removal_content_parts[split_index:]
                 
                 final_ai_text_to_process_for_user = " ".join([p.text for p in removal_content_parts if hasattr(p, 'text')])
 
