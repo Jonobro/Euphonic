@@ -302,7 +302,13 @@ def spotify_callback(request):
     if 'spotify_auth_state' in request.session:
         del request.session['spotify_auth_state']
     
-    return redirect(reverse('chat'))
+    return redirect(reverse('pre_chat'))
+
+def pre_chat_view(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    if not request.session.get('spotify_access_token'):
+        return redirect(reverse('spotify_login'))
+    return render(request, 'pre_chat.html')
 
 def logout_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
@@ -1073,6 +1079,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                             log_message_discarded = f"NOTE: The following text part(s) from Gemini were discarded (Removal Pass - Task {task_id}): {json.dumps(discarded_text)}"
                             _log_to_file(GEMINI_API_LOG_FILE, log_message_discarded)
 
+                    # Note: indentation of removal_content_parts is correct. Do not modify it or it will be unable to access split_index.
                     removal_content_parts = removal_content_parts[split_index:]
                 
                 final_ai_text_to_process_for_user = " ".join([p.text for p in removal_content_parts if hasattr(p, 'text')])
