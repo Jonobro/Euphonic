@@ -484,7 +484,7 @@ def _fetch_all_spotify_tracks(request):
         return [], True
 
     simplified_tracks = []
-    max_tracks_to_fetch = 20000
+    max_tracks_to_fetch = 10000
     if total > max_tracks_to_fetch:
         _log_to_file(SPOTIFY_API_LOG_FILE, f"User library has {total} tracks, which is larger than the limit of {max_tracks_to_fetch}. Only fetching the first {max_tracks_to_fetch}.")
         total = max_tracks_to_fetch
