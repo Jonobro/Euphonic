@@ -14,3 +14,4 @@ logs/
 
 # Debugging
 temp_spotify_search.py
+spotify_rate_limit_tester.py
