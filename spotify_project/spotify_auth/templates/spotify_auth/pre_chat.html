@@ -18,9 +18,9 @@
             </div>
         </div>
         <div class="options-container">
-            <a href="{% url 'chat' %}" class="option-button" data-mode="">Create Playlist of New Songs</a>
-            <a href="{% url 'chat' %}" class="option-button" data-mode="">Create Playlist Using My Songs</a>
-            <a href="{% url 'chat' %}" class="option-button" data-mode="">Analyze My Music</a>
+            <a href="{% url 'new_song_chat' %}" class="option-button" data-mode="new_songs">Create Playlist of New Songs</a>
+            <a href="{% url 'existing_song_chat' %}" class="option-button" data-mode="existing_songs">Create Playlist Using My Songs</a>
+            <a href="{% url 'musical_analysis' %}" class="option-button" data-mode="analysis">Analyze My Music</a>
         </div>
     </div>
     <div class="spotify-footer">

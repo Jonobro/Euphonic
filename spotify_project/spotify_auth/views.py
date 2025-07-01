@@ -539,15 +539,50 @@ def _fetch_all_spotify_tracks(request):
 @csrf_protect
 @require_http_methods(["GET"])
 @never_cache
-def chat_view(request):
+def existing_song_chat_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     if not request.session.get('spotify_access_token'):
         return redirect(reverse('spotify_login'))
-
+    
+    request.session['chat_mode'] = 'existing_songs'
     final_chat_history = request.session.get('final_chat_history', [])
     is_loading_initial = not final_chat_history
 
     return render(request, 'spotify_auth/chat.html', {
+        'chat_history_json': json.dumps(final_chat_history),
+        'is_loading_initial_data': is_loading_initial
+    })
+
+@csrf_protect
+@require_http_methods(["GET"])
+@never_cache
+def new_song_chat_view(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    if not request.session.get('spotify_access_token'):
+        return redirect(reverse('spotify_login'))
+
+    request.session['chat_mode'] = 'new_songs'
+    final_chat_history = request.session.get('final_chat_history', [])
+    is_loading_initial = not final_chat_history
+
+    return render(request, 'spotify_auth/chat.html', {
+        'chat_history_json': json.dumps(final_chat_history),
+        'is_loading_initial_data': is_loading_initial
+    })
+
+@csrf_protect
+@require_http_methods(["GET"])
+@never_cache
+def musical_analysis_view(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    if not request.session.get('spotify_access_token'):
+        return redirect(reverse('spotify_login'))
+
+    request.session['chat_mode'] = 'analysis'
+    final_chat_history = request.session.get('final_chat_history', [])
+    is_loading_initial = not final_chat_history
+
+    return render(request, 'spotify_auth/analysis.html', {
         'chat_history_json': json.dumps(final_chat_history),
         'is_loading_initial_data': is_loading_initial
     })
