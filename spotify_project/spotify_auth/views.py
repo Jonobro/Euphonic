@@ -308,7 +308,7 @@ def pre_chat_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     if not request.session.get('spotify_access_token'):
         return redirect(reverse('spotify_login'))
-    return render(request, 'pre_chat.html')
+    return render(request, 'spotify_auth/pre_chat.html')
 
 def logout_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
