@@ -39,10 +39,11 @@ jobs:
             echo "==> Configuring git remote with PAT..."
             git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git
             
-            COMMIT_REF="${{ github.event.inputs.commit_sha || github.ref_name }}"
-            echo "==> Fetching latest code from origin/$COMMIT_REF..."
+            # Use the specific commit SHA for push events, or the user input/branch for dispatch events.
+            COMMIT_TO_DEPLOY="${{ github.event.inputs.commit_sha || github.sha }}"
+            echo "==> Fetching latest code and checking out commit: $COMMIT_TO_DEPLOY"
             git fetch origin
-            git reset --hard $COMMIT_REF
+            git reset --hard "$COMMIT_TO_DEPLOY"
             
             echo "==> Creating/updating .env file..."
             cat <<EOF > .env
