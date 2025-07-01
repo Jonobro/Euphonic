@@ -6,33 +6,7 @@
     <title>Euphonic Intelligence</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'spotify_auth/css/chat.css' %}">
-    <style>
-        .container {
-            text-align: center;
-        }
-        .options-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            margin-top: 40px;
-        }
-        .option-button {
-            background-color: #1DB954;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 1.2em;
-            border-radius: 50px;
-            cursor: pointer;
-            text-decoration: none;
-            min-width: 300px;
-            text-align: center;
-        }
-        .option-button:hover {
-            background-color: #1ed760;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'spotify_auth/css/pre_chat.css' %}">
 </head>
 <body>
     <div class="container">
@@ -45,9 +19,9 @@
         </div>
         <h2>What would you like to do?</h2>
         <div class="options-container">
-            <a href="{% url 'chat' %}" class="option-button" data-action="new">Create Playlist of New Songs</a>
-            <a href="{% url 'chat' %}" class="option-button" data-action="my">Create Playlist Using My Songs</a>
-            <a href="{% url 'chat' %}" class="option-button" data-action="analyze">Analyze My Music</a>
+            <a href="{% url 'chat' %}" class="option-button" data-action="">Create Playlist of New Songs</a>
+            <a href="{% url 'chat' %}" class="option-button" data-action="">Create Playlist Using My Songs</a>
+            <a href="{% url 'chat' %}" class="option-button" data-action="">Analyze My Music</a>
         </div>
     </div>
     <div class="spotify-footer">
