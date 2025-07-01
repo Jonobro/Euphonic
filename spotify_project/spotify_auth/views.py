@@ -220,7 +220,7 @@ def get_gemini_client():
 def index(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     if request.session.get('spotify_access_token'):
-        return redirect(reverse('chat'))
+        return redirect(reverse('pre_chat'))
     return render(request, 'spotify_auth/index.html')
 
 @csrf_protect
