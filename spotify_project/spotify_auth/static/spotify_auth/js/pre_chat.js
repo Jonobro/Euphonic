@@ -4,9 +4,9 @@ document.addEventListener('DOMContentLoaded', function() {
     optionButtons.forEach(button => {
         button.addEventListener('click', function(event) {
             event.preventDefault();
-            const action = this.getAttribute('data-action');
+            const mode = this.getAttribute('data-mode');
             const url = this.getAttribute('href');
-            window.location.href = `${url}?action=${action}`;
+            window.location.href = `${url}?mode=${mode}`;
         });
     });
 });
