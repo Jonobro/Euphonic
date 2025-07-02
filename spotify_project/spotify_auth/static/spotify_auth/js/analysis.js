@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 400);
 
-        fetch('/initialize_chat_data/', {
+        fetch('/initialize_music_analysis_data_view/', {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrfToken,

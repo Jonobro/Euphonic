@@ -796,6 +796,179 @@ I've talked too much — let's get started! What can I do for you?
 @csrf_protect
 @require_http_methods(["POST"])
 @never_cache
+def initialize_music_analysis_data_view(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    if not request.session.get('spotify_access_token'):
+        return JsonResponse({'error': 'User not authenticated'}, status=401)
+
+    if request.session.get('final_chat_history'):
+        first_ai_message = "Chat already initialized."
+        for entry in request.session.get('final_chat_history', []):
+            if entry.get('role') == 'model':
+                first_ai_message = entry['parts'][0]['text']
+                break
+        return JsonResponse({'analysis_result': first_ai_message, 'already_initialized': True})
+
+    try:
+        if not request.session.get('spotify_user_id'):
+            access_token = request.session.get('spotify_access_token')
+            headers = {'Authorization': f'Bearer {access_token}'}
+            url = 'https://api.spotify.com/v1/me'
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
+            response = requests.get(url, headers=headers, timeout=10)
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} | Status: {response.status_code}")
+            if response.status_code == 401:
+                if _refresh_token_helper(request):
+                    access_token = request.session.get('spotify_access_token')
+                    headers['Authorization'] = f'Bearer {access_token}'
+                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url} (retry)")
+                    response = requests.get(url, headers=headers, timeout=10)
+                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} (retry) | Status: {response.status_code}")
+                else:
+                    _log_to_file(SPOTIFY_API_LOG_FILE, "Token refresh failed while getting user profile.")
+                    return JsonResponse({'error': 'Could not authenticate with Spotify to get user profile.'}, status=401)
+            
+            if response.status_code == 200:
+                user_data = response.json()
+                request.session['spotify_user_id'] = user_data['id']
+            else:
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to get user profile: {response.status_code} - {response.text}")
+                return JsonResponse({'error': 'Could not retrieve Spotify user profile.'}, status=500)
+
+        session_key_tracks = 'spotify_user_tracks'
+        
+        simplified_tracks_list = request.session.get(session_key_tracks)
+        fetch_success = True
+        if simplified_tracks_list is None:
+            simplified_tracks_list, fetch_success = _fetch_all_spotify_tracks(request)
+
+        if not fetch_success:
+            return JsonResponse({'error': 'Could not retrieve Spotify library. Please try logging out and back in.'}, status=500)
+
+        full_library_string = "User library is empty or could not be retrieved."
+        if simplified_tracks_list:
+            song_strings = [f"{t['name']} by {t['artists']}" for t in simplified_tracks_list]
+            max_prompt_length = 1000000
+            full_library_string = "\n".join(song_strings)
+            if len(full_library_string) > max_prompt_length:
+                full_library_string = full_library_string[:max_prompt_length] + "\n... (library truncated)"
+        
+        initial_prompt = f"""Your first task will be to analyze the user's Spotify library and provide insights about their musical taste. Please do that now.
+
+        Here is the list of tracks in the user's Spotify library for you to perform your musical analysis and to answer any subsequent user prompts: 
+        {full_library_string}
+
+        Don't ever mention this message or directly respond to it, just perform the analysis and provide your insights."""
+
+        client = get_gemini_client()
+        
+        use_grounding = check_and_update_grounding_usage()
+        current_tools = [GOOGLE_SEARCH_TOOL] if use_grounding else None
+        
+        chat_config = types.GenerateContentConfig(
+            system_instruction=SYSTEM_INSTRUCTION,
+            tools=current_tools,
+            response_modalities=["TEXT"],
+            safety_settings=SAFETY_SETTINGS
+        )
+        chat = client.chats.create(
+            model=MODEL_NAME,
+            config=chat_config
+        )
+
+        session_key = request.session.session_key
+        log_message_prompt = (
+            f"Gemini API Call (initialize_music_analysis_data_view):\n"
+            f"  Prompt: {initial_prompt}\n"
+            f"  Config: {{'tools': {chat_config.tools}}}"
+        )
+        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt}\n******************************\n")
+        
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME})")
+        response = chat.send_message(initial_prompt)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME})")
+
+        if not Session.objects.filter(session_key=session_key, expire_date__gte=timezone.now()).exists():
+            _log_to_file(GENERAL_LOG_FILE, "Session invalid after Gemini request (initialization). Ignoring response.")
+            return JsonResponse({'error': 'User disconnected'}, status=499)
+
+        initial_analysis_text_from_gemini = response.text
+        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (initialize_music_analysis_data_view):\n{response}\n******************************\n")
+
+        if initial_analysis_text_from_gemini is None:
+            initial_analysis_text_from_gemini = ""
+            _log_to_file(GENERAL_LOG_FILE, "initial_analysis_text_from_gemini was None, setting to empty string")
+
+        def clean_markers_for_initial_display(match):
+            song_title = match.group(1).strip()
+            artist_name = match.group(2).strip()
+            return f"{song_title} by {artist_name}"
+
+        specific_pattern = re.compile(r"\$\$\$\$\$(.*?)\$\$\$\$\$ by @@@@@(.*?)@@@@@")
+        cleaned_initial_analysis_text_for_template = specific_pattern.sub(clean_markers_for_initial_display, initial_analysis_text_from_gemini)
+        cleaned_initial_analysis_text_for_template = re.sub(r"[\$@]{3,}", "", cleaned_initial_analysis_text_for_template)
+
+        full_introductory_message = f"""Hi there! I'm Aria, your personal music assistant. I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!
+
+From there, we can chat about your music and work together to create your perfect playlist.
+<p style="text-align:center; font-size:1.25em;"><strong>Your Musical Analysis</strong></p>
+
+________________________________________________________________
+{cleaned_initial_analysis_text_for_template}
+________________________________________________________________
+<br>
+
+That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask. Some things that might be interesting to ask:
+* What is the most prevalent genre in my library?
+* What percentage of my saved songs have a female lead vocalist?
+* What is the most common key in my library? Do I prefer major or minor keys?
+
+Otherwise, let's get rolling on your personalized playlist. Tell me a bit about what you are looking for in your playlist.
+
+You can mention things like:
+* Mood (e.g., chill, focused, elated, exhausted)
+* Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
+* Favorite artists or specific songs you love (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
+* A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
+* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven by Led Zeppelin)
+
+What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
+* Give me a playlist of new songs that I might like based on my saved songs
+* Create a playlist of Katy Perry's 5 worst songs
+* Make a playlist of songs that were produced in another country but blew up in the US
+* Give me a playlist of 15 songs about monkeys
+* Create a playlist of all of my saved songs sorted chronologically by release date
+
+By the way, I can create playlists using your existing songs, new songs, or both! Just let me know which you'd prefer.
+
+I've talked too much — let's get started! What can I do for you?
+"""
+        history_list = []
+        original_history = chat.get_history()
+        if len(original_history) >= 2 and original_history[0].role == 'user' and original_history[1].role == 'model':
+            history_list.append({'role': original_history[0].role, 'parts': [{'text': p.text} for p in original_history[0].parts]})
+            history_list.append({'role': 'model', 'parts': [{'text': full_introductory_message}]})
+        else:
+            _log_to_file(GEMINI_API_LOG_FILE, f"Unexpected chat history structure: {original_history}")
+            history_list.append({'role': 'user', 'parts': [{'text': initial_prompt}]})
+            history_list.append({'role': 'model', 'parts': [{'text': full_introductory_message}]})
+
+        request.session['chat_history'] = history_list
+        
+        final_history_list = [{'role': 'model', 'parts': [{'text': full_introductory_message}]}]
+        request.session['final_chat_history'] = final_history_list
+        
+        request.session.modified = True
+
+        return JsonResponse({'analysis_result': full_introductory_message})
+
+    except Exception as e:
+        _log_to_file(GENERAL_LOG_FILE, f"Error in initialize_music_analysis_data_view: {e}")
+        return JsonResponse({'error': 'An unexpected error occurred during chat initialization.'}, status=500)
+
+@csrf_protect
+@require_http_methods(["POST"])
+@never_cache
 def create_playlist_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     if not request.session.get('spotify_access_token'):
