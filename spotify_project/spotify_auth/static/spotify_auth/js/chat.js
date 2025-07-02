@@ -4,12 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageList = document.getElementById('message-list');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    // Configure marked.js to open links in a new tab
     const renderer = new marked.Renderer();
     const originalLinkRenderer = renderer.link;
     renderer.link = (href, title, text) => {
         const link = originalLinkRenderer.call(renderer, href, title, text);
-        // Add target="_blank" and rel attributes for security and new tab functionality
         return link.replace(/^<a/, '<a target="_blank" rel="noopener noreferrer"');
     };
 
@@ -35,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.marked && window.DOMPurify) {
             try {
                 const dirtyHtml = marked.parse(text || '');
-                // Allow the 'target' attribute so links can open in a new tab.
                 msg.innerHTML = DOMPurify.sanitize(dirtyHtml, { ADD_ATTR: ['target'] });
             }
             catch { msg.textContent = text; }
