@@ -31,6 +31,28 @@ def generate_code_verifier(length=64):
     code_verifier = ''.join(secrets.choice(possible_chars) for _ in range(length))
     return code_verifier
 
+def _prefetch_spotify_tracks_worker(session_key):
+    try:
+        session_store = Session.get_session_store_class()
+        session = session_store(session_key=session_key)
+
+        class MockRequest:
+            def __init__(self, session_obj):
+                self.session = session_obj
+
+        mock_request = MockRequest(session)
+        
+        _fetch_all_spotify_tracks(mock_request)
+
+        if session.modified:
+            session.save()
+            _log_to_file(GENERAL_LOG_FILE, f"Successfully prefetched and saved tracks for session {session_key}")
+        else:
+            _log_to_file(GENERAL_LOG_FILE, f"Prefetch for session {session_key} did not result in session modification.")
+
+    except Exception as e:
+        _log_to_file(GENERAL_LOG_FILE, f"Error in prefetch worker for session {session_key}: {e}")
+
 def generate_code_challenge(verifier):
     sha256_hash = hashlib.sha256(verifier.encode('utf-8')).digest()
     code_challenge = base64.urlsafe_b64encode(sha256_hash).decode('utf-8')
@@ -296,6 +318,18 @@ def spotify_callback(request):
     request.session['spotify_access_token'] = token_info['access_token']
     if 'refresh_token' in token_info:
         request.session['spotify_refresh_token'] = token_info['refresh_token']
+
+    # Ensure the session is saved before starting the background thread
+    request.session.save()
+    
+    # Start a background thread to pre-fetch the user's library
+    prefetch_thread = threading.Thread(
+        target=_prefetch_spotify_tracks_worker,
+        args=(request.session.session_key,)
+    )
+    prefetch_thread.daemon = True
+    prefetch_thread.start()
+    _log_to_file(GENERAL_LOG_FILE, f"Started prefetch thread for session {request.session.session_key}")
 
     if 'spotify_code_verifier' in request.session:
         del request.session['spotify_code_verifier']
@@ -581,10 +615,12 @@ def musical_analysis_view(request):
     request.session['chat_mode'] = 'analysis'
     final_chat_history = request.session.get('final_chat_history', [])
     is_loading_initial = not final_chat_history
+    user_library = request.session.get('spotify_user_tracks', [])
 
     return render(request, 'spotify_auth/analysis.html', {
         'chat_history_json': json.dumps(final_chat_history),
-        'is_loading_initial_data': is_loading_initial
+        'is_loading_initial_data': is_loading_initial,
+        'user_library': user_library
     })
 
 @csrf_protect
