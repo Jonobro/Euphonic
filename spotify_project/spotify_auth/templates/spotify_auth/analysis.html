@@ -1,33 +1,43 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Analysis</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Euphonic Intelligence</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'spotify_auth/css/chat.css' %}">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
 </head>
 <body>
-    <h1>Your Spotify Data Analysis</h1>
-    <div id="analysis-container">
-        <p>Your analysis results will be displayed here.</p>
+    <div class="container">
+        <div class="header-row">
+            <h1>Euphonic Intelligence</h1>
+            <div class="tooltip-container">
+                <a href="{% url 'logout' %}" class="button">Disconnect</a>
+                <span class="custom-tooltip">Purges your data with Euphonic Intelligence and revokes your OAuth authorization with Spotify</span>
+            </div>
+        </div>
+        <div id="chat-container">
+            <div id="message-list" 
+                 {% if is_loading_initial_data %}data-is-loading-initial="true"{% endif %}>
+            </div>
+            <div id="chat-input-area">
+                <textarea id="user-input" placeholder="Ask follow-up questions or request playlists..."></textarea>
+                <button id="send-button" class="button">Send</button>
+            </div>
+        </div>
     </div>
-
-    {% if user_library %}
-    <h2>Your Spotify Library</h2>
-    <div class="library-string-container">
-        <pre>
-        {% for track in user_library %}
-{{ track.name }} by {{ track.artists }}
-        {% endfor %}
-        </pre>
+    <div class="spotify-footer">
+        <p>Powered by <a href="https://www.spotify.com" target="_blank" rel="noopener">Spotify</a></p>
+        <img src="{% static 'spotify_auth/images/Full_Logo_Green_RGB.svg' %}" alt="Spotify Logo" class="spotify-logo">
     </div>
-    {% endif %}
-
-    <script id="analysis-script-data"
-        data-is-loading-initial="{{ is_loading_initial_data|yesno:"true,false" }}"
-        data-chat-history-json="{{ chat_history_json|escapejs }}"
-        data-initialize-chat-data-url="{% url 'initialize_chat_data' %}">
+    
+    <script id="chat-history-data" type="application/json">
+        {{ chat_history_json|safe }}
     </script>
-    <script src="{% static 'js/analysis.js' %}" defer></script>
+    <script src="{% static 'spotify_auth/js/chat.js' %}"></script>
+    <script src="{% static 'spotify_auth/js/playlist_handler.js' %}"></script>
 </body>
 </html>
