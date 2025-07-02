@@ -581,7 +581,7 @@ def musical_analysis_view(request):
     final_chat_history = request.session.get('final_chat_history', [])
     is_loading_initial = not final_chat_history
 
-    return render(request, 'spotify_auth/chat.html', {
+    return render(request, 'spotify_auth/analysis.html', {
         'chat_history_json': json.dumps(final_chat_history),
         'is_loading_initial_data': is_loading_initial
     })
