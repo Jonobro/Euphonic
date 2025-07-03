@@ -169,9 +169,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (loadingIndicator) loadingIndicator.remove();
             if (data.error) {
                 addMessage(`Initialization failed: ${data.error}`, 'ai');
-            } else if (data.analysis_result) {
-                const analysisMessageElement = addMessage(data.analysis_result, 'ai', false);
-                analysisMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (Array.isArray(data.analysis_result)) {
+                let lastMessageElement;
+                (async () => {
+                    for (const messageText of data.analysis_result) {
+                        lastMessageElement = addMessage(messageText, 'ai', true);
+                        await new Promise(resolve => setTimeout(resolve, 750)); 
+                    }
+                    if (lastMessageElement) {
+                        lastMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                })();
             }
             messageList.removeAttribute('data-is-loading-initial');
         })

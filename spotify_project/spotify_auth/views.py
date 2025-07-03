@@ -610,7 +610,7 @@ def musical_analysis_view(request):
     is_loading_initial = not final_analysis_chat_history
 
     return render(request, 'spotify_auth/analysis.html', {
-        'chat_history_json': json.dumps(final_analysis_chat_history),
+        'analysis_chat_history_json': json.dumps(final_analysis_chat_history),
         'is_loading_initial_data': is_loading_initial
     })
 
@@ -957,41 +957,51 @@ Here is the list of tracks in my Spotify library:
         cleaned_initial_analysis_text_for_template = specific_pattern.sub(clean_markers_for_initial_display, initial_analysis_text_from_gemini)
         cleaned_initial_analysis_text_for_template = re.sub(r"[\$@]{3,}", "", cleaned_initial_analysis_text_for_template)
 
-        full_introductory_message = f"""Hi there! I'm Aria, your personal music assistant. I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!
+        introductory_message_start = "Hi there! I'm Aria, your personal music assistant. I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!"
+        introductory_message_body = f"""<p style="text-align:center; font-size:1.5em;"><strong>Your Musical Analysis</strong></p>
 
-<p style="text-align:center; font-size:1.25em;"><strong>Your Musical Analysis</strong></p>
+{cleaned_initial_analysis_text_for_template}"""
 
-________________________________________________________________
-{cleaned_initial_analysis_text_for_template}
-________________________________________________________________
-<br>
-
-That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask.
+        introductory_message_end = """That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask.
 
 Here are a few questions you might find interesting:
 * What's the most prevalent genre in my library?
 * Do I lean more toward male or female lead vocalists — and by how much?
 * What is the most common key across my songs? Am I more drawn to major or minor keys? What does this reveal?
-* Are there particular decades or years I seem to favor?
-"""
+* Are there particular decades or years I seem to favor?"""
+
         analysis_history_list = []
         original_history = analysis_chat.get_history()
         if len(original_history) >= 2 and original_history[0].role == 'user' and original_history[1].role == 'model':
             analysis_history_list.append({'role': original_history[0].role, 'parts': [{'text': p.text} for p in original_history[0].parts]})
-            analysis_history_list.append({'role': 'model', 'parts': [{'text': full_introductory_message}]})
+            analysis_history_list.append({'role': 'model', 'parts': [{'text': introductory_message_start}]})
+            analysis_history_list.append({'role': 'model', 'parts': [{'text': introductory_message_body}]})
+            analysis_history_list.append({'role': 'model', 'parts': [{'text': introductory_message_end}]})
         else:
             _log_to_file(GEMINI_API_LOG_FILE, f"Unexpected chat history structure: {original_history}")
             analysis_history_list.append({'role': 'user', 'parts': [{'text': initial_prompt}]})
-            analysis_history_list.append({'role': 'model', 'parts': [{'text': full_introductory_message}]})
+            analysis_history_list.append({'role': 'model', 'parts': [{'text': introductory_message_start}]})
+            analysis_history_list.append({'role': 'model', 'parts': [{'text': introductory_message_body}]})
+            analysis_history_list.append({'role': 'model', 'parts': [{'text': introductory_message_end}]})
 
-        request.session['chat_history'] = analysis_history_list
+        request.session['analysis_chat_history'] = analysis_history_list
 
-        final_analysis_history_list = [{'role': 'model', 'parts': [{'text': full_introductory_message}]}]
+        final_analysis_history_list = [
+            {'role': 'model', 'parts': [{'text': introductory_message_start}]},
+            {'role': 'model', 'parts': [{'text': introductory_message_body}]},
+            {'role': 'model', 'parts': [{'text': introductory_message_end}]}
+        ]
         request.session['final_analysis_chat_history'] = final_analysis_history_list
 
         request.session.modified = True
 
-        return JsonResponse({'analysis_result': full_introductory_message})
+        return JsonResponse({
+            'analysis_result': [
+                introductory_message_start,
+                introductory_message_body,
+                introductory_message_end
+            ]
+        })
 
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in initialize_music_analysis_data_view: {e}")
