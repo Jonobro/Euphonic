@@ -347,10 +347,8 @@ def spotify_callback(request):
     if 'refresh_token' in token_info:
         request.session['spotify_refresh_token'] = token_info['refresh_token']
 
-    # Ensure the session is saved before starting the background thread
     request.session.save()
     
-    # Start a background thread to pre-fetch the user's library
     prefetch_thread = threading.Thread(
         target=_prefetch_spotify_tracks_worker,
         args=(request.session.session_key,)
@@ -605,7 +603,7 @@ def musical_analysis_view(request):
     if not request.session.get('spotify_access_token'):
         return redirect(reverse('spotify_login'))
     
-    request.session['chat_mode'] = 'existing_songs'
+    request.session['chat_mode'] = 'analysis'
     final_analysis_chat_history = request.session.get('final_analysis_chat_history', [])
     is_loading_initial = not final_analysis_chat_history
 
@@ -887,7 +885,6 @@ def initialize_music_analysis_data_view(request):
 - Identify my core musical identity and taste based on dominant genres, artists, and characteristics in my library
 - Highlight what makes my taste unique or interesting
 - Provide any other observations that you think I might find interesting
-- Based on all of your analysis, give me a creative "Musical Persona" that captures the essence of my musical taste (e.g., "The Nostalgic Explorer," "The Upbeat Intellectual," "The Melancholic Dreamer," etc.)
 
 ## Optional elements to include if relevant — no need to force them in:
 - Are there any unexpected connections between seemingly different artists/genres in my library?
