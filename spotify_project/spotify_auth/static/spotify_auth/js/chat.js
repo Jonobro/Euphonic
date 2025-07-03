@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     } else {
-        const chatHistoryDataElement = document.getElementById('analysis-chat-history-data');
+        const chatHistoryDataElement = document.getElementById('chat-history-data');
         if (chatHistoryDataElement) {
             try {
                 const history = JSON.parse(chatHistoryDataElement.textContent);
