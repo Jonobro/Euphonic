@@ -750,7 +750,7 @@ def initialize_chat_data_view(request):
 - Highlight what makes my taste unique or interesting
 - Provide any other observations that you think I might find interesting
 
-## Optional elements to include if relevant — no need to force them in:
+## Optional elements to include if relevant -- no need to force them in:
 - Are there any unexpected connections between seemingly different artists/genres in my library?
 - Are there any interesting contradictions or range in my preferences?
 - Compare my taste to general population trends. Identify where I'm mainstream vs. niche.
@@ -826,7 +826,7 @@ Here is the list of tracks in my Spotify library:
 
 Here are a few questions you might find interesting:
 * What's the most prevalent genre in my library?
-* Do I lean more toward male or female lead vocalists — and by how much?
+* Do I lean more toward male or female lead vocalists -- and by how much?
 * What is the most common key across my songs? Am I more drawn to major or minor keys? What does this reveal?
 * Are there particular decades or years I seem to favor?"""
 
@@ -865,14 +865,14 @@ Here are a few questions you might find interesting:
 
 Here are some examples of what I can do:
 * Give me a playlist of all of my songs from the 90s
-* I am on a road trip with my grandma — give me a playlist of my songs that she might like
+* I am on a road trip with my grandma -- give me a playlist of my songs that she might like
 * Make a playlist using all of the electronic music in my music collection
-* I'm feeling discouraged today — give me a playlist of my most uplifting songs
+* I'm feeling discouraged today -- give me a playlist of my most uplifting songs
 * Create a playlist of all of my songs that are over 7 minutes long
 * Make me a playlist of all of the bluegrass songs in my collection
 * Create a playlist of all of my saved songs sorted chronologically by release date
 
-I've talked too much — let's get started! What can I do for you?"""
+I've talked too much -- let's get started! What can I do for you?"""
         
             history_list = []
             history_list.append({'role': 'user', 'parts': [{'text': initial_prompt}]})
@@ -885,7 +885,7 @@ I've talked too much — let's get started! What can I do for you?"""
 
         # If statement for new songs mode
         if chat_mode == 'new_songs':
-            initial_response = """Hi there! I'm Aria, your personal music curator — here to help you discover new music and craft the perfect playlist.
+            initial_response = """Hi there! I'm Aria, your personal music curator -- here to help you discover new music and craft the perfect playlist.
 
 Tell me a bit about what you are looking for. You can mention things like:
 * Mood (e.g., chill, focused, elated, exhausted)
@@ -900,7 +900,7 @@ What's special about me, though, is that I can generate custom playlists for you
 * Give me a playlist of 15 songs about monkeys
 * Create a playlist of songs that were released in May of 2021
 
-I've talked too much — let's get started! What can I do for you?"""
+I've talked too much -- let's get started! What can I do for you?"""
 
             history_list = []
             history_list.append({'role': 'model', 'parts': [{'text': initial_response}]})

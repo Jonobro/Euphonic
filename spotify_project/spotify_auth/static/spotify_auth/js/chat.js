@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // const chatMode = document.body.dataset.chatMode;
+    const chatMode = document.body.dataset.chatMode;
     const sendButton = document.getElementById('send-button');
     const userInput  = document.getElementById('user-input');
     const messageList = document.getElementById('message-list');
@@ -137,16 +137,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const isInitiallyLoading = messageList.dataset.isLoadingInitial === 'true';
 
     if (isInitiallyLoading) {
-        const loadingIndicatorBaseText = "Welcome! I'm fetching your Spotify library and preparing your musical analysis. This might take a moment";
-        const loadingIndicator = addMessage(loadingIndicatorBaseText + "...", 'ai');
+        let loadingIndicator;
+        let loadingInterval;
+        
+        if (chatMode === 'analysis') {
+            const loadingIndicatorBaseText = "Welcome! I'm fetching your Spotify library and preparing your musical analysis. This might take a moment";
+            loadingIndicator = addMessage(loadingIndicatorBaseText + "...", 'ai');
+            let dotCount = 3;
+            loadingInterval = setInterval(() => {
+                dotCount = (dotCount % 3) + 1;
+                if (loadingIndicator) {
+                    loadingIndicator.textContent = loadingIndicatorBaseText + '.'.repeat(dotCount);
+                }
+            }, 400);
+        }
+
         userInput.disabled = sendButton.disabled = true;
-        let dotCount = 3;
-        const loadingInterval = setInterval(() => {
-            dotCount = (dotCount % 3) + 1;
-            if (loadingIndicator) {
-                loadingIndicator.textContent = loadingIndicatorBaseText + '.'.repeat(dotCount);
-            }
-        }, 400);
 
         fetch('/initialize_chat_data/', {
             method: 'POST',
@@ -166,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return response.json();
         })
         .then(data => {
-            clearInterval(loadingInterval);
+            if (loadingInterval) clearInterval(loadingInterval);
             if (loadingIndicator) loadingIndicator.remove();
             if (data.error) {
                 addMessage(`Initialization failed: ${data.error}`, 'ai');
@@ -178,13 +184,13 @@ document.addEventListener('DOMContentLoaded', () => {
             messageList.removeAttribute('data-is-loading-initial');
         })
         .catch(error => {
-            clearInterval(loadingInterval);
+            if (loadingInterval) clearInterval(loadingInterval);
             if (loadingIndicator) loadingIndicator.remove();
             addMessage('Sorry, there was a problem initializing the chat. Please refresh the page to try again.', 'ai');
             console.error("Initialization error:", error);
         })
         .finally(() => {
-            clearInterval(loadingInterval);
+            if (loadingInterval) clearInterval(loadingInterval);
             userInput.disabled = sendButton.disabled = false;
             if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
                  userInput.focus();
