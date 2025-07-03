@@ -171,6 +171,7 @@ Here are the rules you must follow:
 * Do not hedge statements or waffle. Form an opinion and share it confidently.
 * Do not be overly cautious, hesitant, or try to be politically correct. Do not avoid sensitive topics.
 * Don't be afraid to challenge the user's assumptions or beliefs about music, but always do so respectfully and thoughtfully.
+* Don't ever use the phrase "Intriguing Observations"
 
 Formatting requirements:
 * Use Markdown for all output.
@@ -760,6 +761,7 @@ def initialize_chat_data_view(request):
 - Is my music diverse in terms of genre, geography, or language?
 
 ## Response Requirements:
+- Make it your own. Don't just rigidly follow the above structure. Deviate from it if you think it will yield a better analysis.
 - Make it engaging and personal, not just statistical
 - Be creative. Try to tell me some things I may never have realized about my music/tastes.
 - Make the analysis thorough, analytically rigorous, and creatively insightful.
@@ -879,8 +881,8 @@ I've talked too much — let's get started! What can I do for you?"""
             final_history_list = [{'role': 'model', 'parts': [{'text': initial_response}]}]
             request.session['final_saved_songs_chat_history'] = final_history_list
             request.session.modified = True
-            return JsonResponse({'first_ai_message': initial_response})
-    
+            return JsonResponse({'first_ai_message': [initial_response]})
+
         # If statement for new songs mode
         if chat_mode == 'new_songs':
             initial_response = """Hi there! I'm Aria, your personal music curator — here to help you discover new music and craft the perfect playlist.
@@ -905,7 +907,7 @@ I've talked too much — let's get started! What can I do for you?"""
             request.session['new_songs_chat_history'] = history_list
             request.session['final_new_songs_chat_history'] = history_list
             request.session.modified = True
-            return JsonResponse({'first_ai_message': initial_response})
+            return JsonResponse({'first_ai_message': [initial_response]})
 
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in initialize_chat_data_view: {e}")
