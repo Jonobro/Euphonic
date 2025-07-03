@@ -171,12 +171,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.error) {
                 addMessage(`Initialization failed: ${data.error}`, 'ai');
             } else if (Array.isArray(data.first_ai_message)) {
-                let lastMessageElement;
                 for (const messageText of data.first_ai_message) {
-                    lastMessageElement = addMessage(messageText, 'ai', true);
-                }
-                if (lastMessageElement) {
-                    lastMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    addMessage(messageText, 'ai', false);
                 }
             }
             messageList.removeAttribute('data-is-loading-initial');
