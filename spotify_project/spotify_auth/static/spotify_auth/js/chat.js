@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // const chatMode = document.body.dataset.chatMode;
     const sendButton = document.getElementById('send-button');
     const userInput  = document.getElementById('user-input');
     const messageList = document.getElementById('message-list');
@@ -136,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isInitiallyLoading = messageList.dataset.isLoadingInitial === 'true';
 
     if (isInitiallyLoading) {
-        const loadingIndicatorBaseText = "Welcome! I'm fetching your Spotify library and preparing your initial analysis. This might take a moment";
+        const loadingIndicatorBaseText = "Welcome! I'm fetching your Spotify library and preparing your musical analysis. This might take a moment";
         const loadingIndicator = addMessage(loadingIndicatorBaseText + "...", 'ai');
         userInput.disabled = sendButton.disabled = true;
         let dotCount = 3;
@@ -169,9 +170,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (loadingIndicator) loadingIndicator.remove();
             if (data.error) {
                 addMessage(`Initialization failed: ${data.error}`, 'ai');
-            } else if (data.analysis_result) {
-                const analysisMessageElement = addMessage(data.analysis_result, 'ai', false);
-                analysisMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (Array.isArray(data.first_ai_message)) {
+                let lastMessageElement;
+                for (const messageText of data.first_ai_message) {
+                    lastMessageElement = addMessage(messageText, 'ai', true);
+                }
+                if (lastMessageElement) {
+                    lastMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             }
             messageList.removeAttribute('data-is-loading-initial');
         })
@@ -189,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     } else {
-        const chatHistoryDataElement = document.getElementById('chat-history-data');
+        const chatHistoryDataElement = document.getElementById('analysis-chat-history-data');
         if (chatHistoryDataElement) {
             try {
                 const history = JSON.parse(chatHistoryDataElement.textContent);
