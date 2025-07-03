@@ -818,7 +818,7 @@ Here is the list of tracks in my Spotify library:
             introductory_message_start = "Hi there! I'm Aria, your personal music assistant. I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!"
             introductory_message_body = f"""<p style="text-align:center; font-size:1.5em;"><strong>Your Musical Analysis</strong></p>
 
-            {initial_text_from_gemini}"""
+{initial_text_from_gemini}"""
 
             introductory_message_end = """That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask.
 
