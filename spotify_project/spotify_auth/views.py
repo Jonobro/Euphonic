@@ -612,7 +612,7 @@ def musical_analysis_view(request):
     return render(request, 'spotify_auth/chat.html', {
         'analysis_chat_history_json': json.dumps(final_analysis_chat_history),
         'is_loading_initial_data': is_loading_initial,
-        # 'chat_mode': request.session.get('chat_mode')
+        'chat_mode': request.session.get('chat_mode')
     })
 
 @csrf_protect
@@ -630,7 +630,7 @@ def saved_songs_chat_view(request):
     return render(request, 'spotify_auth/chat.html', {
         'chat_history_json': json.dumps(final_chat_history),
         'is_loading_initial_data': is_loading_initial,
-        # 'chat_mode': request.session.get('chat_mode')
+        'chat_mode': request.session.get('chat_mode')
     })
 
 @csrf_protect
@@ -648,7 +648,7 @@ def new_song_chat_view(request):
     return render(request, 'spotify_auth/chat.html', {
         'chat_history_json': json.dumps(final_chat_history),
         'is_loading_initial_data': is_loading_initial,
-        # 'chat_mode': request.session.get('chat_mode')
+        'chat_mode': request.session.get('chat_mode')
     })
 
 @csrf_protect
