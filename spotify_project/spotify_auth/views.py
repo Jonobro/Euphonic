@@ -866,9 +866,9 @@ Here is the list of tracks in my Spotify library:
             current_tools = [GOOGLE_SEARCH_TOOL] if use_grounding else None
         
             system_instruction_map = {
-            'analysis': 'ANALYSIS_SYSTEM_INSTRUCTION',
-            'saved_songs': 'SAVED_SONGS_SYSTEM_INSTRUCTION',
-            'new_songs': 'NEW_SONGS_SYSTEM_INSTRUCTION'
+            'analysis': ANALYSIS_SYSTEM_INSTRUCTION,
+            'saved_songs': SAVED_SONGS_SYSTEM_INSTRUCTION,
+            'new_songs': NEW_SONGS_SYSTEM_INSTRUCTION
             }
             system_instruction_for_mode = system_instruction_map.get(chat_mode)
             
@@ -1134,9 +1134,9 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         first_pass_tools = [GOOGLE_SEARCH_TOOL] if use_grounding_for_first_pass else None
         
         system_instruction_map = {
-            'analysis': 'ANALYSIS_SYSTEM_INSTRUCTION',
-            'saved_songs': 'SAVED_SONGS_SYSTEM_INSTRUCTION',
-            'new_songs': 'NEW_SONGS_SYSTEM_INSTRUCTION'
+            'analysis': ANALYSIS_SYSTEM_INSTRUCTION,
+            'saved_songs': SAVED_SONGS_SYSTEM_INSTRUCTION,
+            'new_songs': NEW_SONGS_SYSTEM_INSTRUCTION
             }
         
         system_instruction_for_mode = system_instruction_map.get(chat_mode)
@@ -1286,8 +1286,8 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 </user_library_tracks>
 """
             feedback_system_instruction_map = {
-            'saved_songs': 'SAVED_SONGS_FEEDBACK_SYSTEM_INSTRUCTION',
-            'new_songs': 'NEW_SONGS_FEEDBACK_SYSTEM_INSTRUCTION'
+            'saved_songs': SAVED_SONGS_FEEDBACK_SYSTEM_INSTRUCTION,
+            'new_songs': NEW_SONGS_FEEDBACK_SYSTEM_INSTRUCTION
             }
             system_instruction_for_feedback = feedback_system_instruction_map.get(chat_mode)
             
