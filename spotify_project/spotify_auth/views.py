@@ -511,11 +511,9 @@ def _get_spotify_track_url_with_backoff(request, song_title, artist_name, max_re
         if status in ['success', 'not_found', 'auth_error']:
             return status, url
         
-        # Only retry on generic errors (likely rate limiting)
         if status == 'error' and attempt < max_retries - 1:
-            # Exponential backoff with jitter
-            base_delay = 2 ** attempt  # 1s, 2s, 4s...
-            jitter = random.uniform(0, 1)  # Add randomness to avoid thundering herd
+            base_delay = 2 ** attempt
+            jitter = random.uniform(0, 1)
             delay = base_delay + jitter
             
             _log_to_file(SPOTIFY_API_LOG_FILE, 
@@ -599,9 +597,7 @@ def _fetch_page_worker_with_backoff(offset, access_token, limit, max_retries=3):
         if result['status'] in ['success', 'auth_error']:
             return result
         
-        # Only retry on generic errors (likely rate limiting)
         if result['status'] == 'error' and attempt < max_retries - 1:
-            # Exponential backoff with jitter
             base_delay = 2 ** attempt
             jitter = random.uniform(0, 1)
             delay = base_delay + jitter
@@ -705,7 +701,7 @@ def _fetch_all_spotify_tracks(request):
         auth_error_detected = False
         next_offsets_to_fetch = []
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             current_access_token = request.session.get('spotify_access_token')
             future_to_offset = {executor.submit(_fetch_page_worker_with_backoff, offset, current_access_token, limit): offset for offset in offsets_to_fetch}
             
@@ -1262,7 +1258,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             auth_error_detected = False
             failed_searches = []
             
-            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 futures = [executor.submit(_get_spotify_track_url_with_backoff, mock_request, track['title'], track['artist']) for track in tracks_to_search]
                 
                 for i, future in enumerate(futures):
@@ -1584,7 +1580,6 @@ def chat_message_api(request):
 def stream_chat_response(request, task_id):
     def event_stream():
         try:
-            # Loop for a max of 500 seconds
             for _ in range(500):
                 result = cache.get(task_id)
                 if result:
