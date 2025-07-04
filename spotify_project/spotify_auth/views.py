@@ -857,6 +857,7 @@ def initialize_chat_data_view(request):
 Don't ever mention this message or directly respond to it. Just perform the analysis and provide your insights.
 
 Here is the list of tracks in my Spotify library:
+
 {full_library_string}"""
             
             client = get_gemini_client()
@@ -906,10 +907,10 @@ Here is the list of tracks in my Spotify library:
                 _log_to_file(GENERAL_LOG_FILE, "initial_text_from_gemini was None, setting to empty string")
 
             introductory_message_start = "Hi there! I'm Aria, your personal music curator. I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!"
-            introductory_message_body = f"""<p style="text-align:center; font-size:1.5em;"><strong>Your Musical Analysis</strong></p>
+            introductory_message_body_display = f"""<p style="text-align:center; font-size:1.5em;"><strong>Your Musical Analysis</strong></p>
 
 {initial_text_from_gemini}"""
-
+            introductory_message_body_history = f"Your Musical Analysis\n\n{initial_text_from_gemini}"
             introductory_message_end = """That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask.
 
 Here are a few questions you might find interesting:
@@ -921,14 +922,14 @@ Here are a few questions you might find interesting:
             history_list = []
             history_list.append({'role': 'user', 'parts': [{'text': initial_prompt}]})
             history_list.append({'role': 'model', 'parts': [{'text': introductory_message_start}]})
-            history_list.append({'role': 'model', 'parts': [{'text': introductory_message_body}]})
+            history_list.append({'role': 'model', 'parts': [{'text': introductory_message_body_history}]})
             history_list.append({'role': 'model', 'parts': [{'text': introductory_message_end}]})
 
             request.session['analysis_chat_history'] = history_list
 
             final_history_list = [
                 {'role': 'model', 'parts': [{'text': introductory_message_start}]},
-                {'role': 'model', 'parts': [{'text': introductory_message_body}]},
+                {'role': 'model', 'parts': [{'text': introductory_message_body_display}]},
                 {'role': 'model', 'parts': [{'text': introductory_message_end}]}
             ]
             
@@ -939,7 +940,7 @@ Here are a few questions you might find interesting:
             return JsonResponse({
                 'first_ai_message': [
                     introductory_message_start,
-                    introductory_message_body,
+                    introductory_message_body_display,
                     introductory_message_end
                 ]
             })
