@@ -973,6 +973,7 @@ I've talked too much – let's get started! What can I do for you?"""
 
         # If statement for new songs mode
         if chat_mode == 'new_songs':
+            initial_prompt = "Who are you and what can you do for me?"
             initial_response = """Hi there! I'm Aria, your personal music curator – here to help you discover new music and craft the perfect playlist.
 
 Tell me a bit about what you are looking for. You can mention things like:
@@ -991,6 +992,7 @@ What's special about me, though, is that I can generate custom playlists for you
 I've talked too much – let's get started! What can I do for you?"""
 
             history_list = []
+            history_list.append({'role': 'user', 'parts': [{'text': initial_prompt}]})
             history_list.append({'role': 'model', 'parts': [{'text': initial_response}]})
             request.session['new_songs_chat_history'] = history_list
             request.session['final_new_songs_chat_history'] = history_list
