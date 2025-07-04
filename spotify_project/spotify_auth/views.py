@@ -25,6 +25,7 @@ import time
 from django.core.cache import cache
 from django.utils import timezone
 from django.contrib.sessions.models import Session
+import random
 
 def generate_code_verifier(length=64):
     possible_chars = string.ascii_letters + string.digits + '-._~'
@@ -500,6 +501,32 @@ def _refresh_token_helper(request):
         request.session['spotify_refresh_token'] = token_info['refresh_token']
     return True
 
+def _get_spotify_track_url_with_backoff(request, song_title, artist_name, max_retries=3):
+    """Get Spotify track URL with exponential backoff for rate limiting."""
+    worker_id = threading.get_ident()
+    
+    for attempt in range(max_retries):
+        status, url = _get_spotify_track_url(request, song_title, artist_name)
+        
+        if status in ['success', 'not_found', 'auth_error']:
+            return status, url
+        
+        # Only retry on generic errors (likely rate limiting)
+        if status == 'error' and attempt < max_retries - 1:
+            # Exponential backoff with jitter
+            base_delay = 2 ** attempt  # 1s, 2s, 4s...
+            jitter = random.uniform(0, 1)  # Add randomness to avoid thundering herd
+            delay = base_delay + jitter
+            
+            _log_to_file(SPOTIFY_API_LOG_FILE, 
+                f"Worker {worker_id}: Rate limited for '{song_title}' by '{artist_name}'. "
+                f"Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+            time.sleep(delay)
+        else:
+            break
+    
+    return status, url
+
 def _get_spotify_track_url(request, song_title, artist_name):
     worker_id = threading.get_ident()
     access_token = request.session.get('spotify_access_token')
@@ -561,6 +588,32 @@ def _get_spotify_track_url(request, song_title, artist_name):
         response_text_on_unexp = response.text if response and hasattr(response, 'text') else "No response object or text."
         _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [UNEXPECTED_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {e_unexp}. Request URL: {log_url}, Headers: {log_headers}, Response (if available): {response_text_on_unexp}")
         return 'error', None
+
+def _fetch_page_worker_with_backoff(offset, access_token, limit, max_retries=3):
+    """Fetch page with exponential backoff for rate limiting."""
+    worker_id = threading.get_ident()
+    
+    for attempt in range(max_retries):
+        result = _fetch_page_worker(offset, access_token, limit)
+        
+        if result['status'] in ['success', 'auth_error']:
+            return result
+        
+        # Only retry on generic errors (likely rate limiting)
+        if result['status'] == 'error' and attempt < max_retries - 1:
+            # Exponential backoff with jitter
+            base_delay = 2 ** attempt
+            jitter = random.uniform(0, 1)
+            delay = base_delay + jitter
+            
+            _log_to_file(SPOTIFY_API_LOG_FILE, 
+                f"Worker {worker_id}: Rate limited for offset {offset}. "
+                f"Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+            time.sleep(delay)
+        else:
+            break
+    
+    return result
 
 def _fetch_page_worker(offset, access_token, limit):
     worker_id = threading.get_ident()
@@ -652,9 +705,9 @@ def _fetch_all_spotify_tracks(request):
         auth_error_detected = False
         next_offsets_to_fetch = []
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             current_access_token = request.session.get('spotify_access_token')
-            future_to_offset = {executor.submit(_fetch_page_worker, offset, current_access_token, limit): offset for offset in offsets_to_fetch}
+            future_to_offset = {executor.submit(_fetch_page_worker_with_backoff, offset, current_access_token, limit): offset for offset in offsets_to_fetch}
             
             for future in concurrent.futures.as_completed(future_to_offset):
                 result = future.result()
@@ -1116,13 +1169,13 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             if cache_key in track_url_cache:
                 return track_url_cache[cache_key]
             
-            status, track_url = _get_spotify_track_url(mock_request, song_title, artist_name)
+            status, track_url = _get_spotify_track_url_with_backoff(mock_request, song_title, artist_name)
             
             if status == 'auth_error':
                 _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token expired during single track search for '{song_title}', attempting refresh...")
                 if _refresh_token_helper(mock_request):
                     _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token refresh successful, retrying search for '{song_title}'...")
-                    status, track_url = _get_spotify_track_url(mock_request, song_title, artist_name)
+                    status, track_url = _get_spotify_track_url_with_backoff(mock_request, song_title, artist_name)
                 else:
                     _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token refresh failed. Aborting single track search for '{song_title}'.")
 
@@ -1209,8 +1262,8 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             auth_error_detected = False
             failed_searches = []
             
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                futures = [executor.submit(_get_spotify_track_url, mock_request, track['title'], track['artist']) for track in tracks_to_search]
+            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+                futures = [executor.submit(_get_spotify_track_url_with_backoff, mock_request, track['title'], track['artist']) for track in tracks_to_search]
                 
                 for i, future in enumerate(futures):
                     track = tracks_to_search[i]
