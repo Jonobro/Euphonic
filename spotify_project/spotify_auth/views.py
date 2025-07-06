@@ -1238,8 +1238,8 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         if chat_mode == 'analysis':
             updated_history = chat.get_history()
             serializable_history = [
-                {'role': c.role, 'parts': [{'text': p.text} for p in c.parts]}
-                for c in updated_history
+            {'role': c.role, 'parts': [{'text': p.text} for p in c.parts] if c.parts else []}
+            for c in updated_history
             ]
 
             if serializable_history and serializable_history[-1]['role'] == 'model':
@@ -1525,9 +1525,9 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 
         updated_history = chat.get_history()
         serializable_history = [
-            {'role': c.role, 'parts': [{'text': p.text} for p in c.parts]}
+            {'role': c.role, 'parts': [{'text': p.text} for p in c.parts] if c.parts else []}
             for c in updated_history
-        ]
+            ]
 
         if serializable_history and serializable_history[-1]['role'] == 'model':
             chat_history_for_session = [item for item in serializable_history]
