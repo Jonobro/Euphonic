@@ -696,7 +696,7 @@ def _fetch_all_spotify_tracks(request):
     max_tracks_to_fetch = 1000
     if total > max_tracks_to_fetch:
         _log_to_file(SPOTIFY_API_LOG_FILE, f"User library has {total} tracks, which is larger than the limit of {max_tracks_to_fetch}. Only fetching the first {max_tracks_to_fetch}.")
-        library_size_message = f"Note: Your Spotify music collection contains {total:,} tracks which exceeds the maximum length of 1000 songs. I will fetch & use only the first 1000 to keep things running smoothly. Feel free to adjust which tracks you have included."
+        library_size_message = f"Note: Your Spotify music collection contains {total} tracks which exceeds the maximum length of 1000 songs. I will fetch & use only the first 1000 to keep things running smoothly. Feel free to adjust which tracks you have included."
         request.session['library_size_message'] = library_size_message
         request.session.modified = True
         total = max_tracks_to_fetch
@@ -809,31 +809,24 @@ def initialize_chat_data_view(request):
 
     chat_mode = request.session.get('chat_mode')
 
-    history_map = {
-    'analysis': 'analysis_chat_history',
-    'saved_songs': 'saved_songs_chat_history',
-    'new_songs': 'new_songs_chat_history'
-    }
-    history = request.session.get(history_map[chat_mode])
-
     final_history_map = {
     'analysis': 'final_analysis_chat_history',
     'saved_songs': 'final_saved_songs_chat_history',
     'new_songs': 'final_new_songs_chat_history'
     }
-    final_history = request.session.get(final_history_map[chat_mode])
+    final_history_mode = final_history_map[chat_mode]
 
-    if request.session.get(final_history):
+    if request.session.get(final_history_mode):
         if chat_mode == 'analysis':
             first_ai_message = ["Chat already initialized.", "", ""]
-            for index, entry in enumerate(request.session.get(final_history, [])):
+            for index, entry in enumerate(request.session.get(final_history_mode, [])):
                 if entry.get('role') == 'model':
                     first_ai_message[index-1] = entry['parts'][0]['text']
                 elif entry.get('role') == 'user' and index != 0:
                     break
         elif chat_mode in ['saved_songs', 'new_songs']:
             first_ai_message = ["Chat already initialized."]
-            for entry in request.session.get(final_history, []):
+            for entry in request.session.get(final_history_mode, []):
                 if entry.get('role') == 'model':
                     first_ai_message[0] = entry['parts'][0]['text']
                     break
@@ -992,8 +985,9 @@ Here are a few questions you might find interesting:
                 {'role': 'model', 'parts': [{'text': introductory_message_end}]}
             ]
 
-            library_size_message = request.session.get('library_size_message')
-            if library_size_message:
+            library_size_message = ""
+            if request.session.get('library_size_message'):
+                library_size_message = request.session.get('library_size_message')
                 final_history_list.append({'role': 'model', 'parts': [{'text': library_size_message}]})
             
             request.session['final_analysis_chat_history'] = final_history_list
@@ -1004,7 +998,8 @@ Here are a few questions you might find interesting:
                 'first_ai_message': [
                     introductory_message_start,
                     introductory_message_body_display,
-                    introductory_message_end
+                    introductory_message_end,
+                    library_size_message
                 ]
             })
         
@@ -1034,12 +1029,15 @@ I've talked too much – let's get started! What can I do for you?"""
             history_list.append({'role': 'model', 'parts': [{'text': initial_response}]})
             request.session['saved_songs_chat_history'] = history_list
             final_history_list = [{'role': 'model', 'parts': [{'text': initial_response}]}]
-            library_size_message = request.session.get('library_size_message')
-            if library_size_message:
+
+            library_size_message = ""
+            if request.session.get('library_size_message'):
+                library_size_message = request.session.get('library_size_message')
                 final_history_list.append({'role': 'model', 'parts': [{'text': library_size_message}]})
+
             request.session['final_saved_songs_chat_history'] = final_history_list
             request.session.modified = True
-            return JsonResponse({'first_ai_message': [initial_response]})
+            return JsonResponse({'first_ai_message': [initial_response, library_size_message]})
 
         # If statement for new songs mode
         if chat_mode == 'new_songs':
