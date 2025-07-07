@@ -500,6 +500,8 @@ def _refresh_token_helper(request):
 def _get_spotify_track_url_with_backoff(request, song_title, artist_name, max_retries=5):
     worker_id = threading.get_ident()
     
+    NON_RETRYABLE_CODES = {400, 401, 403, 404, 422}
+    
     for attempt in range(max_retries):
         status, url, response_obj = _get_spotify_track_url(request, song_title, artist_name)
         
@@ -507,15 +509,26 @@ def _get_spotify_track_url_with_backoff(request, song_title, artist_name, max_re
             return status, url
         
         if status == 'error' and attempt < max_retries - 1:
-            delay = 2 ** attempt + random.uniform(0, 1)
-            if response_obj is not None and response_obj.status_code == 429:
-                retry_after = int(response_obj.headers.get('Retry-After', delay))
-                delay = retry_after + random.uniform(0, 1)
+            should_retry = True
             
-            _log_to_file(SPOTIFY_API_LOG_FILE, 
-                f"Worker {worker_id}: Rate limited for '{song_title}' by '{artist_name}'. "
-                f"Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
-            time.sleep(delay)
+            if response_obj and response_obj.status_code in NON_RETRYABLE_CODES:
+                should_retry = False
+                _log_to_file(SPOTIFY_API_LOG_FILE, 
+                    f"Worker {worker_id}: Non-retryable error {response_obj.status_code} for '{song_title}' by '{artist_name}'. "
+                    f"Stopping retry attempts.")
+            
+            if should_retry:
+                delay = 2 ** attempt + random.uniform(0, 1)
+                if response_obj is not None and response_obj.status_code == 429:
+                    retry_after = int(response_obj.headers.get('Retry-After', delay))
+                    delay = retry_after + random.uniform(0, 1)
+                
+                _log_to_file(SPOTIFY_API_LOG_FILE, 
+                    f"Worker {worker_id}: Rate limited for '{song_title}' by '{artist_name}'. "
+                    f"Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                time.sleep(delay)
+            else:
+                break
         else:
             break
     
@@ -531,6 +544,8 @@ def _get_spotify_track_url(request, song_title, artist_name):
     search_url = 'https://api.spotify.com/v1/search'
     current_headers = {'Authorization': f'Bearer {access_token}'}
     
+    if song_title.count('"') >= 2:
+        song_title = song_title.replace('"', '')
     query_string = f'track:"{song_title}" artist:"{artist_name}"'
     params = {
         'q': query_string,
@@ -1269,7 +1284,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                 final_history_for_session[-1]['parts'] = [{'text': ai_response_text}]
                 final_history_for_session = final_history_for_session[1:]
                 if mock_request.session.get('library_size_message'):
-                    final_history_for_session.insert(1, {'role': 'model', 'parts': [{'text': mock_request.session['library_size_message']}]})
+                    final_history_for_session.insert(3, {'role': 'model', 'parts': [{'text': mock_request.session['library_size_message']}]})
                 mock_request.session['final_analysis_chat_history'] = final_history_for_session
             
             result = {
