@@ -991,24 +991,22 @@ Here are a few questions you might find interesting:
                 {'role': 'model', 'parts': [{'text': introductory_message_body_display}]},
                 {'role': 'model', 'parts': [{'text': introductory_message_end}]}
             ]
+
+            library_size_message = request.session.get('library_size_message')
+            if library_size_message:
+                final_history_list.append({'role': 'model', 'parts': [{'text': library_size_message}]})
             
             request.session['final_analysis_chat_history'] = final_history_list
 
             request.session.modified = True
 
-            response_data = {
+            return JsonResponse({
                 'first_ai_message': [
                     introductory_message_start,
                     introductory_message_body_display,
                     introductory_message_end
                 ]
-            }
-            
-            library_size_message = request.session.get('library_size_message')
-            if library_size_message:
-                response_data['library_size_message'] = library_size_message
-            
-            return JsonResponse(response_data)
+            })
         
         # If statement for saved songs mode
         if chat_mode == 'saved_songs':
@@ -1036,15 +1034,12 @@ I've talked too much – let's get started! What can I do for you?"""
             history_list.append({'role': 'model', 'parts': [{'text': initial_response}]})
             request.session['saved_songs_chat_history'] = history_list
             final_history_list = [{'role': 'model', 'parts': [{'text': initial_response}]}]
-            request.session['final_saved_songs_chat_history'] = final_history_list
-            request.session.modified = True
-            
-            response_data = {'first_ai_message': [initial_response]}
             library_size_message = request.session.get('library_size_message')
             if library_size_message:
-                response_data['library_size_message'] = library_size_message
-            
-            return JsonResponse(response_data)
+                final_history_list.append({'role': 'model', 'parts': [{'text': library_size_message}]})
+            request.session['final_saved_songs_chat_history'] = final_history_list
+            request.session.modified = True
+            return JsonResponse({'first_ai_message': [initial_response]})
 
         # If statement for new songs mode
         if chat_mode == 'new_songs':

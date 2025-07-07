@@ -180,23 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (const messageText of data.first_ai_message) {
                     addMessage(messageText, 'ai', false);
                 }
-                
-                if (data.library_size_message) {
-                    const libraryWarning = document.createElement('div');
-                    libraryWarning.className = 'library-size-warning';
-                    libraryWarning.style.cssText = `
-                        background-color: #2a2a2a;
-                        border: 1px solid #555;
-                        border-radius: 8px;
-                        padding: 12px;
-                        margin: 10px 0;
-                        color: #ffa500;
-                        font-size: 14px;
-                        text-align: center;
-                    `;
-                    libraryWarning.textContent = data.library_size_message;
-                    messageList.appendChild(libraryWarning);
-                }
             }
             messageList.removeAttribute('data-is-loading-initial');
         })
