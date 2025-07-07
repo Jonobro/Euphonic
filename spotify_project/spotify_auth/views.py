@@ -696,6 +696,9 @@ def _fetch_all_spotify_tracks(request):
     max_tracks_to_fetch = 1000
     if total > max_tracks_to_fetch:
         _log_to_file(SPOTIFY_API_LOG_FILE, f"User library has {total} tracks, which is larger than the limit of {max_tracks_to_fetch}. Only fetching the first {max_tracks_to_fetch}.")
+        library_size_message = f"Note: Your Spotify music collection contains {total:,} tracks which exceeds the maximum length of 1000 songs. I will fetch & use only the first 1000 to keep things running smoothly. Feel free to adjust which tracks you have included."
+        request.session['library_size_message'] = library_size_message
+        request.session.modified = True
         total = max_tracks_to_fetch
 
     offsets_to_fetch = list(range(0, total, limit))
@@ -993,13 +996,19 @@ Here are a few questions you might find interesting:
 
             request.session.modified = True
 
-            return JsonResponse({
+            response_data = {
                 'first_ai_message': [
                     introductory_message_start,
                     introductory_message_body_display,
                     introductory_message_end
                 ]
-            })
+            }
+            
+            library_size_message = request.session.get('library_size_message')
+            if library_size_message:
+                response_data['library_size_message'] = library_size_message
+            
+            return JsonResponse(response_data)
         
         # If statement for saved songs mode
         if chat_mode == 'saved_songs':
@@ -1029,7 +1038,13 @@ I've talked too much – let's get started! What can I do for you?"""
             final_history_list = [{'role': 'model', 'parts': [{'text': initial_response}]}]
             request.session['final_saved_songs_chat_history'] = final_history_list
             request.session.modified = True
-            return JsonResponse({'first_ai_message': [initial_response]})
+            
+            response_data = {'first_ai_message': [initial_response]}
+            library_size_message = request.session.get('library_size_message')
+            if library_size_message:
+                response_data['library_size_message'] = library_size_message
+            
+            return JsonResponse(response_data)
 
         # If statement for new songs mode
         if chat_mode == 'new_songs':
