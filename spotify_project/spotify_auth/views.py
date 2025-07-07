@@ -1258,6 +1258,8 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                 final_history_for_session = [item for item in serializable_history]
                 final_history_for_session[-1]['parts'] = [{'text': ai_response_text}]
                 final_history_for_session = final_history_for_session[1:]
+                if mock_request.session['library_size_message']:
+                    final_history_for_session.insert(2, {'role': 'model', 'parts': [{'text': mock_request.session['library_size_message']}]})
                 mock_request.session['final_analysis_chat_history'] = final_history_for_session
             
             result = {
@@ -1546,6 +1548,8 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             final_history_for_session = [item for item in serializable_history]
             final_history_for_session[-1]['parts'] = [{'text': processed_ai_response_text}]
             final_history_for_session = final_history_for_session[1:]
+            if chat_mode == 'saved_songs' and mock_request.session['library_size_message']:
+                final_history_for_session.insert(2, {'role': 'model', 'parts': [{'text': mock_request.session['library_size_message']}]})
             mock_request.session[final_chat_history_placeholder] = final_history_for_session
         
         result = {
