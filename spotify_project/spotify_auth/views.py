@@ -985,22 +985,24 @@ Here are a few questions you might find interesting:
                 {'role': 'model', 'parts': [{'text': introductory_message_end}]}
             ]
 
-            library_size_message = ""
+            library_size_message = None
             if request.session.get('library_size_message'):
                 library_size_message = request.session.get('library_size_message')
                 final_history_list.append({'role': 'model', 'parts': [{'text': library_size_message}]})
             
             request.session['final_analysis_chat_history'] = final_history_list
-
             request.session.modified = True
 
+            first_ai_message = [
+                introductory_message_start,
+                introductory_message_body_display,
+                introductory_message_end
+            ]
+            if library_size_message is not None:
+                first_ai_message.append(library_size_message)
+
             return JsonResponse({
-                'first_ai_message': [
-                    introductory_message_start,
-                    introductory_message_body_display,
-                    introductory_message_end,
-                    library_size_message
-                ]
+                'first_ai_message': first_ai_message
             })
         
         # If statement for saved songs mode
@@ -1030,14 +1032,21 @@ I've talked too much – let's get started! What can I do for you?"""
             request.session['saved_songs_chat_history'] = history_list
             final_history_list = [{'role': 'model', 'parts': [{'text': initial_response}]}]
 
-            library_size_message = ""
+            library_size_message = None
             if request.session.get('library_size_message'):
                 library_size_message = request.session.get('library_size_message')
                 final_history_list.append({'role': 'model', 'parts': [{'text': library_size_message}]})
 
             request.session['final_saved_songs_chat_history'] = final_history_list
             request.session.modified = True
-            return JsonResponse({'first_ai_message': [initial_response, library_size_message]})
+
+            first_ai_message = [initial_response]
+            if library_size_message is not None:
+                first_ai_message.append(library_size_message)
+
+            return JsonResponse({
+                'first_ai_message': first_ai_message
+            })
 
         # If statement for new songs mode
         if chat_mode == 'new_songs':
@@ -1259,7 +1268,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                 final_history_for_session = [item for item in serializable_history]
                 final_history_for_session[-1]['parts'] = [{'text': ai_response_text}]
                 final_history_for_session = final_history_for_session[1:]
-                if mock_request.session['library_size_message']:
+                if mock_request.session.get('library_size_message'):
                     final_history_for_session.insert(1, {'role': 'model', 'parts': [{'text': mock_request.session['library_size_message']}]})
                 mock_request.session['final_analysis_chat_history'] = final_history_for_session
             
@@ -1549,7 +1558,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             final_history_for_session = [item for item in serializable_history]
             final_history_for_session[-1]['parts'] = [{'text': processed_ai_response_text}]
             final_history_for_session = final_history_for_session[1:]
-            if chat_mode == 'saved_songs' and mock_request.session['library_size_message']:
+            if chat_mode == 'saved_songs' and mock_request.session.get('library_size_message'):
                 final_history_for_session.insert(1, {'role': 'model', 'parts': [{'text': mock_request.session['library_size_message']}]})
             mock_request.session[final_chat_history_placeholder] = final_history_for_session
         
