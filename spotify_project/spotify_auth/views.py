@@ -40,10 +40,28 @@ def _prefetch_spotify_tracks_worker(session_key):
         class MockRequest:
             def __init__(self, session_obj):
                 self.session = session_obj
+                self.user_id = session_obj.get('spotify_user_id')
 
         mock_request = MockRequest(session)
         
-        _fetch_all_spotify_tracks(mock_request)
+        if not mock_request.user_id:
+            access_token = mock_request.session.get('spotify_access_token')
+            if access_token:
+                headers = {'Authorization': f'Bearer {access_token}'}
+                url = 'https://api.spotify.com/v1/me'
+                try:
+                    response = requests.get(url, headers=headers, timeout=10)
+                    if response.status_code == 200:
+                        user_data = response.json()
+                        mock_request.user_id = user_data.get('id')
+                        session['spotify_user_id'] = mock_request.user_id
+                    else:
+                        _log_to_file(GENERAL_LOG_FILE, f"Prefetch worker could not get user_id for session {session_key}. Status: {response.status_code}")
+                except Exception as e:
+                    _log_to_file(GENERAL_LOG_FILE, f"Prefetch worker exception getting user_id for session {session_key}: {e}")
+
+        if mock_request.user_id:
+            _fetch_all_spotify_tracks(mock_request)
 
         if session.modified:
             session.save()
@@ -669,7 +687,13 @@ def _fetch_page_worker(offset, access_token, limit):
         return {'status': 'error', 'offset': offset, 'error': str(e), 'response': None}
 
 def _fetch_all_spotify_tracks(request):
-    session_key_tracks = 'spotify_user_tracks'
+    user_id = getattr(request, 'user_id', request.session.get('spotify_user_id'))
+    if not user_id:
+        _log_to_file(SPOTIFY_API_LOG_FILE, "Cannot fetch tracks without user_id.")
+        return None, False
+
+    cache_key_tracks = f'spotify_user_tracks_{user_id}'
+    cache_key_lib_msg = f'library_size_message_{user_id}'
     limit = 50
     
     access_token = request.session.get('spotify_access_token')
@@ -703,8 +727,7 @@ def _fetch_all_spotify_tracks(request):
         return None, False
 
     if total == 0:
-        request.session[session_key_tracks] = []
-        request.session.modified = True
+        cache.set(cache_key_tracks, [], timeout=3600)
         return [], True
 
     simplified_tracks = []
@@ -712,8 +735,7 @@ def _fetch_all_spotify_tracks(request):
     if total > max_tracks_to_fetch:
         _log_to_file(SPOTIFY_API_LOG_FILE, f"User library has {total} tracks, which is larger than the limit of {max_tracks_to_fetch}. Only fetching the first {max_tracks_to_fetch}.")
         library_size_message = f"Note: Your Spotify music collection contains {total} tracks which exceeds the maximum length of 1000 songs. I will fetch & use only the first 1000 to keep things running smoothly. Feel free to adjust which tracks you have included."
-        request.session['library_size_message'] = library_size_message
-        request.session.modified = True
+        cache.set(cache_key_lib_msg, library_size_message, timeout=3600)
         total = max_tracks_to_fetch
 
     offsets_to_fetch = list(range(0, total, limit))
@@ -752,8 +774,7 @@ def _fetch_all_spotify_tracks(request):
         _log_to_file(SPOTIFY_API_LOG_FILE, "Failed to fetch any tracks, though total was > 0.")
         return None, False
 
-    request.session[session_key_tracks] = simplified_tracks
-    request.session.modified = True
+    cache.set(cache_key_tracks, simplified_tracks, timeout=3600)
     return simplified_tracks, True
 
 @csrf_protect
@@ -873,9 +894,11 @@ def initialize_chat_data_view(request):
                 _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to get user profile: {response.status_code} - {response.text}")
                 return JsonResponse({'error': 'Could not retrieve Spotify user profile.'}, status=500)
 
-        session_key_tracks = 'spotify_user_tracks'
+        user_id = request.session.get('spotify_user_id')
+        cache_key_tracks = f'spotify_user_tracks_{user_id}'
+        cache_key_lib_msg = f'library_size_message_{user_id}'
         
-        simplified_tracks_list = request.session.get(session_key_tracks)
+        simplified_tracks_list = cache.get(cache_key_tracks)
         fetch_success = True
         if simplified_tracks_list is None:
             simplified_tracks_list, fetch_success = _fetch_all_spotify_tracks(request)
@@ -1000,9 +1023,8 @@ Here are a few questions you might find interesting:
                 {'role': 'model', 'parts': [{'text': introductory_message_end}]}
             ]
 
-            library_size_message = None
-            if request.session.get('library_size_message'):
-                library_size_message = request.session.get('library_size_message')
+            library_size_message = cache.get(cache_key_lib_msg)
+            if library_size_message:
                 final_history_list.append({'role': 'model', 'parts': [{'text': library_size_message}]})
             
             request.session['final_analysis_chat_history'] = final_history_list
@@ -1045,9 +1067,8 @@ I've talked too much – let's get started! What can I do for you?"""
             request.session['saved_songs_chat_history'] = history_list
             final_history_list = [{'role': 'model', 'parts': [{'text': initial_response}]}]
 
-            library_size_message = None
-            if request.session.get('library_size_message'):
-                library_size_message = request.session.get('library_size_message')
+            library_size_message = cache.get(cache_key_lib_msg)
+            if library_size_message:
                 final_history_list.append({'role': 'model', 'parts': [{'text': library_size_message}]})
 
             request.session['final_saved_songs_chat_history'] = final_history_list
@@ -1571,8 +1592,10 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             final_history_for_session = [item for item in serializable_history]
             final_history_for_session[-1]['parts'] = [{'text': processed_ai_response_text}]
             final_history_for_session = final_history_for_session[1:]
-            if chat_mode == 'saved_songs' and mock_request.session.get('library_size_message'):
-                final_history_for_session.insert(1, {'role': 'model', 'parts': [{'text': mock_request.session['library_size_message']}]})
+            if chat_mode == 'saved_songs':
+                library_size_message = cache.get(f"library_size_message_{mock_request.session.get('spotify_user_id')}")
+                if library_size_message:
+                    final_history_for_session.insert(1, {'role': 'model', 'parts': [{'text': library_size_message}]})
             mock_request.session[final_chat_history_placeholder] = final_history_for_session
         
         result = {
