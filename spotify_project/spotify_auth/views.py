@@ -785,7 +785,9 @@ def musical_analysis_view(request):
     if not request.session.get('spotify_access_token'):
         return redirect(reverse('spotify_login'))
     
-    request.session['chat_mode'] = 'analysis'
+    request.session['chat_mode'] = request.GET.get('mode', 'analysis')
+    # Alternatively, hardcoding:
+    # request.session['chat_mode'] = 'analysis'
     final_chat_history = request.session.get('final_analysis_chat_history', [])
     is_loading_initial = not final_chat_history
 
@@ -803,7 +805,9 @@ def saved_songs_chat_view(request):
     if not request.session.get('spotify_access_token'):
         return redirect(reverse('spotify_login'))
     
-    request.session['chat_mode'] = 'saved_songs'
+    request.session['chat_mode'] = request.GET.get('mode', 'saved_songs')
+    # Alternatively, hardcoding:
+    # request.session['chat_mode'] = 'saved_songs'
     final_chat_history = request.session.get('final_saved_songs_chat_history', [])
     is_loading_initial = not final_chat_history
 
@@ -821,7 +825,9 @@ def new_song_chat_view(request):
     if not request.session.get('spotify_access_token'):
         return redirect(reverse('spotify_login'))
 
-    request.session['chat_mode'] = 'new_songs'
+    request.session['chat_mode'] = request.GET.get('mode', 'new_songs')
+    # Alternatively, hardcoding:
+    # request.session['chat_mode'] = 'new_songs'
     final_chat_history = request.session.get('final_new_songs_chat_history', [])
     is_loading_initial = not final_chat_history
 
