@@ -841,6 +841,21 @@ def saved_songs_chat_view(request):
     final_chat_history = request.session.get('final_saved_songs_chat_history', [])
     is_loading_initial = not final_chat_history
 
+    if is_loading_initial:
+        initial_response = """Hi there! I'm Aria, your personal music curator. Let's craft some custom playlists from your Spotify collection. I can filter through your music using any criteria you can imagine.
+
+Here are some examples of what I can do:
+* Give me a playlist of all of my songs from the 90s
+* I am on a road trip with my grandma – give me a playlist of my songs that she might like
+* Make a playlist using all of the electronic music in my Spotify collection
+* I'm feeling discouraged today – give me a playlist of my most uplifting songs
+* Create a playlist of all of the dream pop songs in my collection
+* Make me a playlist of my most niche tracks
+
+I've talked too much – let's get started! What can I do for you?"""
+        final_chat_history = [{'role': 'model', 'parts': [{'text': initial_response}]}]
+        request.session['final_saved_songs_chat_history'] = final_chat_history
+
     return render(request, 'spotify_auth/chat.html', {
         'chat_history_json': json.dumps(final_chat_history),
         'is_loading_initial_data': is_loading_initial,
@@ -1091,9 +1106,10 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL INSTRUCTIONS FROM THE DEVELOPER (AT THE BE
 Here are some examples of what I can do:
 * Give me a playlist of all of my songs from the 90s
 * I am on a road trip with my grandma – give me a playlist of my songs that she might like
-* Make a playlist using all of the electronic music in my music collection
+* Make a playlist using all of the electronic music in my Spotify collection
 * I'm feeling discouraged today – give me a playlist of my most uplifting songs
-* Make me a playlist of all of the dream pop songs in my collection
+* Create a playlist of all of the dream pop songs in my collection
+* Make me a playlist of my most niche tracks
 
 I've talked too much – let's get started! What can I do for you?"""
         
@@ -1131,9 +1147,9 @@ Tell me a bit about what you are looking for. You can mention things like:
 * A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven by Led Zeppelin)
 
 What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
-* Create a playlist of Katy Perry's 5 worst songs
+* Create a playlist of Katy Perry's worst songs
 * Make a playlist of songs that were produced in another country but blew up in the US
-* Give me a playlist of 15 songs about monkeys
+* Give me a playlist of songs about monkeys
 * Create a playlist of songs that were released in May of 2021
 * Send me a playlist of songs about bowling
 
