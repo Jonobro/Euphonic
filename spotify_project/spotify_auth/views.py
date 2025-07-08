@@ -554,6 +554,36 @@ def _get_spotify_track_url_with_backoff(request, song_title, artist_name, max_re
 
 def _get_spotify_track_url(request, song_title, artist_name):
     worker_id = threading.get_ident()
+    chat_mode = request.session.get('chat_mode')
+
+    if chat_mode == 'saved_songs':
+        user_id = request.session.get('spotify_user_id')
+        if not user_id:
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [ERROR] User ID missing for saved songs search. Song: '{song_title}', Artist: '{artist_name}'")
+            return 'error', None, None
+        
+        cache_key_tracks = f'spotify_user_tracks_{user_id}'
+        simplified_tracks = cache.get(cache_key_tracks)
+
+        if simplified_tracks is None:
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [ERROR] Cached library not found for user {user_id}. Song: '{song_title}', Artist: '{artist_name}'")
+            return 'error', None, None
+
+        search_title = song_title.strip().lower()
+        search_artists = [a.strip().lower() for a in artist_name.split(',')]
+
+        for track in simplified_tracks:
+            track_title = track['name'].lower()
+            track_artists = [a.strip().lower() for a in track['artists'].split(',')]
+            
+            if track_title == search_title and any(sa in track_artists for sa in search_artists):
+                track_id = track['id']
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [CACHE_SEARCH_SUCCESS] Song: '{song_title}', Artist: '{artist_name}'. Track ID: {track_id}.")
+                return 'success', f"https://open.spotify.com/track/{track_id}", None
+
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [CACHE_SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'.")
+        return 'not_found', None, None
+
     access_token = request.session.get('spotify_access_token')
     if not access_token:
         _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [ERROR] Access token missing for Spotify search. Song: '{song_title}', Artist: '{artist_name}'")
@@ -1146,7 +1176,7 @@ def create_playlist_api(request):
         create_playlist_url = f'https://api.spotify.com/v1/users/{user_id}/playlists'
         playlist_data = {
             'name': playlist_name,
-            'public': False,
+            'public': True,
             'description': description
         }
         
@@ -1408,7 +1438,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 </tracks_to_correct>
 
 <user_library_tracks>
-{"\n".join([f"- {t['name']} by {t['artists']}" for t in mock_request.session.get('spotify_user_tracks', [])])}
+{"\n".join([f"- {t['name']} by {t['artists']}" for t in cache.get(f"spotify_user_tracks_{mock_request.session.get('spotify_user_id')}", [])])}
 </user_library_tracks>
 """
             feedback_system_instruction_map = {
