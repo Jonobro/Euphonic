@@ -1088,6 +1088,7 @@ def initialize_chat_data_view(request):
         # If statement for analysis mode
         if chat_mode == 'analysis':
             if not request.session.get('final_analysis_chat_history'):
+                _log_to_file(GENERAL_LOG_FILE, "Running musical analysis in initialize_chat_data_view because no final_analysis_chat_history found.")
                 initial_prompt = f"""At the bottom of this message, I have provided you with a list of all the tracks in my Spotify library. Please conduct a comprehensive analysis of my music and provide detailed insights about my preferences.
 
 ## Analysis areas to cover:
