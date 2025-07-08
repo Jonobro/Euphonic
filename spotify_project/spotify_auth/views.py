@@ -875,6 +875,16 @@ def initialize_chat_data_view(request):
     if not request.session.get('spotify_access_token'):
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     
+    if not request.session.get('chat_mode'):
+            try:
+                data = json.loads(request.body)
+                chat_mode = data.get('chat_mode')
+                if chat_mode not in ['analysis', 'saved_songs', 'new_songs']:
+                    return JsonResponse({'error': 'Invalid chat mode'}, status=400)
+                request.session['chat_mode'] = chat_mode
+            except json.JSONDecodeError:
+                return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    
     if request.session.get('chat_mode') not in ['analysis', 'saved_songs', 'new_songs']:
         _log_to_file(GENERAL_LOG_FILE, f"Invalid chat mode: {request.session.get('chat_mode')}")
         return JsonResponse({'error': 'Invalid chat mode'}, status=400)

@@ -200,8 +200,9 @@ I've talked too much – let's get started! What can I do for you?`;
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json' 
+                'Content-Type': 'application/json'
             },
+            body: JSON.stringify({ chat_mode: chatMode })
         })
         .then(response => {
             if (!response.ok) {
