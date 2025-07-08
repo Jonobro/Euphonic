@@ -1105,6 +1105,7 @@ What's special about me, though, is that I can generate custom playlists for you
 * Make a playlist of songs that were produced in another country but blew up in the US
 * Give me a playlist of 15 songs about monkeys
 * Create a playlist of songs that were released in May of 2021
+* Send me a playlist of songs about bowling
 
 I've talked too much – let's get started! What can I do for you?"""
 
@@ -1308,8 +1309,11 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                 final_history_for_session = [item for item in serializable_history]
                 final_history_for_session[-1]['parts'] = [{'text': ai_response_text}]
                 final_history_for_session = final_history_for_session[1:]
-                if mock_request.session.get('library_size_message'):
-                    final_history_for_session.insert(3, {'role': 'model', 'parts': [{'text': mock_request.session['library_size_message']}]})
+
+                library_size_message = cache.get(f"library_size_message_{mock_request.session.get('spotify_user_id')}")
+                if library_size_message:
+                    final_history_for_session.insert(3, {'role': 'model', 'parts': [{'text': library_size_message}]})
+                
                 mock_request.session['final_analysis_chat_history'] = final_history_for_session
             
             result = {
