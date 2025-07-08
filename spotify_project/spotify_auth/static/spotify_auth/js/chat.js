@@ -167,7 +167,7 @@ I've talked too much – let's get started! What can I do for you?`;
                 if (existingMessages.length === 0) {
                     addMessage(initialMessage, 'ai');
                 }
-            }, 1000);
+            }, 100);
         } else if (chatMode === 'new_songs') {
             const initialMessage = `Hi there! I'm Aria, your personal music curator – here to help you discover new music and craft the perfect playlist.
 
@@ -191,7 +191,7 @@ I've talked too much – let's get started! What can I do for you?`;
                 if (existingMessages.length === 0) {
                     addMessage(initialMessage, 'ai');
                 }
-            }, 1000);
+            }, 100);
         }
 
         userInput.disabled = sendButton.disabled = true;
