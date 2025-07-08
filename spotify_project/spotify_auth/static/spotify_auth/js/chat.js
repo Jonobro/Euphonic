@@ -150,6 +150,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadingIndicator.textContent = loadingIndicatorBaseText + '.'.repeat(dotCount);
                 }
             }, 400);
+        } else if (chatMode === 'saved_songs') {
+            const initialMessage = `Hi there! I'm Aria, your personal music curator. Let's craft some custom playlists from your Spotify collection. I can filter through your music using any criteria you can imagine.
+
+Here are some examples of what I can do:
+* Give me a playlist of all of my songs from the 90s
+* I am on a road trip with my grandma – give me a playlist of my songs that she might like
+* Make a playlist using all of the electronic music in my Spotify collection
+* I'm feeling discouraged today – give me a playlist of my most uplifting songs
+* Create a playlist of all of the dream pop songs in my collection
+* Make me a playlist of my most niche tracks
+
+I've talked too much – let's get started! What can I do for you?`;
+            addMessage(initialMessage, 'ai');
+        } else if (chatMode === 'new_songs') {
+            const initialMessage = `Hi there! I'm Aria, your personal music curator – here to help you discover new music and craft the perfect playlist.
+
+Tell me a bit about what you are looking for. You can mention things like:
+* Mood (e.g., chill, focused, elated, exhausted)
+* Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
+* Favorite artists (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
+* A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
+* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven by Led Zeppelin)
+
+What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
+* Create a playlist of Katy Perry's worst songs
+* Make a playlist of songs that were produced in another country but blew up in the US
+* Give me a playlist of songs about monkeys
+* Create a playlist of songs that were released in May of 2021
+* Send me a playlist of songs about bowling
+
+I've talked too much – let's get started! What can I do for you?`;
+            addMessage(initialMessage, 'ai');
         }
 
         userInput.disabled = sendButton.disabled = true;
@@ -174,6 +206,12 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             if (loadingInterval) clearInterval(loadingInterval);
             if (loadingIndicator) loadingIndicator.remove();
+            if (chatMode === 'saved_songs' || chatMode === 'new_songs') {
+                const existingAiMessage = messageList.querySelector('.ai-message');
+                if (existingAiMessage) {
+                    existingAiMessage.remove();
+                }
+            }
             if (data.error) {
                 addMessage(`Initialization failed: ${data.error}`, 'ai');
             } else if (Array.isArray(data.first_ai_message)) {

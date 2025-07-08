@@ -841,21 +841,6 @@ def saved_songs_chat_view(request):
     final_chat_history = request.session.get('final_saved_songs_chat_history', [])
     is_loading_initial = not final_chat_history
 
-    if is_loading_initial:
-        initial_response = """Hi there! I'm Aria, your personal music curator. Let's craft some custom playlists from your Spotify collection. I can filter through your music using any criteria you can imagine.
-
-Here are some examples of what I can do:
-* Give me a playlist of all of my songs from the 90s
-* I am on a road trip with my grandma – give me a playlist of my songs that she might like
-* Make a playlist using all of the electronic music in my Spotify collection
-* I'm feeling discouraged today – give me a playlist of my most uplifting songs
-* Create a playlist of all of the dream pop songs in my collection
-* Make me a playlist of my most niche tracks
-
-I've talked too much – let's get started! What can I do for you?"""
-        final_chat_history = [{'role': 'model', 'parts': [{'text': initial_response}]}]
-        request.session['final_saved_songs_chat_history'] = final_chat_history
-
     return render(request, 'spotify_auth/chat.html', {
         'chat_history_json': json.dumps(final_chat_history),
         'is_loading_initial_data': is_loading_initial,
