@@ -164,7 +164,7 @@ Here are some examples of what I can do:
 I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 addMessage(initialMessage, 'ai');
-            }, 500);
+            }, 1000);
         } else if (chatMode === 'new_songs') {
             const initialMessage = `Hi there! I'm Aria, your personal music curator – here to help you discover new music and craft the perfect playlist.
 
@@ -185,7 +185,7 @@ What's special about me, though, is that I can generate custom playlists for you
 I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 addMessage(initialMessage, 'ai');
-            }, 500);
+            }, 1000);
         }
 
         userInput.disabled = sendButton.disabled = true;
@@ -219,11 +219,9 @@ I've talked too much – let's get started! What can I do for you?`;
             if (data.error) {
                 addMessage(`Initialization failed: ${data.error}`, 'ai');
             } else if (Array.isArray(data.first_ai_message)) {
-                setTimeout(() => {
-                    for (const messageText of data.first_ai_message) {
-                        addMessage(messageText, 'ai', false);
-                    }
-                }, 1000);
+                for (const messageText of data.first_ai_message) {
+                    addMessage(messageText, 'ai', false);
+                }
             }
             messageList.removeAttribute('data-is-loading-initial');
         })
