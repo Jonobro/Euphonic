@@ -163,7 +163,10 @@ Here are some examples of what I can do:
 
 I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
-                addMessage(initialMessage, 'ai');
+                const existingMessages = messageList.querySelectorAll('.message');
+                if (existingMessages.length === 0) {
+                    addMessage(initialMessage, 'ai');
+                }
             }, 1000);
         } else if (chatMode === 'new_songs') {
             const initialMessage = `Hi there! I'm Aria, your personal music curator – here to help you discover new music and craft the perfect playlist.
@@ -184,7 +187,10 @@ What's special about me, though, is that I can generate custom playlists for you
 
 I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
-                addMessage(initialMessage, 'ai');
+                const existingMessages = messageList.querySelectorAll('.message');
+                if (existingMessages.length === 0) {
+                    addMessage(initialMessage, 'ai');
+                }
             }, 1000);
         }
 
