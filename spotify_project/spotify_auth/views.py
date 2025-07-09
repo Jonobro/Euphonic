@@ -63,8 +63,9 @@ def _prefetch_spotify_tracks_worker(session_key):
         if mock_request.user_id:
             _, fetch_success = _fetch_all_spotify_tracks(mock_request)
             if fetch_success:
-                _generate_musical_analysis(dict(session))
-
+                session_data_for_analysis = dict(session)
+                session_data_for_analysis['session_key'] = session_key
+                _generate_musical_analysis(session_data_for_analysis)
         if session.modified:
             session.save()
             _log_to_file(GENERAL_LOG_FILE, f"Successfully prefetched and saved tracks for session {session_key}")
@@ -595,7 +596,12 @@ Here are a few questions you might find interesting:
         mock_request.session['final_analysis_chat_history'] = final_history_list
         
         session_store = Session.get_session_store_class()
-        session = session_store(session_key=mock_request.session.get('session_key'))
+        session_key_from_data = mock_request.session.get('session_key')
+        if not session_key_from_data:
+            _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis for user {user_id}: session_key not found in session_data.")
+            return
+            
+        session = session_store(session_key=session_key_from_data)
         session.update(mock_request.session)
         session.save()
         _log_to_file(GENERAL_LOG_FILE, f"Successfully generated and saved musical analysis for user {user_id}")
