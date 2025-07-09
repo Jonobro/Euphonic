@@ -27,6 +27,8 @@ from django.utils import timezone
 from django.contrib.sessions.models import Session
 import random
 
+analysis_completion_events = {}
+
 def generate_code_verifier(length=64):
     possible_chars = string.ascii_letters + string.digits + '-._~'
     code_verifier = ''.join(secrets.choice(possible_chars) for _ in range(length))
@@ -603,9 +605,13 @@ Here are a few questions you might find interesting:
         session.update(mock_request.session)
         session.save()
         _log_to_file(GENERAL_LOG_FILE, f"Successfully generated and saved musical analysis for user {user_id}")
-
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis for user {user_id}: {e}")
+    finally:
+        session_key_from_data = session_data.get('session_key')
+        if session_key_from_data in analysis_completion_events:
+            analysis_completion_events[session_key_from_data].set()
+            del analysis_completion_events[session_key_from_data]
 
 def _refresh_token_helper(request):
     refresh_token = request.session.get('spotify_refresh_token')
@@ -1085,19 +1091,29 @@ def initialize_chat_data_view(request):
         
         # If statement for analysis mode
         if chat_mode == 'analysis':
-            if not request.session.get('final_analysis_chat_history'):
-                _log_to_file(GENERAL_LOG_FILE, "Waiting for musical analysis to be generated in background thread.")
-                
-                timeout = 300
-                start_time = time.time()
-                while time.time() - start_time < timeout:
-                    request.session = Session.objects.get(session_key=request.session.session_key)
-                    if request.session.get('final_analysis_chat_history'):
-                        break
-                    time.sleep(1)
-                else:
-                    _log_to_file(GENERAL_LOG_FILE, "Timeout waiting for musical analysis.")
-                    return JsonResponse({'error': 'Timeout waiting for musical analysis. Please try again later.'}, status=504)
+            try:
+                if not request.session.get('final_analysis_chat_history'):
+                    _log_to_file(GENERAL_LOG_FILE, "Waiting for musical analysis to be generated in background thread.")
+                    
+                    event = analysis_completion_events.setdefault(request.session.session_key, threading.Event())
+                    
+                    analysis_completed = event.wait(timeout=300)
+                    
+                    if analysis_completed:
+                        session_obj = Session.objects.get(session_key=request.session.session_key)
+                        session_data = session_obj.get_decoded()
+                        request.session.update(session_data)
+                        request.session.save()
+                    else:
+                        _log_to_file(GENERAL_LOG_FILE, "Timeout waiting for musical analysis.")
+                        return JsonResponse({'error': 'Timeout waiting for musical analysis. Please try again later.'}, status=504)
+
+            except Session.DoesNotExist:
+                _log_to_file(GENERAL_LOG_FILE, f"Session {request.session.session_key} not found in database while waiting for analysis.")
+                return JsonResponse({'error': 'Session not found. Please try again.'}, status=500)
+            except Exception as e:
+                _log_to_file(GENERAL_LOG_FILE, f"Exception while waiting for musical analysis: {e}")
+                return JsonResponse({'error': 'An error occurred while waiting for musical analysis.'}, status=500)
 
             final_history = request.session.get('final_analysis_chat_history', [])
             first_ai_message = [item['parts'][0]['text'] for item in final_history if item.get('role') == 'model' and item.get('parts')]
