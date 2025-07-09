@@ -257,7 +257,17 @@ I've talked too much – let's get started! What can I do for you?`;
                             addMessage(message.parts[0].text, sender, false);
                         }
                     });
-                    if (chatMode !== 'analysis' || history.length > 3) {
+
+                    let scrollThreshold = 3;
+                    if (
+                        chatMode === 'analysis' &&
+                        history.length > 3 &&
+                        history[3]?.parts?.[0]?.text?.includes("Note: Your Spotify music collection contains")
+                    ) {
+                        scrollThreshold = 4;
+                    }
+
+                    if (chatMode !== 'analysis' || history.length > scrollThreshold) {
                         scrollToBottom();
                     }
                 }
@@ -267,8 +277,6 @@ I've talked too much – let's get started! What can I do for you?`;
             }
         }
     }
-    
-    // scrollToBottom();
 
     const tooltip = document.querySelector('.custom-tooltip');
     const tooltipContainer = document.querySelector('.tooltip-container');
