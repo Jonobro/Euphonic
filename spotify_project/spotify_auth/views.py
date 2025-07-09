@@ -26,8 +26,11 @@ from django.core.cache import cache
 from django.utils import timezone
 from django.contrib.sessions.models import Session
 import random
+import redis
 
-analysis_completion_events = {}
+REDIS_CLIENT = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+ANALYSIS_EVENT_CHANNEL_PREFIX = 'analysis_completion:'
+ANALYSIS_EVENT_TIMEOUT = 300
 
 def generate_code_verifier(length=64):
     possible_chars = string.ascii_letters + string.digits + '-._~'
@@ -609,9 +612,14 @@ Here are a few questions you might find interesting:
         _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis for user {user_id}: {e}")
     finally:
         session_key_from_data = session_data.get('session_key')
-        if session_key_from_data in analysis_completion_events:
-            analysis_completion_events[session_key_from_data].set()
-            del analysis_completion_events[session_key_from_data]
+        if session_key_from_data:
+            try:
+                # Replace Redis key with channel publish
+                channel = f"{ANALYSIS_EVENT_CHANNEL_PREFIX}{session_key_from_data}"
+                REDIS_CLIENT.publish(channel, 'completed')
+                _log_to_file(GENERAL_LOG_FILE, f"Published analysis completion to channel {channel}")
+            except Exception as redis_error:
+                _log_to_file(GENERAL_LOG_FILE, f"Failed to publish analysis completion to Redis for session {session_key_from_data}: {redis_error}")
 
 def _refresh_token_helper(request):
     refresh_token = request.session.get('spotify_refresh_token')
@@ -1095,9 +1103,27 @@ def initialize_chat_data_view(request):
                 if not request.session.get('final_analysis_chat_history'):
                     _log_to_file(GENERAL_LOG_FILE, "Waiting for musical analysis to be generated in background thread.")
                     
-                    event = analysis_completion_events.setdefault(request.session.session_key, threading.Event())
+                    channel = f"{ANALYSIS_EVENT_CHANNEL_PREFIX}{request.session.session_key}"
                     
-                    analysis_completed = event.wait(timeout=300)
+                    # Create a Redis subscriber
+                    pubsub = REDIS_CLIENT.pubsub()
+                    pubsub.subscribe(channel)
+                    
+                    analysis_completed = False
+                    start_time = time.time()
+                    
+                    try:
+                        # Listen for messages with timeout
+                        for message in pubsub.listen():
+                            if time.time() - start_time > ANALYSIS_EVENT_TIMEOUT:
+                                break
+                                
+                            if message['type'] == 'message' and message['data'] == 'completed':
+                                analysis_completed = True
+                                break
+                                
+                    finally:
+                        pubsub.close()
                     
                     if analysis_completed:
                         session_obj = Session.objects.get(session_key=request.session.session_key)
