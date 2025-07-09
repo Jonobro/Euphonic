@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import redis
 
 # Load environment variables from .env file
 load_dotenv()
@@ -70,6 +71,8 @@ CACHES = {
         }
     }
 }
+
+REDIS_CLIENT = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
 
 AUTH_PASSWORD_VALIDATORS = [
     {
