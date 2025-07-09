@@ -251,10 +251,11 @@ I've talked too much – let's get started! What can I do for you?`;
             try {
                 const history = JSON.parse(chatHistoryDataElement.textContent);
                 if (Array.isArray(history)) {
-                    history.forEach(message => {
+                    history.forEach((message, index) => {
                         if (message.role && message.parts && message.parts[0] && message.parts[0].text) {
                             const sender = message.role === 'model' ? 'ai' : 'user';
-                            addMessage(message.parts[0].text, sender);
+                            const shouldScroll = chatMode === 'analysis' ? index >= 3 : true;
+                            addMessage(message.parts[0].text, sender, shouldScroll);
                         }
                     });
                 }
@@ -265,7 +266,7 @@ I've talked too much – let's get started! What can I do for you?`;
         }
     }
     
-    scrollToBottom();
+    // scrollToBottom();
 
     const tooltip = document.querySelector('.custom-tooltip');
     const tooltipContainer = document.querySelector('.tooltip-container');
