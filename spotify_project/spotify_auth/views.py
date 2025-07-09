@@ -28,7 +28,7 @@ from django.contrib.sessions.models import Session
 import random
 import redis
 
-REDIS_CLIENT = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+REDIS_CLIENT = settings.REDIS_CLIENT
 ANALYSIS_EVENT_CHANNEL_PREFIX = 'analysis_completion:'
 ANALYSIS_EVENT_TIMEOUT = 300
 
