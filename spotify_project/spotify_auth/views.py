@@ -59,18 +59,16 @@ def _prefetch_spotify_tracks_worker(session_key):
                         _log_to_file(GENERAL_LOG_FILE, f"Prefetch worker could not get user_id for session {session_key}. Status: {response.status_code}")
                 except Exception as e:
                     _log_to_file(GENERAL_LOG_FILE, f"Prefetch worker exception getting user_id for session {session_key}: {e}")
-
+        
+        if session.modified:
+            session.save()
+        
         if mock_request.user_id:
             _, fetch_success = _fetch_all_spotify_tracks(mock_request)
             if fetch_success:
                 session_data_for_analysis = dict(session)
                 session_data_for_analysis['session_key'] = session_key
                 _generate_musical_analysis(session_data_for_analysis)
-        if session.modified:
-            session.save()
-            _log_to_file(GENERAL_LOG_FILE, f"Successfully prefetched and saved tracks for session {session_key}")
-        else:
-            _log_to_file(GENERAL_LOG_FILE, f"Prefetch for session {session_key} did not result in session modification.")
 
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in prefetch worker for session {session_key}: {e}")
