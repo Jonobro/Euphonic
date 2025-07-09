@@ -251,13 +251,15 @@ I've talked too much – let's get started! What can I do for you?`;
             try {
                 const history = JSON.parse(chatHistoryDataElement.textContent);
                 if (Array.isArray(history)) {
-                    history.forEach((message, index) => {
+                    history.forEach(message => {
                         if (message.role && message.parts && message.parts[0] && message.parts[0].text) {
                             const sender = message.role === 'model' ? 'ai' : 'user';
-                            const shouldScroll = chatMode === 'analysis' ? index >= 3 : true;
-                            addMessage(message.parts[0].text, sender, shouldScroll);
+                            addMessage(message.parts[0].text, sender, false);
                         }
                     });
+                    if (chatMode !== 'analysis' || history.length > 3) {
+                        scrollToBottom();
+                    }
                 }
             } catch (e) {
                 console.error("Could not parse chat history:", e);
