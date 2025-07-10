@@ -1405,7 +1405,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
             ai_response_text = response.text
 
-        if ai_response_text and chat_mode != 'analysis':
+        if ai_response_text and any(ai_response_text[i:i+5].count('+') >= 4 for i in range(len(ai_response_text) - 4)) and chat_mode != 'analysis':
             formatting_prompt = f"""Revise the below text per your system instructions:
 <text_to_edit>
 {ai_response_text}
