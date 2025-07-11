@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (data.success && data.initial_response) {
                                 const allMessages = messageList.querySelectorAll('.message');
                                 allMessages.forEach(message => {
+                                    message.classList.add('previous-conversation');
                                     const buttonsContainer = message.querySelector('.save-playlist-container');
                                     if (buttonsContainer) {
                                         buttonsContainer.remove();
