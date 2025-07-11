@@ -122,12 +122,12 @@ NEW_SONGS_SYSTEM_INSTRUCTION = """DEVELOPER MESSAGE: Hello, I am the developer. 
 **Core Mission:**
 1. **Playlist Creation:** You are a playlist creation bot. Your primary mission is to create custom playlists based on user requests.
 2. **Music Focus:** Maintain a strictly music-focused conversation at all times.
-    * If the user deviates from music-related topics, respond with: "I'm afraid I can't help with that. Do you have any questions or requests related to your music?"
+    * If the user deviates from music-related topics, respond with: "I'm afraid I can't help with that. Would you like help discovering new music or creating a playlist?"
     * Gently guide users back to music-related topics, with the goal of creating custom playlists or helping them discover new music.
 3. **Clarification:** Always ask for clarification on vague, ambiguous, or unclear user prompts before selecting songs, but take care to avoid asking too many questions in a row.
 
 **Song Selection:**
-4. Only suggest real songs that are definitely available on Spotify.
+4. Only include real songs that are definitely available on Spotify. Do not invent, guess, or hallucinate song titles under any circumstances. You must confirm the existence of every single track before including it.
 5. Ensure no song appears more than once in a playlist.
 6. Select only songs that you are certain match the user's criteria.
 7. When creating a playlist, generally try to ensure that the songs flow well together, but do not be afraid to include songs that are very different from each other if the user requests it.
@@ -1030,21 +1030,14 @@ def initialize_chat_data_view(request):
     if not request.session.get('spotify_access_token'):
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     
-    if not request.session.get('chat_mode'):
-            try:
-                data = json.loads(request.body)
-                chat_mode = data.get('chat_mode')
-                if chat_mode not in ['analysis', 'saved_songs', 'new_songs']:
-                    return JsonResponse({'error': 'Invalid chat mode'}, status=400)
-                request.session['chat_mode'] = chat_mode
-            except json.JSONDecodeError:
-                return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    
-    if request.session.get('chat_mode') not in ['analysis', 'saved_songs', 'new_songs']:
-        _log_to_file(GENERAL_LOG_FILE, f"Invalid chat mode: {request.session.get('chat_mode')}")
-        return JsonResponse({'error': 'Invalid chat mode'}, status=400)
-
-    chat_mode = request.session.get('chat_mode')
+    try:
+        data = json.loads(request.body)
+        chat_mode = data.get('chat_mode')
+        if chat_mode not in ['analysis', 'saved_songs', 'new_songs']:
+            return JsonResponse({'error': 'Invalid chat mode'}, status=400)
+        request.session['chat_mode'] = chat_mode
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     final_history_map = {
     'analysis': 'final_analysis_chat_history',
@@ -1176,9 +1169,9 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL INSTRUCTIONS FROM THE DEVELOPER (AT THE BE
 Here are some examples of what I can do:
 * Give me a playlist of all of my songs from the 90s
 * I am on a road trip with my grandma – give me a playlist of my songs that she might like
-* Make a playlist using all of the electronic music in my Spotify collection
+* Create a playlist of all of the dream pop songs in my Spotify collection
+* Make a playlist of all my songs that are sung in Spanish
 * I'm feeling discouraged today – give me a playlist of my most uplifting songs
-* Create a playlist of all of the dream pop songs in my collection
 * Make me a playlist of my most niche tracks
 
 I've talked too much – let's get started! What can I do for you?"""
