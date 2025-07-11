@@ -63,19 +63,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (response.ok) {
                             const data = await response.json();
                             if (data.success && data.initial_response) {
-                                const allButtonContainers = document.querySelectorAll('.save-playlist-container');
-                                allButtonContainers.forEach(container => container.remove());
+                                const allMessages = messageList.querySelectorAll('.message');
+                                allMessages.forEach(message => {
+                                    const buttonsContainer = message.querySelector('.save-playlist-container');
+                                    if (buttonsContainer) {
+                                        buttonsContainer.remove();
+                                    }
+                                });
 
                                 const dividerHtml = `
-                                    <br>
-                                    <div style="height: 2px; background: linear-gradient(90deg, transparent, rgb(30, 200, 90), transparent); margin: 20px 0; animation: pulse 2s ease-in-out infinite;"></div>
+                                    <div style="height: 2px; background: linear-gradient(90deg, transparent, rgb(30, 200, 90), transparent); margin: 30px 0; animation: pulse 2s ease-in-out infinite;"></div>
                                     <style>
                                         @keyframes pulse {
                                             0%, 100% { opacity: 0.3; }
                                             50% { opacity: 1; }
                                         }
                                     </style>
-                                    <br>
                                 `;
                                 const dividerElement = document.createElement('div');
                                 dividerElement.innerHTML = dividerHtml;

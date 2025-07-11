@@ -234,3 +234,11 @@ h2, h3, h4, h5, h6 {
     color: #e0e0e0;
     font-size: 0.9em;
 }
+
+.previous-conversation {
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
+}
+.previous-conversation:hover {
+    opacity: 0.7;
+}
