@@ -47,6 +47,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 additionalButtonsContainer.appendChild(button1);
                 additionalButtonsContainer.appendChild(button2);
+
+                button2.addEventListener('click', async () => {
+                    const chatMode = document.body.dataset.chatMode;
+                    try {
+                        const response = await fetch('/reset_chat_history_api/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                            body: JSON.stringify({ chat_mode: chatMode })
+                        });
+
+                        if (response.ok) {
+                            window.location.reload();
+                        } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || 'Failed to reset chat.');
+                        }
+                    } catch (error) {
+                        console.error('Error resetting chat:', error);
+                        alert(`Error: ${error.message}`);
+                    }
+                });
                 
                 buttonContainer.appendChild(saveButton);
                 buttonContainer.appendChild(additionalButtonsContainer);
