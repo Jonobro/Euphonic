@@ -61,7 +61,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
 
                         if (response.ok) {
-                            window.location.reload();
+                            const data = await response.json();
+                            if (data.success && data.initial_response) {
+                                const allButtonContainers = document.querySelectorAll('.playlist-buttons-container');
+                                allButtonContainers.forEach(container => container.remove());
+
+                                if (window.addMessageAndScroll) {
+                                    window.addMessageAndScroll(data.initial_response, 'ai');
+                                }
+                            }
                         } else {
                             const errorData = await response.json();
                             throw new Error(errorData.error || 'Failed to reset chat.');

@@ -1254,10 +1254,19 @@ def reset_chat_history_api(request):
             'saved_songs': 'saved_songs_chat_history',
             'new_songs': 'new_songs_chat_history'
         }
+        final_history_map = {
+            'saved_songs': 'final_saved_songs_chat_history',
+            'new_songs': 'final_new_songs_chat_history'
+        }
+        
         history_key = history_map.get(chat_mode)
+        final_history_key = final_history_map.get(chat_mode)
 
         if history_key in request.session:
             del request.session[history_key]
+
+        initial_prompt = ""
+        initial_response = ""
 
         if chat_mode == 'saved_songs':
             user_id = request.session.get('spotify_user_id')
@@ -1286,10 +1295,6 @@ Here are some examples of what I can do:
 * Make me a playlist of my most niche tracks
 
 I've talked too much – let's get started! What can I do for you?"""
-            history_list = []
-            history_list.append({'role': 'user', 'parts': [{'text': initial_prompt}]})
-            history_list.append({'role': 'model', 'parts': [{'text': initial_response}]})
-            request.session['saved_songs_chat_history'] = history_list
 
         elif chat_mode == 'new_songs':
             initial_prompt = "Who are you and what can you do for me?"
@@ -1310,13 +1315,19 @@ What's special about me, though, is that I can generate custom playlists for you
 * Send me a playlist of songs about bowling
 
 I've talked too much – let's get started! What can I do for you?"""
-            history_list = []
-            history_list.append({'role': 'user', 'parts': [{'text': initial_prompt}]})
-            history_list.append({'role': 'model', 'parts': [{'text': initial_response}]})
-            request.session['new_songs_chat_history'] = history_list
+
+        new_history_list = [
+            {'role': 'user', 'parts': [{'text': initial_prompt}]},
+            {'role': 'model', 'parts': [{'text': initial_response}]}
+        ]
+        request.session[history_key] = new_history_list
+
+        final_history_list = request.session.get(final_history_key, [])
+        final_history_list.append({'role': 'model', 'parts': [{'text': initial_response}]})
+        request.session[final_history_key] = final_history_list
 
         request.session.save()
-        return JsonResponse({'success': True, 'message': 'Chat history reset.'})
+        return JsonResponse({'success': True, 'initial_response': initial_response})
 
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in reset_chat_history_api: {e}")

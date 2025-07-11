@@ -28,6 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
         messageList.scrollTo({ top: messageList.scrollHeight });
     };
 
+    const scrollToTop = () => {
+        messageList.scrollTo({ top: 0 });
+    };
+
     const addMessage = (text, sender, shouldScroll = true) => {
         const msg = document.createElement('div');
         msg.className = `message ${sender}-message`;
@@ -47,6 +51,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return msg;
     };
 
+    window.addMessageAndScroll = (text, sender) => {
+        const newMessage = addMessage(text, sender, false);
+        newMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    
     const listenForResponse = (taskId, thinkingMsgElement, userMessageElement, thinkingInterval) => {
         const eventSource = new EventSource(`/stream_chat_response/${taskId}/`);
 
