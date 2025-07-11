@@ -71,18 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                         buttonsContainer.remove();
                                     }
                                 });
-
-                                const dividerHtml = `
-                                    <div style="height: 2px; background: linear-gradient(90deg, transparent, rgb(30, 200, 90), transparent); margin: 30px 0; animation: pulse 2s ease-in-out infinite;"></div>
-                                    <style>
-                                        @keyframes pulse {
-                                            0%, 100% { opacity: 0.3; }
-                                            50% { opacity: 1; }
-                                        }
-                                    </style>
-                                `;
                                 const dividerElement = document.createElement('div');
-                                dividerElement.innerHTML = dividerHtml;
+                                dividerElement.className = 'conversation-divider';
                                 messageList.appendChild(dividerElement);
 
                                 if (window.addMessageAndScroll) {
