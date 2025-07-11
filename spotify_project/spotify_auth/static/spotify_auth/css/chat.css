@@ -200,3 +200,24 @@ h2, h3, h4, h5, h6 {
     height: 40px;
     margin: 10px auto;
 }
+
+.save-playlist-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.additional-buttons-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.save-playlist-success {
+    text-align: center;
+}
+
+.save-playlist-error {
+    text-align: center;
+}

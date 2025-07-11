@@ -29,13 +29,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 messageElement.classList.add('has-playlist-button');
                 const buttonContainer = document.createElement('div');
                 buttonContainer.className = 'save-playlist-container';
-                buttonContainer.style.marginTop = '1em';
                 
                 const saveButton = document.createElement('button');
                 saveButton.className = 'button save-playlist-button';
                 saveButton.textContent = `Save Playlist "${playlistName}" to Spotify`;
                 
+                const additionalButtonsContainer = document.createElement('div');
+                additionalButtonsContainer.className = 'additional-buttons-container';
+                
+                const button1 = document.createElement('button');
+                button1.className = 'button secondary-button';
+                button1.textContent = 'Button 1';
+                
+                const button2 = document.createElement('button');
+                button2.className = 'button secondary-button';
+                button2.textContent = 'Button 2';
+                
+                additionalButtonsContainer.appendChild(button1);
+                additionalButtonsContainer.appendChild(button2);
+                
                 buttonContainer.appendChild(saveButton);
+                buttonContainer.appendChild(additionalButtonsContainer);
                 content.appendChild(buttonContainer);
 
                 saveButton.addEventListener('click', async () => {
@@ -83,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         buttonContainer.innerHTML = '';
                         const errorMessage = document.createElement('p');
                         errorMessage.className = 'save-playlist-error';
-                        errorMessage.style.color = '#ff4d4d';
                         errorMessage.textContent = `Error: ${error.message}`;
                         buttonContainer.appendChild(errorMessage);
                     }
