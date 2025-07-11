@@ -1461,7 +1461,8 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             return
 
         unfound_tracks_for_feedback = []
-        specific_pattern = re.compile(r"\$ ?\$ ?\$ ?\$ ?\$\s*(.*?)\s*\$ ?\$ ?\$ ?\$ ?\$ by @ ?@ ?@ ?@ ?@\s*(.*?)\s*@ ?@ ?@ ?@ ?@")
+
+        specific_pattern = re.compile(r"\$\s?\$\s?\$\s?\$\s?\$\s?(.*?)\s?\$\s?\$\s?\$\s?\$\s?\$ by @\s?@\s?@\s?@\s?@\s?(.*?)\s?@\s?@\s?@\s?@\s?@")
         
         all_song_mentions = specific_pattern.findall(ai_response_text)
 
@@ -1713,6 +1714,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                 return f"{song_title} by {artist_name}"
         
         processed_ai_response_text = specific_pattern.sub(final_replacer_fn, final_ai_text_to_process_for_user)
+        processed_ai_response_text = re.sub(r"([\w]),([\w])", r"\1, \2", processed_ai_response_text)
         processed_ai_response_text = re.sub(r"[\$@]{2,}", "", processed_ai_response_text)
 
         chat_history_placeholder = None
