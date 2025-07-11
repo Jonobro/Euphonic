@@ -39,11 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const button1 = document.createElement('button');
                 button1.className = 'button secondary-button';
-                button1.textContent = 'Button 1';
+                button1.textContent = 'Revise Playlist';
                 
                 const button2 = document.createElement('button');
                 button2.className = 'button secondary-button';
-                button2.textContent = 'Button 2';
+                button2.textContent = 'Create Another Playlist';
                 
                 additionalButtonsContainer.appendChild(button1);
                 additionalButtonsContainer.appendChild(button2);
