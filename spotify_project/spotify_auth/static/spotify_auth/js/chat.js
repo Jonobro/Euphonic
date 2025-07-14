@@ -163,9 +163,9 @@ document.addEventListener('DOMContentLoaded', () => {
 Here are some examples of what I can do:
 * Give me a playlist of all of my songs from the 90s
 * I am on a road trip with my grandma – give me a playlist of my songs that she might like
-* Make a playlist using all of the electronic music in my Spotify collection
+* Create a playlist of all of the dream pop songs in my Spotify collection
+* Make a playlist of all my songs that are sung in Spanish
 * I'm feeling discouraged today – give me a playlist of my most uplifting songs
-* Create a playlist of all of the dream pop songs in my collection
 * Make me a playlist of my most niche tracks
 
 I've talked too much – let's get started! What can I do for you?`;
