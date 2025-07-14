@@ -1843,9 +1843,11 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             final_ai_text_to_process_for_user = ai_response_text or ""
             _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: final_ai_text_to_process_for_user was None, using ai_response_text or empty string")
         
+        playlist_for_cache = []
         def final_replacer_fn(match):
             song_title = match.group(1).strip()
             artist_name = match.group(2).strip()
+            playlist_for_cache.append(f"{song_title} by {artist_name}")
             track_url = get_cached_spotify_track_url(song_title, artist_name)
             if track_url:
                 return f"[{song_title}]({track_url}) by {artist_name}"
@@ -1858,7 +1860,8 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 
         user_id = mock_request.session.get('spotify_user_id')
         if user_id:
-            cache.set(f"last_processed_playlist_{user_id}", processed_ai_response_text, timeout=3600)
+            playlist_string_for_cache = "\n".join(playlist_for_cache)
+            cache.set(f"last_processed_playlist_{user_id}", playlist_string_for_cache, timeout=3600)
 
         chat_history_placeholder = None
         if chat_mode == 'saved_songs':
