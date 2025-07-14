@@ -188,7 +188,8 @@ h2, h3, h4, h5, h6 {
 }
 
 .header-logo {
-    height: 65px;
+    margin-left: 5px;
+    height: 40px;
 }
 
 .header-buttons {
