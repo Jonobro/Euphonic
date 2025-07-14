@@ -260,7 +260,9 @@ I've talked too much – let's get started! What can I do for you?`;
             try {
                 const history = JSON.parse(chatHistoryDataElement.textContent);
                 if (Array.isArray(history)) {
-                    history.forEach(message => {
+                    const lastDividerIndex = history.map(m => m.role).lastIndexOf('divider');
+
+                    history.forEach((message, index) => {
                         if (message.role && message.parts && message.parts[0] && message.parts[0].text) {
                             if (message.role === 'divider') {
                                 const dividerElement = document.createElement('div');
@@ -269,7 +271,11 @@ I've talked too much – let's get started! What can I do for you?`;
                                 return;
                             }
                             const sender = message.role === 'model' ? 'ai' : 'user';
-                            addMessage(message.parts[0].text, sender, false);
+                            const messageElement = addMessage(message.parts[0].text, sender, false);
+
+                            if (lastDividerIndex !== -1 && index < lastDividerIndex) {
+                                messageElement.classList.add('previous-conversation');
+                            }
                         }
                     });
 
