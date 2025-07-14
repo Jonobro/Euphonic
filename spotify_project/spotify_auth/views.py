@@ -1327,6 +1327,7 @@ I've talked too much – let's get started! What can I do for you?"""
         request.session[history_key] = new_history_list
 
         final_history_list = request.session.get(final_history_key, [])
+        final_history_list.append({'role': 'divider', 'parts': [{'text': '---'}]})
         final_history_list.append({'role': 'model', 'parts': [{'text': initial_response}]})
         request.session[final_history_key] = final_history_list
 

@@ -262,6 +262,12 @@ I've talked too much – let's get started! What can I do for you?`;
                 if (Array.isArray(history)) {
                     history.forEach(message => {
                         if (message.role && message.parts && message.parts[0] && message.parts[0].text) {
+                            if (message.role === 'divider') {
+                                const dividerElement = document.createElement('div');
+                                dividerElement.className = 'conversation-divider';
+                                messageList.appendChild(dividerElement);
+                                return;
+                            }
                             const sender = message.role === 'model' ? 'ai' : 'user';
                             addMessage(message.parts[0].text, sender, false);
                         }
