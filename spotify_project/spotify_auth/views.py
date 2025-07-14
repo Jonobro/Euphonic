@@ -1860,7 +1860,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 
         user_id = mock_request.session.get('spotify_user_id')
         if user_id:
-            playlist_string_for_cache = "\n*".join(playlist_for_cache)
+            playlist_string_for_cache = "* " + "\n* ".join(playlist_for_cache)
             cache.set(f"last_processed_playlist_{user_id}", playlist_string_for_cache, timeout=3600)
 
         chat_history_placeholder = None
