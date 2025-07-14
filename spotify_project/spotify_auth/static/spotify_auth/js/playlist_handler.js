@@ -2,6 +2,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageList = document.getElementById('message-list');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
+    function toggleChatInput(disabled) {
+        const chatInput = document.querySelector('input[type="text"], textarea');
+        const sendButton = document.querySelector('button[type="submit"], .send-button');
+
+        if (chatInput) {
+            chatInput.disabled = disabled;
+            if (disabled) {
+                chatInput.placeholder = 'Please select an option above to continue...';
+            } else {
+                chatInput.placeholder = '';
+            }
+        }
+        
+        if (sendButton) {
+            sendButton.disabled = disabled;
+        }
+    }
+
     function processMessageForPlaylist(messageElement) {
         if (!messageElement.classList.contains('ai-message')) {
             return;
@@ -27,6 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (trackLinks.length > 0) {
                 messageElement.classList.add('has-playlist-button');
+                
+                toggleChatInput(true);
+                
                 const buttonContainer = document.createElement('div');
                 buttonContainer.className = 'save-playlist-container';
                 
@@ -44,6 +65,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const button2 = document.createElement('button');
                 button2.className = 'button secondary-button';
                 button2.textContent = 'Create Another Playlist';
+                
+                button1.addEventListener('click', () => {
+                    toggleChatInput(false);
+                    buttonContainer.remove();
+                });
                 
                 additionalButtonsContainer.appendChild(button1);
                 additionalButtonsContainer.appendChild(button2);
@@ -74,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const dividerElement = document.createElement('div');
                                 dividerElement.className = 'conversation-divider';
                                 messageList.appendChild(dividerElement);
+                                toggleChatInput(false);
 
                                 if (window.addMessageAndScroll) {
                                     window.addMessageAndScroll(data.initial_response, 'ai');
@@ -86,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } catch (error) {
                         console.error('Error resetting chat:', error);
                         alert(`Error: ${error.message}`);
+                        toggleChatInput(false);
                     }
                 });
                 
@@ -124,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             successMessage.innerHTML = `Playlist "<a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
                             buttonContainer.innerHTML = '';
                             buttonContainer.appendChild(successMessage);
+                            toggleChatInput(false);
                         } else {
                             let errorText = `Server error: ${response.status}`;
                             try {
@@ -140,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         errorMessage.className = 'save-playlist-error';
                         errorMessage.textContent = `Error: ${error.message}`;
                         buttonContainer.appendChild(errorMessage);
+                        toggleChatInput(false);
                     }
                 });
             }
