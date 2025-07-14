@@ -1851,9 +1851,14 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         if chat_history_placeholder:
             mock_request.session[chat_history_placeholder] = chat_history_for_session
 
-        final_history_for_session = list(serializable_history)
-        final_history_for_session.append({'role': 'model', 'parts': [{'text': processed_ai_response_text}]})
-        final_history_for_session = final_history_for_session[1:]
+        final_history_for_session = mock_request.session.get(final_chat_history_placeholder, [])
+        if not final_history_for_session:
+            final_history_for_session = list(serializable_history)
+            final_history_for_session = final_history_for_session[1:]
+        else:
+            final_history_for_session.append({'role': 'user', 'parts': [{'text': user_message}]})
+            final_history_for_session.append({'role': 'model', 'parts': [{'text': processed_ai_response_text}]})
+
         if chat_mode == 'saved_songs':
             library_size_message = cache.get(f"library_size_message_{mock_request.session.get('spotify_user_id')}")
             if library_size_message:
