@@ -598,7 +598,7 @@ DEVELOPER MESSAGE: ANALYZE THE ABOVE LIBRARY AND PROVIDE YOUR INSIGHTS PER THE R
         initial_text_from_gemini = response.text or ""
 
         introductory_message_start = "Hi there! I'm Aria, your personal music curator. I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!"
-        introductory_message_body_display = f"""<p style="text-align:center; font-size:1.5em;"><strong>Your Musical Analysis</strong></p>\n\n{initial_text_from_gemini}"""
+        introductory_message_body_display = f"""<p class="musical-analysis-title"><strong>Your Musical Analysis</strong></p>\n\n{initial_text_from_gemini}"""
         introductory_message_body_history = f"Your Musical Analysis\n\n{initial_text_from_gemini}"
         introductory_message_end = """That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask.
 
