@@ -17,6 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (sendButton) {
             sendButton.disabled = disabled;
+            if (disabled) {
+                sendButton.classList.add('disabled-no-hover');
+            } else {
+                sendButton.classList.remove('disabled-no-hover');
+            }
         }
     }
 
