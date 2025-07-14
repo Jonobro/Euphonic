@@ -1240,6 +1240,20 @@ I've talked too much – let's get started! What can I do for you?"""
         _log_to_file(GENERAL_LOG_FILE, f"Error in initialize_chat_data_view: {e}")
         return JsonResponse({'error': 'An unexpected error occurred during chat initialization.'}, status=500)
 
+# @csrf_protect
+# @require_http_methods(["POST"])
+# @never_cache
+# def revise_playlist_api(request):
+#     initial_prompt = """Update <user_playlist> by implementing the changes detailed in <user_requested_revisions>.
+
+# <user_playlist>
+# {user_playlist}
+# </user_playlist>
+
+# <user_requested_revisions>
+# {user_requested_revisions}
+# </user_requested_revisions>"""
+
 @csrf_protect
 @require_http_methods(["POST"])
 @never_cache
@@ -1251,6 +1265,7 @@ def reset_chat_history_api(request):
     try:
         data = json.loads(request.body)
         chat_mode = data.get('chat_mode')
+        user_action = data.get('user_action')
         if chat_mode not in ['saved_songs', 'new_songs']:
             return JsonResponse({'error': 'Invalid chat mode for reset'}, status=400)
 
@@ -1272,7 +1287,17 @@ def reset_chat_history_api(request):
         initial_prompt = ""
         initial_response = ""
 
-        if chat_mode == 'saved_songs':
+        if (chat_mode == 'saved_songs' and user_action == 'revise_playlist') or (chat_mode == 'new_songs' and user_action == 'revise_playlist'):
+            last_processed_playlist = ""
+            user_id = request.session.get('spotify_user_id')
+            if user_id:
+                last_processed_playlist = cache.get(f"last_processed_playlist_{user_id}")
+            initial_prompt = """I would like you to revise the following playlist:
+            
+{last_processed_playlist}"""
+            initial_response = "Okay, I will update the playlist – what changes did you have in mind? ----- {last_processed_playlist}"
+        
+        elif chat_mode == 'saved_songs' and user_action == 'create_another_playlist':
             user_id = request.session.get('spotify_user_id')
             cache_key_tracks = f'spotify_user_tracks_{user_id}'
             simplified_tracks_list = cache.get(cache_key_tracks, [])
@@ -1300,7 +1325,7 @@ Here are some examples of what I can do:
 
 I've talked too much – let's get started! What can I do for you?"""
 
-        elif chat_mode == 'new_songs':
+        elif chat_mode == 'new_songs' and user_action == 'create_another_playlist':
             initial_prompt = "Who are you and what can you do for me?"
             initial_response = """Hi there! I'm Aria, your personal music curator – here to help you discover new music and craft the perfect playlist.
 
@@ -1830,6 +1855,10 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         processed_ai_response_text = specific_pattern.sub(final_replacer_fn, final_ai_text_to_process_for_user)
         processed_ai_response_text = re.sub(r"([\w]),([\w])", r"\1, \2", processed_ai_response_text)
         processed_ai_response_text = re.sub(r"[\$@]{2,}", "", processed_ai_response_text)
+
+        user_id = mock_request.session.get('spotify_user_id')
+        if user_id:
+            cache.set(f"last_processed_playlist_{user_id}", processed_ai_response_text, timeout=3600)
 
         chat_history_placeholder = None
         if chat_mode == 'saved_songs':

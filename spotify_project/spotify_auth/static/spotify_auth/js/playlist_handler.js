@@ -53,34 +53,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 toggleChatInput(true);
                 
-                const buttonContainer = document.createElement('div');
-                buttonContainer.className = 'save-playlist-container';
+                const playlistActionsContainer = document.createElement('div');
+                playlistActionsContainer.className = 'save-playlist-container';
                 
                 const saveButton = document.createElement('button');
                 saveButton.className = 'button save-playlist-button';
                 saveButton.textContent = `Save Playlist "${playlistName}" to Spotify`;
                 
-                const additionalButtonsContainer = document.createElement('div');
-                additionalButtonsContainer.className = 'additional-buttons-container';
+                const secondaryActionsContainer = document.createElement('div');
+                secondaryActionsContainer.className = 'additional-buttons-container';
                 
-                const button1 = document.createElement('button');
-                button1.className = 'button secondary-button';
-                button1.textContent = 'Revise Playlist';
+                const reviseButton = document.createElement('button');
+                reviseButton.className = 'button secondary-button';
+                reviseButton.textContent = 'Revise Playlist';
                 
-                const button2 = document.createElement('button');
-                button2.className = 'button secondary-button';
-                button2.textContent = 'Create Another Playlist';
-                
-                button1.addEventListener('click', () => {
-                    toggleChatInput(false);
-                    buttonContainer.remove();
-                });
-                
-                additionalButtonsContainer.appendChild(button1);
-                additionalButtonsContainer.appendChild(button2);
+                const createAnotherButton = document.createElement('button');
+                createAnotherButton.className = 'button secondary-button';
+                createAnotherButton.textContent = 'Create Another Playlist';
 
-                button2.addEventListener('click', async () => {
+                secondaryActionsContainer.appendChild(reviseButton);
+                secondaryActionsContainer.appendChild(createAnotherButton);
+
+                reviseButton.addEventListener('click', async () => {
                     const chatMode = document.body.dataset.chatMode;
+                    const userAction = 'revise_playlist';
                     try {
                         const response = await fetch('/reset_chat_history_api/', {
                             method: 'POST',
@@ -88,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'Content-Type': 'application/json',
                                 'X-CSRFToken': csrfToken,
                             },
-                            body: JSON.stringify({ chat_mode: chatMode })
+                            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
                         });
 
                         if (response.ok) {
@@ -97,9 +93,53 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const allMessages = messageList.querySelectorAll('.message');
                                 allMessages.forEach(message => {
                                     message.classList.add('previous-conversation');
-                                    const buttonsContainer = message.querySelector('.save-playlist-container');
-                                    if (buttonsContainer) {
-                                        buttonsContainer.remove();
+                                    const existingButtons = message.querySelector('.save-playlist-container');
+                                    if (existingButtons) {
+                                        existingButtons.remove();
+                                    }
+                                });
+                                const dividerElement = document.createElement('div');
+                                dividerElement.className = 'conversation-divider';
+                                messageList.appendChild(dividerElement);
+                                toggleChatInput(false);
+
+                                if (window.addMessageAndScroll) {
+                                    window.addMessageAndScroll(data.initial_response, 'ai');
+                                }
+                            }
+                        } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || 'Failed to reset chat.');
+                        }
+                    } catch (error) {
+                        console.error('Error resetting chat:', error);
+                        alert(`Error: ${error.message}`);
+                        toggleChatInput(false);
+                    }
+                });
+
+                createAnotherButton.addEventListener('click', async () => {
+                    const chatMode = document.body.dataset.chatMode;
+                    const userAction = 'create_another_playlist';
+                    try {
+                        const response = await fetch('/reset_chat_history_api/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.initial_response) {
+                                const allMessages = messageList.querySelectorAll('.message');
+                                allMessages.forEach(message => {
+                                    message.classList.add('previous-conversation');
+                                    const existingButtons = message.querySelector('.save-playlist-container');
+                                    if (existingButtons) {
+                                        existingButtons.remove();
                                     }
                                 });
                                 const dividerElement = document.createElement('div');
@@ -122,9 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 
-                buttonContainer.appendChild(saveButton);
-                buttonContainer.appendChild(additionalButtonsContainer);
-                content.appendChild(buttonContainer);
+                playlistActionsContainer.appendChild(saveButton);
+                playlistActionsContainer.appendChild(secondaryActionsContainer);
+                content.appendChild(playlistActionsContainer);
 
                 saveButton.addEventListener('click', async () => {
                     saveButton.disabled = true;
@@ -155,8 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             const successMessage = document.createElement('p');
                             successMessage.className = 'save-playlist-success';
                             successMessage.innerHTML = `Playlist "<a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
-                            buttonContainer.innerHTML = '';
-                            buttonContainer.appendChild(successMessage);
+                            playlistActionsContainer.innerHTML = '';
+                            playlistActionsContainer.appendChild(successMessage);
                             toggleChatInput(false);
                         } else {
                             let errorText = `Server error: ${response.status}`;
@@ -169,11 +209,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             throw new Error(errorText);
                         }
                     } catch (error) {
-                        buttonContainer.innerHTML = '';
+                        playlistActionsContainer.innerHTML = '';
                         const errorMessage = document.createElement('p');
                         errorMessage.className = 'save-playlist-error';
                         errorMessage.textContent = `Error: ${error.message}`;
-                        buttonContainer.appendChild(errorMessage);
+                        playlistActionsContainer.appendChild(errorMessage);
                         toggleChatInput(false);
                     }
                 });
