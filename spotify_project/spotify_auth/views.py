@@ -1292,10 +1292,10 @@ def reset_chat_history_api(request):
             user_id = request.session.get('spotify_user_id')
             if user_id:
                 last_processed_playlist = cache.get(f"last_processed_playlist_{user_id}")
-            initial_prompt = """I would like you to revise the following playlist:
+            initial_prompt = f"""I would like you to revise the following playlist:
             
 {last_processed_playlist}"""
-            initial_response = "Okay, I will update the playlist – what changes did you have in mind? ----- {last_processed_playlist}"
+            initial_response = f"Okay, I will update the playlist – what changes did you have in mind? ----- {last_processed_playlist}"
         
         elif chat_mode == 'saved_songs' and user_action == 'create_another_playlist':
             user_id = request.session.get('spotify_user_id')
