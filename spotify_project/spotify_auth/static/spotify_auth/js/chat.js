@@ -25,11 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const scrollToBottom = () => {
-        messageList.scrollTo({ top: messageList.scrollHeight });
-    };
-
-    const scrollToTop = () => {
-        messageList.scrollTo({ top: 0 });
+        messageList.scrollTo({ top: messageList.scrollHeight, behavior: 'smooth' });
     };
 
     const addMessage = (text, sender, shouldScroll = true) => {
@@ -288,7 +284,13 @@ I've talked too much – let's get started! What can I do for you?`;
                         scrollThreshold = 4;
                     }
 
-                    if (chatMode !== 'analysis' || history.length > scrollThreshold) {
+                    const messagesAfterDivider = lastDividerIndex !== -1 ? 
+                        history.slice(lastDividerIndex + 1).filter(m => m.role !== 'divider').length : 
+                        history.filter(m => m.role !== 'divider').length;
+
+                    if (lastDividerIndex !== -1 && messagesAfterDivider > 0) {
+                        scrollToBottom();
+                    } else if (lastDividerIndex === -1 && (chatMode !== 'analysis' || history.length > scrollThreshold)) {
                         scrollToBottom();
                     }
                 }
