@@ -25,7 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const scrollToBottom = () => {
-        messageList.scrollTo({ top: messageList.scrollHeight, behavior: 'smooth' });
+        setTimeout(() => {
+            messageList.scrollTo({ top: messageList.scrollHeight, behavior: 'smooth' });
+        }, 10);
     };
 
     const addMessage = (text, sender, shouldScroll = true) => {
@@ -275,23 +277,25 @@ I've talked too much – let's get started! What can I do for you?`;
                         }
                     });
 
-                    let scrollThreshold = 3;
-                    if (
-                        chatMode === 'analysis' &&
-                        history.length > 3 &&
-                        history[3]?.parts?.[0]?.text?.includes("Note: Your Spotify music collection contains")
-                    ) {
-                        scrollThreshold = 4;
-                    }
+                    if (chatMode === 'analysis') {
+                        let scrollThreshold = 3;
+                        if (
+                            history.length > 3 &&
+                            history[3]?.parts?.[0]?.text?.includes("Note: Your Spotify music collection contains")
+                        ) {
+                            scrollThreshold = 4;
+                        }
+                        if (history.length > scrollThreshold) {
+                            scrollToBottom();
+                        }
+                    } else if (chatMode === 'new_songs' || chatMode === 'saved_songs') {
+                        const messagesAfterDivider = lastDividerIndex !== -1 ?
+                            history.slice(lastDividerIndex + 1).filter(m => m.role !== 'divider').length :
+                            history.filter(m => m.role !== 'divider').length;
 
-                    const messagesAfterDivider = lastDividerIndex !== -1 ? 
-                        history.slice(lastDividerIndex + 1).filter(m => m.role !== 'divider').length : 
-                        history.filter(m => m.role !== 'divider').length;
-
-                    if (lastDividerIndex !== -1 && messagesAfterDivider > 0) {
-                        scrollToBottom();
-                    } else if (lastDividerIndex === -1 && (chatMode !== 'analysis' || history.length > scrollThreshold)) {
-                        scrollToBottom();
+                        if (messagesAfterDivider > 0) {
+                            scrollToBottom();
+                        }
                     }
                 }
             } catch (e) {
