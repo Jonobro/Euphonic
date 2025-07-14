@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleChatInput(disabled) {
         const chatInput = document.querySelector('input[type="text"], textarea');
-        const sendButton = document.querySelector('button[type="submit"], .send-button');
+        const sendButton = document.getElementById('send-button');
 
         if (chatInput) {
             chatInput.disabled = disabled;
