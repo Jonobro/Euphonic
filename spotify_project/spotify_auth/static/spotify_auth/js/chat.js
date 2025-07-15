@@ -142,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const isInitiallyLoading = messageList.dataset.isLoadingInitial === 'true';
+    const initialAnalysisTaskId = messageList.dataset.initialAnalysisTaskId;
 
     if (isInitiallyLoading) {
         let loadingIndicator;
@@ -157,6 +158,42 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadingIndicator.textContent = loadingIndicatorBaseText + '.'.repeat(dotCount);
                 }
             }, 400);
+
+            if (initialAnalysisTaskId) {
+                const es = new EventSource(`/stream_initial_analysis/${initialAnalysisTaskId}/`);
+
+                es.onmessage = e => {
+                    clearInterval(loadingInterval);
+                    if (loadingIndicator) loadingIndicator.remove();
+
+                    const data = JSON.parse(e.data);
+                    const history = data.response;
+
+                    if (Array.isArray(history)) {
+                        history.forEach(message => {
+                            if (message.role === 'model' && message.parts && message.parts[0] && message.parts[0].text) {
+                                addMessage(message.parts[0].text, 'ai', false);
+                            }
+                        });
+                    }
+                    es.close();
+                };
+
+                es.addEventListener('stream_error', e => {
+                    clearInterval(loadingInterval);
+                    if (loadingIndicator) loadingIndicator.remove();
+                    const errorData = JSON.parse(e.data);
+                    addMessage(`Sorry, an error occurred: ${errorData.message}`, 'ai');
+                    es.close();
+                });
+
+                es.onerror = () => {
+                    clearInterval(loadingInterval);
+                    if (loadingIndicator) loadingIndicator.remove();
+                    addMessage('Sorry, a connection error occurred while fetching your analysis.', 'ai');
+                    es.close();
+                };
+            }
         } else if (chatMode === 'saved_songs') {
             const initialMessage = `Hi there! I'm Aria, your personal music curator. Let's craft some custom playlists from your Spotify collection. I can filter through your music using any criteria you can imagine.
 

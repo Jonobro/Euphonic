@@ -681,6 +681,9 @@ DEVELOPER MESSAGE: ANALYZE THE ABOVE LIBRARY AND PROVIDE YOUR INSIGHTS PER THE R
             config=chat_config
         )
 
+        # Simulate a delay for debugging/testing purposes
+        time.sleep(120)
+
         _log_to_file(GEMINI_API_LOG_FILE, f"Gemini API Call (_generate_musical_analysis for user {user_id})")
         response = chat.send_message(initial_prompt)
         
@@ -1077,11 +1080,17 @@ def musical_analysis_view(request):
     request.session['chat_mode'] = request.GET.get('mode', 'analysis')
     final_chat_history = request.session.get('final_analysis_chat_history', [])
     is_loading_initial = not final_chat_history
+    initial_analysis_task_id = None
+
+    if is_loading_initial:
+        initial_analysis_task_id = str(uuid.uuid4())
+        request.session['initial_analysis_task_id'] = initial_analysis_task_id
 
     return render(request, 'spotify_auth/chat.html', {
         'chat_history_json': json.dumps(final_chat_history),
         'is_loading_initial_data': is_loading_initial,
-        'chat_mode': request.session.get('chat_mode')
+        'chat_mode': request.session.get('chat_mode'),
+        'initial_analysis_task_id': initial_analysis_task_id
     })
 
 @csrf_protect
@@ -1210,49 +1219,7 @@ def initialize_chat_data_view(request):
         
         # If statement for analysis mode
         if chat_mode == 'analysis':
-            try:
-                if not request.session.get('final_analysis_chat_history'):
-                    _log_to_file(GENERAL_LOG_FILE, "Waiting for musical analysis to be generated in background thread.")
-                    channel = f"{ANALYSIS_EVENT_CHANNEL_PREFIX}{request.session.session_key}"
-                    pubsub = REDIS_CLIENT.pubsub()
-                    pubsub.subscribe(channel)
-                    analysis_completed = False
-                    start_time = time.time()
-                    
-                    try:
-                        for message in pubsub.listen():
-                            if time.time() - start_time > ANALYSIS_EVENT_TIMEOUT:
-                                break
-                                
-                            if message['type'] == 'message' and message['data'] == 'completed':
-                                analysis_completed = True
-                                break
-                                
-                    finally:
-                        pubsub.close()
-                    
-                    if analysis_completed:
-                        session_obj = Session.objects.get(session_key=request.session.session_key)
-                        session_data = session_obj.get_decoded()
-                        request.session.update(session_data)
-                        request.session.save()
-                    else:
-                        _log_to_file(GENERAL_LOG_FILE, "Timeout waiting for musical analysis.")
-                        return JsonResponse({'error': 'Timeout waiting for musical analysis. Please try again later.'}, status=504)
-
-            except Session.DoesNotExist:
-                _log_to_file(GENERAL_LOG_FILE, f"Session {request.session.session_key} not found in database while waiting for analysis.")
-                return JsonResponse({'error': 'Session not found. Please try again.'}, status=500)
-            except Exception as e:
-                _log_to_file(GENERAL_LOG_FILE, f"Exception while waiting for musical analysis: {e}")
-                return JsonResponse({'error': 'An error occurred while waiting for musical analysis.'}, status=500)
-
-            final_history = request.session.get('final_analysis_chat_history', [])
-            first_ai_message = [item['parts'][0]['text'] for item in final_history if item.get('role') == 'model' and item.get('parts')]
-            
-            return JsonResponse({
-                'first_ai_message': first_ai_message
-            })
+            return JsonResponse({'error': 'Analysis chat should be initialized via SSE.'}, status=400)
         
         # If statement for saved songs mode
         if chat_mode == 'saved_songs':
@@ -2055,6 +2022,54 @@ def chat_message_api(request):
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in chat_message_api POST: {e}")
         return JsonResponse({'error': 'An unexpected error occurred processing your message.'}, status=500)
+
+@require_http_methods(["GET"])
+@never_cache
+def stream_initial_analysis(request, task_id):
+    def event_stream():
+        try:
+            channel = f"{ANALYSIS_EVENT_CHANNEL_PREFIX}{request.session.session_key}"
+            pubsub = REDIS_CLIENT.pubsub()
+            pubsub.subscribe(channel)
+            analysis_completed = False
+            start_time = time.time()
+
+            for message in pubsub.listen():
+                if time.time() - start_time > ANALYSIS_EVENT_TIMEOUT:
+                    _log_to_file(GENERAL_LOG_FILE, f"Timeout waiting for musical analysis for task {task_id}.")
+                    error_data = {'message': 'Timeout waiting for musical analysis. Please try again later.'}
+                    yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+                    return
+
+                if message['type'] == 'message' and message['data'] == 'completed':
+                    analysis_completed = True
+                    break
+            
+            pubsub.close()
+
+            if analysis_completed:
+                session_obj = Session.objects.get(session_key=request.session.session_key)
+                session_data = session_obj.get_decoded()
+                final_history = session_data.get('final_analysis_chat_history', [])
+                
+                result = {
+                    'response': final_history,
+                    'session_data': session_data
+                }
+                cache.set(task_id, result, timeout=300)
+                yield f"data: {json.dumps(result)}\n\n"
+            else:
+                error_data = {'message': 'Failed to retrieve musical analysis.'}
+                yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+
+        except Exception as e:
+            _log_to_file(GENERAL_LOG_FILE, f"Error in initial analysis SSE stream for task {task_id}: {e}")
+            error_data = {'message': 'A server error occurred during streaming.'}
+            yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+
+    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    return response
 
 @require_http_methods(["GET"])
 @never_cache
