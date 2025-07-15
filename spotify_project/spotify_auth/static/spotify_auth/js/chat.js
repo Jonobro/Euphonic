@@ -172,7 +172,7 @@ I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
                 if (existingMessages.length === 0) {
-                    addMessage(initialMessage, 'ai');
+                    addMessage(initialMessage, 'ai', false);
                 }
             }, 100);
         } else if (chatMode === 'new_songs') {
@@ -196,7 +196,7 @@ I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
                 if (existingMessages.length === 0) {
-                    addMessage(initialMessage, 'ai');
+                    addMessage(initialMessage, 'ai', false);
                 }
             }, 100);
         }
@@ -278,22 +278,29 @@ I've talked too much – let's get started! What can I do for you?`;
                     });
 
                     if (chatMode === 'analysis') {
-                        let scrollThreshold = 3;
+                        let analysisScrollThreshold = 3;
                         if (history.length > 3 && history[3]?.parts?.[0]?.text?.includes("Note: Your Spotify music collection contains")) {
-                            scrollThreshold = 4;
+                            analysisScrollThreshold = 4;
                         }
-                        if (history.length > scrollThreshold) {
+                        if (history.length > analysisScrollThreshold) {
                             scrollToBottom();
                         }
                     } else if (chatMode === 'new_songs' || chatMode === 'saved_songs') {
-                        const messagesAfterDivider = lastDividerIndex !== -1 ?
-                            history.slice(lastDividerIndex + 1).filter(m => m.role !== 'divider').length :
-                            history.filter(m => m.role !== 'divider').length;
-                        if (messagesAfterDivider > 0) {
+                        let messagesAfterDivider = 0;
+                        if (lastDividerIndex !== -1) {
+                            messagesAfterDivider = history.slice(lastDividerIndex + 1).filter(m => m.role !== 'divider').length;
+                        } else {
+                            messagesAfterDivider = history.filter(m => m.role !== 'divider').length;
+                        }
+                        if (lastDividerIndex !== -1 && messagesAfterDivider > 0) {
                             scrollToBottom();
                         }
-                        if (history.length <= 2) {
-                            messageList.scrollTo({ top: 0, behavior: 'smooth' });
+                        let scrollThreshold = 1;
+                        if (history.length > 1 && history[1]?.parts?.[0]?.text?.includes("Note: Your Spotify music collection contains")) {
+                            scrollThreshold = 2;
+                        }
+                        if (history.length > scrollThreshold) {
+                            scrollToBottom();
                         }
                     }
                 }
