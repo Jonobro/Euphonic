@@ -279,10 +279,7 @@ I've talked too much – let's get started! What can I do for you?`;
 
                     if (chatMode === 'analysis') {
                         let scrollThreshold = 3;
-                        if (
-                            history.length > 3 &&
-                            history[3]?.parts?.[0]?.text?.includes("Note: Your Spotify music collection contains")
-                        ) {
+                        if (history.length > 3 && history[3]?.parts?.[0]?.text?.includes("Note: Your Spotify music collection contains")) {
                             scrollThreshold = 4;
                         }
                         if (history.length > scrollThreshold) {
@@ -292,9 +289,11 @@ I've talked too much – let's get started! What can I do for you?`;
                         const messagesAfterDivider = lastDividerIndex !== -1 ?
                             history.slice(lastDividerIndex + 1).filter(m => m.role !== 'divider').length :
                             history.filter(m => m.role !== 'divider').length;
-
                         if (messagesAfterDivider > 0) {
                             scrollToBottom();
+                        }
+                        if (history.length <= 2) {
+                            messageList.scrollTo({ top: 0, behavior: 'smooth' });
                         }
                     }
                 }
