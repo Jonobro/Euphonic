@@ -1999,7 +1999,14 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         if chat_mode == 'saved_songs':
             library_size_message = cache.get(f"library_size_message_{mock_request.session.get('spotify_user_id')}")
             if library_size_message:
-                final_history_for_session.insert(1, {'role': 'model', 'parts': [{'text': library_size_message}]})
+                message_exists = any(
+                    entry.get('role') == 'model' and
+                    entry.get('parts') and
+                    entry['parts'][0].get('text') == library_size_message
+                    for entry in final_history_for_session
+                )
+                if not message_exists:
+                    final_history_for_session.insert(1, {'role': 'model', 'parts': [{'text': library_size_message}]})
         if final_chat_history_placeholder:
             mock_request.session[final_chat_history_placeholder] = final_history_for_session
         
