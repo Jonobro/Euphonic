@@ -682,7 +682,7 @@ DEVELOPER MESSAGE: ANALYZE THE ABOVE LIBRARY AND PROVIDE YOUR INSIGHTS PER THE R
         )
 
         # Simulate a delay for debugging/testing purposes
-        time.sleep(120)
+        # time.sleep(120)
 
         _log_to_file(GEMINI_API_LOG_FILE, f"Gemini API Call (_generate_musical_analysis for user {user_id})")
         response = chat.send_message(initial_prompt)
@@ -2033,19 +2033,35 @@ def stream_initial_analysis(request, task_id):
             pubsub.subscribe(channel)
             analysis_completed = False
             start_time = time.time()
+            last_keepalive = start_time
 
-            for message in pubsub.listen():
-                if time.time() - start_time > ANALYSIS_EVENT_TIMEOUT:
-                    _log_to_file(GENERAL_LOG_FILE, f"Timeout waiting for musical analysis for task {task_id}.")
-                    error_data = {'message': 'Timeout waiting for musical analysis. Please try again later.'}
-                    yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
-                    return
+            try:
+                while not analysis_completed:
+                    current_time = time.time()
+                    
+                    if current_time - start_time > ANALYSIS_EVENT_TIMEOUT:
+                        _log_to_file(GENERAL_LOG_FILE, f"Timeout waiting for musical analysis for task {task_id}.")
+                        error_data = {'message': 'Timeout waiting for musical analysis. Please try again later.'}
+                        yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+                        return
 
-                if message['type'] == 'message' and message['data'] == 'completed':
-                    analysis_completed = True
-                    break
-            
-            pubsub.close()
+                    if current_time - last_keepalive >= 30:
+                        yield ":\n\n"
+                        last_keepalive = current_time
+
+                    message = pubsub.get_message(timeout=1.0)
+                    if message and message['type'] == 'message':
+                        data = message['data']
+                        if isinstance(data, bytes):
+                            data = data.decode('utf-8')
+                        if data == 'completed':
+                            analysis_completed = True
+                            break
+            finally:
+                try:
+                    pubsub.close()
+                except Exception as close_error:
+                    _log_to_file(GENERAL_LOG_FILE, f"Error closing pubsub for task {task_id}: {close_error}")
 
             if analysis_completed:
                 session_obj = Session.objects.get(session_key=request.session.session_key)
@@ -2062,6 +2078,9 @@ def stream_initial_analysis(request, task_id):
                 error_data = {'message': 'Failed to retrieve musical analysis.'}
                 yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
 
+        except GeneratorExit:
+            _log_to_file(GENERAL_LOG_FILE, f"SSE stream for task {task_id} closed by client.")
+            raise
         except Exception as e:
             _log_to_file(GENERAL_LOG_FILE, f"Error in initial analysis SSE stream for task {task_id}: {e}")
             error_data = {'message': 'A server error occurred during streaming.'}
@@ -2069,6 +2088,7 @@ def stream_initial_analysis(request, task_id):
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
     return response
 
 @require_http_methods(["GET"])
@@ -2107,4 +2127,5 @@ def stream_chat_response(request, task_id):
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
     return response
