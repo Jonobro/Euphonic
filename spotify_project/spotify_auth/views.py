@@ -1364,17 +1364,9 @@ def reset_chat_history_api(request):
         initial_prompt = ""
         initial_response = ""
 
-        if (chat_mode == 'saved_songs' and user_action == 'revise_playlist') or (chat_mode == 'new_songs' and user_action == 'revise_playlist'):
-            last_processed_playlist = ""
-            user_id = request.session.get('spotify_user_id')
-            if user_id:
-                last_processed_playlist = cache.get(f"last_processed_playlist_{user_id}")
-            initial_prompt = f"""I would like you to revise the following playlist:
-{last_processed_playlist}"""
-            initial_response = "Okay, I will update the playlist – what changes did you have in mind?"
-        
-        elif chat_mode == 'saved_songs' and user_action == 'create_another_playlist':
-            user_id = request.session.get('spotify_user_id')
+        user_id = request.session.get('spotify_user_id')
+        full_library_string = ""
+        if user_id:
             cache_key_tracks = f'spotify_user_tracks_{user_id}'
             simplified_tracks_list = cache.get(cache_key_tracks, [])
             song_strings = [f"{t['name']} by {t['artists']}" for t in simplified_tracks_list]
@@ -1383,6 +1375,31 @@ def reset_chat_history_api(request):
             if len(full_library_string) > max_prompt_length:
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (library truncated)"
 
+        if (chat_mode == 'saved_songs' and user_action == 'revise_playlist'):
+            last_processed_playlist = ""
+            if user_id:
+                last_processed_playlist = cache.get(f"last_processed_playlist_{user_id}")
+            
+            initial_prompt = f"""I would like you to revise <playlist>. I have included my Spotify library at the end of this message, with the label <spotify_library>.
+
+<playlist>
+{last_processed_playlist}
+</playlist>
+
+<spotify_library>
+{full_library_string}
+</spotify_library>"""
+            initial_response = "Okay, I will update the playlist – what changes did you have in mind?"
+
+        elif (chat_mode == 'new_songs' and user_action == 'revise_playlist'):
+            last_processed_playlist = ""
+            if user_id:
+                last_processed_playlist = cache.get(f"last_processed_playlist_{user_id}")
+            initial_prompt = f"""I would like you to revise the following playlist:
+{last_processed_playlist}"""
+            initial_response = "Okay, I will update the playlist – what changes did you have in mind?"
+        
+        elif chat_mode == 'saved_songs' and user_action == 'create_another_playlist':
             initial_prompt = f"""Here is a list of all the tracks in my Spotify library for you to use:
 
 {full_library_string}
