@@ -1683,19 +1683,15 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: ai_response_text was None, setting to empty string")
 
         if chat_mode == 'analysis':
-            serializable_history = list(history_list)
-            serializable_history.append({'role': 'user', 'parts': [{'text': user_message}]})
-            serializable_history.append({'role': 'model', 'parts': [{'text': ai_response_text}]})
+            internal_history = list(history_list)
+            internal_history.append({'role': 'user', 'parts': [{'text': user_message}]})
+            internal_history.append({'role': 'model', 'parts': [{'text': ai_response_text}]})
+            mock_request.session['analysis_chat_history'] = internal_history
 
-            mock_request.session['analysis_chat_history'] = serializable_history
-
-            final_history_for_session = serializable_history[1:]
-
-            library_size_message = cache.get(f"library_size_message_{mock_request.session.get('spotify_user_id')}")
-            if library_size_message:
-                final_history_for_session.insert(3, {'role': 'model', 'parts': [{'text': library_size_message}]})
-            
-            mock_request.session['final_analysis_chat_history'] = final_history_for_session
+            final_history = mock_request.session.get('final_analysis_chat_history', [])
+            final_history.append({'role': 'user', 'parts': [{'text': user_message}]})
+            final_history.append({'role': 'model', 'parts': [{'text': ai_response_text}]})
+            mock_request.session['final_analysis_chat_history'] = final_history
 
             result = {
                 'response': ai_response_text,
