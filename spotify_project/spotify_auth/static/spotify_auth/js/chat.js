@@ -240,6 +240,14 @@ I've talked too much – let's get started! What can I do for you?`;
 
         userInput.disabled = sendButton.disabled = true;
 
+        if (chatMode === 'analysis') {
+            userInput.disabled = sendButton.disabled = false;
+            if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
+                userInput.focus();
+            }
+            return;
+        }
+
         fetch('/initialize_chat_data/', {
             method: 'POST',
             headers: {
