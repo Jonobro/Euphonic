@@ -25,7 +25,8 @@
         </div>
         <div id="chat-container">
             <div id="message-list" 
-                 {% if is_loading_initial_data %}data-is-loading-initial="true"{% endif %}>
+                {% if is_loading_initial_data %}data-is-loading-initial="true"{% endif %}
+                {% if initial_analysis_task_id %}data-initial-analysis-task-id="{{ initial_analysis_task_id }}"{% endif %}>
             </div>
             <div id="chat-input-area">
                 <textarea id="user-input" placeholder="Reply to Aria..."></textarea>
