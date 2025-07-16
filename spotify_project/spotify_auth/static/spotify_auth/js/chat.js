@@ -226,11 +226,15 @@ I've talked too much – let's get started! What can I do for you?`;
             return response.json();
         })
         .then(data => {
-            if (loadingInterval) clearInterval(loadingInterval);
-            if (loadingIndicator) loadingIndicator.remove();
+            if (chatMode !== 'analysis') {
+                if (loadingInterval) clearInterval(loadingInterval);
+                if (loadingIndicator) loadingIndicator.remove();
+            }
 
             if (chatMode === 'analysis') {
                 if (data.already_initialized) {
+                    if (loadingInterval) clearInterval(loadingInterval);
+                    if (loadingIndicator) loadingIndicator.remove();
                     for (const messageText of data.first_ai_message) {
                         addMessage(messageText, 'ai', false);
                     }
