@@ -238,6 +238,10 @@ I've talked too much – let's get started! What can I do for you?`;
                     for (const messageText of data.first_ai_message) {
                         addMessage(messageText, 'ai', false);
                     }
+                    userInput.disabled = sendButton.disabled = false;
+                    if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
+                        userInput.focus();
+                    }
                 } else if (data.analysis_started && initialAnalysisTaskId) {
                     const es = new EventSource(`/stream_initial_analysis/${initialAnalysisTaskId}/`);
 
@@ -256,6 +260,10 @@ I've talked too much – let's get started! What can I do for you?`;
                             });
                         }
                         es.close();
+                        userInput.disabled = sendButton.disabled = false;
+                        if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
+                            userInput.focus();
+                        }
                     };
 
                     es.addEventListener('stream_error', e => {
@@ -264,6 +272,8 @@ I've talked too much – let's get started! What can I do for you?`;
                         const errorData = JSON.parse(e.data);
                         addMessage(`Sorry, an error occurred: ${errorData.message}`, 'ai');
                         es.close();
+                        userInput.disabled = sendButton.disabled = false;
+                        userInput.focus();
                     });
 
                     es.onerror = () => {
@@ -271,6 +281,8 @@ I've talked too much – let's get started! What can I do for you?`;
                         clearInterval(loadingInterval);
                         addMessage('Sorry, a connection error occurred while fetching your analysis.', 'ai');
                         es.close();
+                        userInput.disabled = sendButton.disabled = false;
+                        userInput.focus();
                     };
                 }
             } else if (chatMode === 'saved_songs' || chatMode === 'new_songs') {
@@ -293,12 +305,17 @@ I've talked too much – let's get started! What can I do for you?`;
             if (loadingIndicator) loadingIndicator.remove();
             addMessage('Sorry, there was a problem initializing the chat. Please refresh the page to try again.', 'ai');
             console.error("Initialization error:", error);
+            if (chatMode !== 'analysis') {
+                userInput.disabled = sendButton.disabled = false;
+                userInput.focus();
+            }
         })
         .finally(() => {
-            if (loadingInterval) clearInterval(loadingInterval);
-            userInput.disabled = sendButton.disabled = false;
-            if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
-                 userInput.focus();
+            if (chatMode !== 'analysis') {
+                userInput.disabled = sendButton.disabled = false;
+                if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
+                     userInput.focus();
+                }
             }
         });
     } else {
