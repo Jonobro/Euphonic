@@ -1549,6 +1549,14 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         client = get_gemini_client()
 
         track_url_cache = {}
+        if mock_request.session.get('user_currently_revising_playlist'):
+            user_id = mock_request.session.get('spotify_user_id')
+            if user_id:
+                last_playlist_details = cache.get(f"last_processed_playlist_details_{user_id}", [])
+                for track in last_playlist_details:
+                    cache_key = (track['title'].lower(), track['artist'].lower())
+                    track_url_cache[cache_key] = track['url']
+
         def get_cached_spotify_track_url(song_title, artist_name):
             cache_key = (song_title.strip().lower(), artist_name.strip().lower())
             if cache_key in track_url_cache:
@@ -1932,7 +1940,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         def final_replacer_fn(match):
             song_title = match.group(1).strip()
             artist_name = match.group(2).strip()
-            playlist_for_cache.append(f"{song_title} by {artist_name}")
+            playlist_for_cache.append({'title': song_title, 'artist': artist_name})
             track_url = get_cached_spotify_track_url(song_title, artist_name)
             if track_url:
                 return f"[{song_title}]({track_url}) by {artist_name}"
@@ -1944,9 +1952,22 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         processed_ai_response_text = re.sub(r"[\$@]{2,}", "", processed_ai_response_text)
 
         user_id = mock_request.session.get('spotify_user_id')
-        if user_id:
-            playlist_string_for_cache = "* " + "\n* ".join(playlist_for_cache)
+        if user_id and playlist_for_cache:
+            playlist_string_for_cache = "* " + "\n* ".join([f"{p['title']} by {p['artist']}" for p in playlist_for_cache])
             cache.set(f"last_processed_playlist_{user_id}", playlist_string_for_cache, timeout=3600)
+            
+            detailed_playlist_for_cache = []
+            for track in playlist_for_cache:
+                url = get_cached_spotify_track_url(track['title'], track['artist'])
+                if url:
+                    detailed_playlist_for_cache.append({
+                        'title': track['title'],
+                        'artist': track['artist'],
+                        'url': url
+                    })
+            
+            if detailed_playlist_for_cache:
+                cache.set(f"last_processed_playlist_details_{user_id}", detailed_playlist_for_cache, timeout=3600)
 
         chat_history_placeholder = None
         if chat_mode == 'saved_songs':
