@@ -681,9 +681,6 @@ DEVELOPER MESSAGE: ANALYZE THE ABOVE LIBRARY AND PROVIDE YOUR INSIGHTS PER THE R
             config=chat_config
         )
 
-        # Simulate a delay for debugging/testing purposes
-        # time.sleep(120)
-
         _log_to_file(GEMINI_API_LOG_FILE, f"Gemini API Call (_generate_musical_analysis for user {user_id})")
         response = chat.send_message(initial_prompt)
         
