@@ -1630,8 +1630,9 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             if mock_request.session.get('user_currently_revising_playlist'):
                 mock_request.session['user_currently_revising_playlist'] = False
                 
-            # # Sometimes Gemini duplicates the playlist, with the first part containing unnecessary information.
-            # # The below logic attempts to strip away everything that appears before the second playlist title.
+            # # Sometimes Gemini duplicates the playlist, with the first part containing unnecessary information
+            # # The below logic attempts to strip away everything that appears before the second playlist title
+            # # Currently unnecessary due to updates to system instructions, but kept for potential future use
             # playlist_title_pattern = r'\+{3,}.*?\+{3,}'
             # matches = list(re.finditer(playlist_title_pattern, ai_response_text))
             # if len(matches) >= 2:
@@ -1802,6 +1803,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
 
             # # Logic to strip away "thinking" text that Gemini sometimes adds (in violation of the system instructions)
+            # # Currently unnecessary due to updates to system instructions, but kept for potential future use
             # initial_content_parts = (response.candidates[0].content.parts if response.candidates and response.candidates[0].content and response.candidates[0].content.parts else []) or []
             # correction_content_parts = (correction_response.candidates[0].content.parts if correction_response.candidates and correction_response.candidates[0].content and correction_response.candidates[0].content.parts else []) or []
             # if initial_content_parts and correction_content_parts and len(correction_content_parts) > len(initial_content_parts):
