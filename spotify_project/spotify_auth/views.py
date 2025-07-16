@@ -1219,7 +1219,23 @@ def initialize_chat_data_view(request):
         
         # If statement for analysis mode
         if chat_mode == 'analysis':
-            return JsonResponse({'error': 'Analysis chat should be initialized via SSE.'}, status=400)
+            if request.session.get(final_history_mode):
+                first_ai_message = []
+                for entry in request.session.get(final_history_mode, []):
+                    if entry.get('role') == 'model':
+                        first_ai_message.append(entry['parts'][0]['text'])
+                return JsonResponse({'first_ai_message': first_ai_message, 'already_initialized': True})
+            
+            session_data = dict(request.session)
+            thread = threading.Thread(
+                target=_generate_musical_analysis,
+                args=(session_data,)
+            )
+            thread.daemon = True
+            thread.start()
+            _log_to_file(GENERAL_LOG_FILE, f"Started analysis generation thread for session {request.session.session_key} from initialize_chat_data_view")
+            
+            return JsonResponse({'analysis_started': True})
         
         # If statement for saved songs mode
         if chat_mode == 'saved_songs':

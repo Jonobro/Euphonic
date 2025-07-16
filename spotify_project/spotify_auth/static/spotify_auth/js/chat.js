@@ -158,42 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadingIndicator.textContent = loadingIndicatorBaseText + '.'.repeat(dotCount);
                 }
             }, 400);
-
-            if (initialAnalysisTaskId) {
-                const es = new EventSource(`/stream_initial_analysis/${initialAnalysisTaskId}/`);
-
-                es.onmessage = e => {
-                    clearInterval(loadingInterval);
-                    if (loadingIndicator) loadingIndicator.remove();
-
-                    const data = JSON.parse(e.data);
-                    const history = data.response;
-
-                    if (Array.isArray(history)) {
-                        history.forEach(message => {
-                            if (message.role === 'model' && message.parts && message.parts[0] && message.parts[0].text) {
-                                addMessage(message.parts[0].text, 'ai', false);
-                            }
-                        });
-                    }
-                    es.close();
-                };
-
-                es.addEventListener('stream_error', e => {
-                    clearInterval(loadingInterval);
-                    if (loadingIndicator) loadingIndicator.remove();
-                    const errorData = JSON.parse(e.data);
-                    addMessage(`Sorry, an error occurred: ${errorData.message}`, 'ai');
-                    es.close();
-                });
-
-                es.onerror = () => {
-                    clearInterval(loadingInterval);
-                    if (loadingIndicator) loadingIndicator.remove();
-                    addMessage('Sorry, a connection error occurred while fetching your analysis.', 'ai');
-                    es.close();
-                };
-            }
         } else if (chatMode === 'saved_songs') {
             const initialMessage = `Hi there! I'm Aria, your personal music curator. Let's craft some custom playlists from your Spotify collection. I can filter through your music using any criteria you can imagine.
 
@@ -240,14 +204,6 @@ I've talked too much – let's get started! What can I do for you?`;
 
         userInput.disabled = sendButton.disabled = true;
 
-        if (chatMode === 'analysis') {
-            userInput.disabled = sendButton.disabled = false;
-            if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
-                userInput.focus();
-            }
-            return;
-        }
-
         fetch('/initialize_chat_data/', {
             method: 'POST',
             headers: {
@@ -269,17 +225,58 @@ I've talked too much – let's get started! What can I do for you?`;
         .then(data => {
             if (loadingInterval) clearInterval(loadingInterval);
             if (loadingIndicator) loadingIndicator.remove();
-            if (chatMode === 'saved_songs' || chatMode === 'new_songs') {
+
+            if (chatMode === 'analysis') {
+                if (data.already_initialized) {
+                    for (const messageText of data.first_ai_message) {
+                        addMessage(messageText, 'ai', false);
+                    }
+                } else if (data.analysis_started && initialAnalysisTaskId) {
+                    const es = new EventSource(`/stream_initial_analysis/${initialAnalysisTaskId}/`);
+
+                    es.onmessage = e => {
+                        if (loadingIndicator) loadingIndicator.remove();
+                        clearInterval(loadingInterval);
+                        
+                        const data = JSON.parse(e.data);
+                        const history = data.response;
+
+                        if (Array.isArray(history)) {
+                            history.forEach(message => {
+                                if (message.role === 'model' && message.parts && message.parts[0] && message.parts[0].text) {
+                                    addMessage(message.parts[0].text, 'ai', false);
+                                }
+                            });
+                        }
+                        es.close();
+                    };
+
+                    es.addEventListener('stream_error', e => {
+                        if (loadingIndicator) loadingIndicator.remove();
+                        clearInterval(loadingInterval);
+                        const errorData = JSON.parse(e.data);
+                        addMessage(`Sorry, an error occurred: ${errorData.message}`, 'ai');
+                        es.close();
+                    });
+
+                    es.onerror = () => {
+                        if (loadingIndicator) loadingIndicator.remove();
+                        clearInterval(loadingInterval);
+                        addMessage('Sorry, a connection error occurred while fetching your analysis.', 'ai');
+                        es.close();
+                    };
+                }
+            } else if (chatMode === 'saved_songs' || chatMode === 'new_songs') {
                 const existingAiMessage = messageList.querySelector('.ai-message');
                 if (existingAiMessage) {
                     existingAiMessage.remove();
                 }
-            }
-            if (data.error) {
-                addMessage(`Initialization failed: ${data.error}`, 'ai');
-            } else if (Array.isArray(data.first_ai_message)) {
-                for (const messageText of data.first_ai_message) {
-                    addMessage(messageText, 'ai', false);
+                if (data.error) {
+                    addMessage(`Initialization failed: ${data.error}`, 'ai');
+                } else if (Array.isArray(data.first_ai_message)) {
+                    for (const messageText of data.first_ai_message) {
+                        addMessage(messageText, 'ai', false);
+                    }
                 }
             }
             messageList.removeAttribute('data-is-loading-initial');
