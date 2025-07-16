@@ -1629,17 +1629,18 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         if ai_response_text and any(ai_response_text[i:i+5].count('+') >= 4 for i in range(len(ai_response_text) - 4)) and chat_mode != 'analysis':
             if mock_request.session.get('user_currently_revising_playlist'):
                 mock_request.session['user_currently_revising_playlist'] = False
-            # Sometimes Gemini duplicates the playlist, with the first part containing unnecessary information.
-            # The below logic attempts to strip away everything that appears before the second playlist title.
-            playlist_title_pattern = r'\+{3,}.*?\+{3,}'
-            matches = list(re.finditer(playlist_title_pattern, ai_response_text))
-            if len(matches) >= 2:
-                second_match_start_index = matches[1].start()
-                eliminated_text = ai_response_text[:second_match_start_index]
-                log_message_eliminated = f"NOTE: The following text part(s) from Gemini were discarded (Duplicate Playlist Cleanup - Task {task_id}): {json.dumps(eliminated_text)}"
-                _log_to_file(GEMINI_API_LOG_FILE, log_message_eliminated)
-                playlist_part = ai_response_text[second_match_start_index:]
-                ai_response_text = f"<text_to_edit>\n{playlist_part}"
+                
+            # # Sometimes Gemini duplicates the playlist, with the first part containing unnecessary information.
+            # # The below logic attempts to strip away everything that appears before the second playlist title.
+            # playlist_title_pattern = r'\+{3,}.*?\+{3,}'
+            # matches = list(re.finditer(playlist_title_pattern, ai_response_text))
+            # if len(matches) >= 2:
+            #     second_match_start_index = matches[1].start()
+            #     eliminated_text = ai_response_text[:second_match_start_index]
+            #     log_message_eliminated = f"The following text part(s) from Gemini were discarded (Duplicate Playlist Cleanup - Task {task_id}): {json.dumps(eliminated_text)}"
+            #     _log_to_file(GEMINI_API_LOG_FILE, log_message_eliminated)
+            #     playlist_part = ai_response_text[second_match_start_index:]
+            #     ai_response_text = f"<text_to_edit>\n{playlist_part}"
 
             formatting_prompt = f"""Revise the below text per your system instructions:
 <text_to_edit>
@@ -1800,31 +1801,32 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
 
-            # Logic to strip away "thinking" text that Gemini sometimes adds (in violation of the system instructions)
-            initial_content_parts = (response.candidates[0].content.parts if response.candidates and response.candidates[0].content and response.candidates[0].content.parts else []) or []
-            correction_content_parts = (correction_response.candidates[0].content.parts if correction_response.candidates and correction_response.candidates[0].content and correction_response.candidates[0].content.parts else []) or []
-            if initial_content_parts and correction_content_parts and len(correction_content_parts) > len(initial_content_parts):
-                num_to_potentially_remove = len(correction_content_parts) - len(initial_content_parts)
+            # # Logic to strip away "thinking" text that Gemini sometimes adds (in violation of the system instructions)
+            # initial_content_parts = (response.candidates[0].content.parts if response.candidates and response.candidates[0].content and response.candidates[0].content.parts else []) or []
+            # correction_content_parts = (correction_response.candidates[0].content.parts if correction_response.candidates and correction_response.candidates[0].content and correction_response.candidates[0].content.parts else []) or []
+            # if initial_content_parts and correction_content_parts and len(correction_content_parts) > len(initial_content_parts):
+            #     num_to_potentially_remove = len(correction_content_parts) - len(initial_content_parts)
                 
-                split_index = num_to_potentially_remove
-                for i, part in enumerate(correction_content_parts[:num_to_potentially_remove]):
-                    if hasattr(part, 'text') and '+++' in part.text:
-                        split_index = i
-                        break
+            #     split_index = num_to_potentially_remove
+            #     for i, part in enumerate(correction_content_parts[:num_to_potentially_remove]):
+            #         if hasattr(part, 'text') and '+++' in part.text:
+            #             split_index = i
+            #             break
                 
-                if split_index > 0:
-                    parts_to_discard = correction_content_parts[:split_index]
-                    discarded_text = [p.text for p in parts_to_discard if hasattr(p, 'text')]
+            #     if split_index > 0:
+            #         parts_to_discard = correction_content_parts[:split_index]
+            #         discarded_text = [p.text for p in parts_to_discard if hasattr(p, 'text')]
 
-                    log_message = f"Correction response has extra parts. Removing first {split_index} parts."
-                    _log_to_file(GEMINI_API_LOG_FILE, log_message)
+            #         log_message = f"Correction response has extra parts. Removing first {split_index} parts."
+            #         _log_to_file(GEMINI_API_LOG_FILE, log_message)
 
-                    if discarded_text:
-                        log_message_discarded = f"NOTE: The following text part(s) from Gemini were discarded (Feedback Pass - Task {task_id}): {json.dumps(discarded_text)}"
-                        _log_to_file(GEMINI_API_LOG_FILE, log_message_discarded)
+            #         if discarded_text:
+            #             log_message_discarded = f"The following text part(s) from Gemini were discarded (Feedback Pass - Task {task_id}): {json.dumps(discarded_text)}"
+            #             _log_to_file(GEMINI_API_LOG_FILE, log_message_discarded)
 
-                correction_content_parts = correction_content_parts[split_index:]
+            #     correction_content_parts = correction_content_parts[split_index:]
             
+            correction_content_parts = (correction_response.candidates[0].content.parts if correction_response.candidates and correction_response.candidates[0].content and correction_response.candidates[0].content.parts else []) or []
             final_ai_text_to_process_for_user = " ".join([p.text for p in correction_content_parts if hasattr(p, 'text')])
 
             if final_ai_text_to_process_for_user is None:
