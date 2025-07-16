@@ -1,5 +1,5 @@
 body {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Poppins', sans-serif, Arial;
     line-height: 1.6;
     color: #FFFFFF;
     max-width: 800px;
@@ -39,7 +39,7 @@ h1 {
 }
 code, .privacy-content code {
   font-size: inherit !important;
-  font-family: 'Helvetica Neue', Arial, sans-serif !important;
+  font-family: 'Poppins', sans-serif, Arial !important;
   line-height: inherit !important;
   background-color: transparent !important;
   padding: 0 !important;
