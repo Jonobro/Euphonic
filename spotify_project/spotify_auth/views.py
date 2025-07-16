@@ -1702,46 +1702,25 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         
         retries = 2
         while tracks_to_search and retries > 0:
-            auth_error_detected = False
             failed_searches = []
             
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-                futures = [executor.submit(_get_spotify_track_url_with_backoff, mock_request, track['title'], track['artist']) for track in tracks_to_search]
+                futures = [executor.submit(get_cached_spotify_track_url, track['title'], track['artist']) for track in tracks_to_search]
                 
                 for i, future in enumerate(futures):
                     track = tracks_to_search[i]
                     cache_key = (track['title'].lower(), track['artist'].lower())
                     try:
-                        status, url = future.result()
-                        if status == 'success':
-                            track_url_cache[cache_key] = url
-                        elif status == 'not_found':
-                            track_url_cache[cache_key] = None
-                        elif status == 'auth_error':
-                            auth_error_detected = True
-                            failed_searches.append(track)
-                        else:
-                            track_url_cache[cache_key] = None
+                        url = future.result()
+                        track_url_cache[cache_key] = url
                     except Exception as e:
                         _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error processing search result for {track['title']}: {e}")
                         track_url_cache[cache_key] = None
+                        failed_searches.append(track)
 
             tracks_to_search = failed_searches
-            if auth_error_detected:
-                retries -= 1
-                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token expired during parallel track search, attempting refresh...")
-                if _refresh_token_helper(mock_request):
-                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token refresh successful, retrying search...")
-                else:
-                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token refresh failed. Aborting track search.")
-                    for track in tracks_to_search:
-                        cache_key = (track['title'].lower(), track['artist'].lower())
-                        track_url_cache[cache_key] = None
-                    break
-            else:
-                for track in tracks_to_search:
-                    cache_key = (track['title'].lower(), track['artist'].lower())
-                    track_url_cache[cache_key] = None
+            retries -= 1
+            if not tracks_to_search:
                 break
 
         for song_title_match, artist_name_match in all_song_mentions:
