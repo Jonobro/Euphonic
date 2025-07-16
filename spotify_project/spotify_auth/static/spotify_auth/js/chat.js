@@ -210,7 +210,10 @@ I've talked too much – let's get started! What can I do for you?`;
                 'X-CSRFToken': csrfToken,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ chat_mode: chatMode })
+            body: JSON.stringify({ 
+                chat_mode: chatMode,
+                initial_analysis_task_id: initialAnalysisTaskId
+            })
         })
         .then(response => {
             if (!response.ok) {

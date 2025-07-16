@@ -1226,6 +1226,10 @@ def initialize_chat_data_view(request):
                         first_ai_message.append(entry['parts'][0]['text'])
                 return JsonResponse({'first_ai_message': first_ai_message, 'already_initialized': True})
             
+            initial_analysis_task_id = data.get('initial_analysis_task_id')
+            if initial_analysis_task_id:
+                request.session['initial_analysis_task_id'] = initial_analysis_task_id
+
             session_data = dict(request.session)
             thread = threading.Thread(
                 target=_generate_musical_analysis,
