@@ -155,6 +155,9 @@ h2, h3, h4, h5, h6 {
 
 .ai-message.has-playlist-button {
     padding-bottom: 22px;
+    align-self: center;
+    border-bottom-left-radius: 15px;
+    padding-right: 25px;
 }
 
 .user-message {
