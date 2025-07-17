@@ -30,14 +30,19 @@ h2, h3, h4, h5, h6 {
 }
 
 .playlist-title {
+    font-size: 1.4em;
+    font-weight: 600;
+    color: #fff;
     text-align: center;
-    background-color: transparent;
-    border: 1px solid white;
-    border-radius: 20px;
-    padding: 8px 15px;
-    margin: -5px auto 15px auto;
-    max-width: 80%;
-    font-weight: bold;
+    margin: 15px auto 20px auto;
+    padding: 15px;
+    border: 2px solid #1db954;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(29, 185, 84, 0.3);
+    background: rgba(29, 185, 84, 0.05);
+    transition: all 0.3s ease;
+    width: fit-content;
+    max-width: 90%;
 }
 
 .button {
