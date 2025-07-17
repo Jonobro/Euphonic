@@ -57,8 +57,8 @@ h2, h3, h4, h5, h6 {
     border: none;
     border-radius: 20px;
     text-decoration: none;
-    font-weight: bold;
-    font-size: 14px;
+    font-weight: 600;
+    font-size: 13px;
     transition: background-color 0.3s;
     outline: none;
     cursor: pointer;
@@ -280,8 +280,9 @@ h2, h3, h4, h5, h6 {
 }
 
 .save-playlist-button {
-    font-weight: bold;
+    font-weight: 500;
     box-shadow: 0 0 9px rgba(30, 200, 90, 0.4);
+    font-size: 13.5px;
 }
 
 .secondary-button {
