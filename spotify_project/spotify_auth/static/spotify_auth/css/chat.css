@@ -39,7 +39,6 @@ h2, h3, h4, h5, h6 {
     border-radius: 15px;
     box-shadow: 0 0 18px rgba(30, 200, 90, 0.3);
     background: rgba(30, 200, 90, 0.05);
-    transition: all 0.3s ease;
     width: fit-content;
     max-width: 90%;
     padding-left: 15px;
@@ -292,6 +291,7 @@ h2, h3, h4, h5, h6 {
     color: rgb(30, 200, 90);
     font-size: 0.9em;
     font-weight: 500;
+    min-width: 120px;
 }
 
 .secondary-button:hover {

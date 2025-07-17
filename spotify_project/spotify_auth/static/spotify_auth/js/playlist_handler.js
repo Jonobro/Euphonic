@@ -73,7 +73,7 @@ function processMessageForPlaylist(messageElement) {
             
             const createAnotherButton = document.createElement('button');
             createAnotherButton.className = 'button secondary-button';
-            createAnotherButton.textContent = 'Create Another Playlist';
+            createAnotherButton.textContent = 'New Playlist';
 
             secondaryActionsContainer.appendChild(reviseButton);
             secondaryActionsContainer.appendChild(createAnotherButton);
