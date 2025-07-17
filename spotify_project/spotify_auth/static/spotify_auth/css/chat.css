@@ -72,6 +72,33 @@ h2, h3, h4, h5, h6 {
     padding-right: 10px;
 }
 
+#message-list::-webkit-scrollbar {
+    width: 12px;
+}
+
+#message-list::-webkit-scrollbar-track {
+    background: #1D1D1D;
+    border-radius: 10px;
+}
+
+#message-list::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, rgb(40, 220, 100), rgb(20, 180, 80));
+    border-radius: 10px;
+    border: 2px solid #1D1D1D;
+}
+
+#message-list::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, rgb(45, 230, 110), rgb(25, 190, 90));
+}
+
+/* Scrollbar fallback */
+@supports not selector(::-webkit-scrollbar) {
+    #message-list {
+        scrollbar-width: auto;
+        scrollbar-color: rgb(30, 200, 90) #282828;
+    }
+}
+
 .message {
     margin-bottom: 10px;
     padding: 10px 15px;
