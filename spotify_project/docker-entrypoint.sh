@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+echo "Clearing old static files..."
+rm -rf /app/staticfiles/*
+
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 

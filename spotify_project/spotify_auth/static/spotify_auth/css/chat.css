@@ -55,21 +55,6 @@ h2, h3, h4, h5, h6 {
     pointer-events: none;
 }
 
-.library-string-container {
-    margin-top: 20px;
-    background-color: #282828;
-    padding: 15px;
-    border-radius: 5px;
-    max-height: 60vh;
-    overflow-y: auto;
-}
-.library-string-container pre {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    margin: 0;
-    color: #B3B3B3;
-}
-
 #chat-container {
     margin-top: 20px;
     background-color: #282828;
@@ -119,6 +104,7 @@ h2, h3, h4, h5, h6 {
     border-bottom-left-radius: 5px;
     font-size: 0.875em;
     font-weight: 400;
+    /* Poppins Regular */
 }
 
 .ai-message.has-playlist-button {
@@ -133,6 +119,7 @@ h2, h3, h4, h5, h6 {
     border-bottom-right-radius: 5px;
     font-size: 0.875em;
     font-weight: 500;
+    /* Poppins Medium */
 }
 
 #chat-input-area {
