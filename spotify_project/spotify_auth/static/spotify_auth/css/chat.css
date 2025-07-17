@@ -73,7 +73,7 @@ h2, h3, h4, h5, h6 {
 }
 
 #message-list::-webkit-scrollbar {
-    width: 12px;
+    width: 11px;
 }
 
 #message-list::-webkit-scrollbar-track {
@@ -84,7 +84,6 @@ h2, h3, h4, h5, h6 {
 #message-list::-webkit-scrollbar-thumb {
     background: linear-gradient(to bottom, rgb(40, 220, 100), rgb(20, 180, 80));
     border-radius: 10px;
-    border: 2px solid #1D1D1D;
 }
 
 #message-list::-webkit-scrollbar-thumb:hover {
@@ -95,7 +94,7 @@ h2, h3, h4, h5, h6 {
 @supports not selector(::-webkit-scrollbar) {
     #message-list {
         scrollbar-width: auto;
-        scrollbar-color: rgb(30, 200, 90) #282828;
+        scrollbar-color: rgb(30, 200, 90) #1D1D1D;
     }
 }
 
