@@ -260,8 +260,8 @@ h2, h3, h4, h5, h6 {
 }
 
 .save-playlist-button {
-    background-color: rgb(45, 215, 97.5);
     font-weight: bold;
+    box-shadow: 0 0 9px rgba(30, 200, 90, 0.4);
 }
 
 .secondary-button {
