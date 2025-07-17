@@ -283,6 +283,7 @@ h2, h3, h4, h5, h6 {
     font-weight: 500;
     box-shadow: 0 0 9px rgba(30, 200, 90, 0.4);
     font-size: 13.5px;
+    margin-top: 6px;
 }
 
 .secondary-button {
@@ -290,6 +291,7 @@ h2, h3, h4, h5, h6 {
     border: 1px solid #e0e0e0;
     color: rgb(30, 200, 90);
     font-size: 0.9em;
+    font-weight: 500;
 }
 
 .secondary-button:hover {
