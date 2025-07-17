@@ -1226,6 +1226,7 @@ def initialize_chat_data_view(request):
                 request.session['initial_analysis_task_id'] = initial_analysis_task_id
 
             session_data = dict(request.session)
+            session_data['session_key'] = request.session.session_key
             thread = threading.Thread(
                 target=_generate_musical_analysis,
                 args=(session_data,)
@@ -2026,7 +2027,6 @@ def chat_message_api(request):
         task_id = str(uuid.uuid4())
         
         session_data = dict(request.session)
-
         thread = threading.Thread(
             target=_process_chat_message_thread,
             args=(session_data, user_message, task_id)
