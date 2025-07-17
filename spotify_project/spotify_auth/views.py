@@ -615,6 +615,17 @@ def _generate_musical_analysis(session_data):
         _log_to_file(GENERAL_LOG_FILE, "Analysis generation skipped: user_id not in session.")
         return
 
+    if mock_request.session.get('final_analysis_chat_history'):
+        _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: analysis already exists.")
+        return
+    
+    analysis_in_progress_key = f"analysis_in_progress_{user_id}"
+    if cache.get(analysis_in_progress_key):
+        _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: analysis already in progress.")
+        return
+    
+    cache.set(analysis_in_progress_key, True, timeout=300)
+
     try:
         cache_key_tracks = f'spotify_user_tracks_{user_id}'
         cache_key_lib_msg = f'library_size_message_{user_id}'
@@ -728,6 +739,8 @@ Here are a few questions you might find interesting:
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis for user {user_id}: {e}")
     finally:
+        cache.delete(analysis_in_progress_key)
+        
         session_key_from_data = session_data.get('session_key')
         if session_key_from_data:
             try:
