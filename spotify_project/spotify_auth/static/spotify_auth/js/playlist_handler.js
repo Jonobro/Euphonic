@@ -43,6 +43,11 @@ function processMessageForPlaylist(messageElement) {
         decoder.innerHTML = playlistNameHTML;
         const playlistName = decoder.value;
 
+        const titleElement = document.createElement('div');
+        titleElement.className = 'playlist-title';
+        titleElement.textContent = playlistName;
+        content.prepend(titleElement);
+
         const removalRegex = /\+\+\+\+\+.*?\+\+\+\+\+(?:<br>)?/;
         content.innerHTML = content.innerHTML.replace(removalRegex, '').trim();
 

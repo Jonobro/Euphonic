@@ -29,6 +29,17 @@ h2, h3, h4, h5, h6 {
     font-size: 1.5em;
 }
 
+.playlist-title {
+    text-align: center;
+    background-color: transparent;
+    border: 1px solid white;
+    border-radius: 20px;
+    padding: 8px 15px;
+    margin: -5px auto 15px auto;
+    max-width: 80%;
+    font-weight: bold;
+}
+
 .button {
     display: inline-block;
     background-color:rgb(30, 200, 90);
