@@ -41,16 +41,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.marked && window.DOMPurify) {
             try {
                 const dirtyHtml = marked.parse(text || '');
-                msg.innerHTML = DOMPurify.sanitize(dirtyHtml, { ADD_ATTR: ['target'] });
+                // Enhanced DOMPurify configuration for better security
+                msg.innerHTML = DOMPurify.sanitize(dirtyHtml, { 
+                    ADD_ATTR: ['target'],
+                    FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input'],
+                    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
+                    ALLOW_DATA_ATTR: false
+                });
             }
             catch { msg.textContent = text; }
-        } else {
-            msg.textContent = text;
-        }
+        } else { msg.textContent = text; }
+
         messageList.append(msg);
         if (shouldScroll) {
             scrollToBottom();
         }
+        
         return msg;
     };
 

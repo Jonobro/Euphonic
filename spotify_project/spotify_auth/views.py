@@ -2037,6 +2037,27 @@ def chat_message_api(request):
         if not user_message:
             return JsonResponse({'error': 'No message provided'}, status=400)
 
+        if not isinstance(user_message, str):
+            return JsonResponse({'error': 'Message must be a string'}, status=400)
+        user_message = user_message.strip()
+        if len(user_message) > 10000:
+            return JsonResponse({'error': 'Message too long'}, status=400)
+        
+        dangerous_patterns = [
+            r'<script[^>]*>.*?</script>',
+            r'javascript:',
+            r'vbscript:',
+            r'data:text/html',
+            r'onerror\s*=',
+            r'onload\s*=',
+            r'onclick\s*='
+        ]
+        
+        for pattern in dangerous_patterns:
+            if re.search(pattern, user_message, re.IGNORECASE | re.DOTALL):
+                _log_to_file(GENERAL_LOG_FILE, f"Potentially malicious input detected from session {request.session.session_key}: {user_message[:100]}...")
+                return JsonResponse({'error': 'Invalid message content'}, status=400)
+
         if request.session.get('chat_mode') == 'new_songs' and not request.session.get('new_songs_chat_history'):
             return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
         if request.session.get('chat_mode') == 'saved_songs' and not request.session.get('saved_songs_chat_history'):
