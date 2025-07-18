@@ -75,7 +75,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     addMessage(data.response, 'ai', false);
                 }
-                userMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setTimeout(() => {
+                    const userMessageRect = userMessageElement.getBoundingClientRect();
+                    const containerRect = messageList.getBoundingClientRect();
+                    if (userMessageRect.top < containerRect.top) {
+                        userMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        return;
+                    } else {
+                        scrollToBottom();
+                    }
+                }, 10);
             }
             cleanup();
         };
