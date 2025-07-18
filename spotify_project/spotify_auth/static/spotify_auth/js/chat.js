@@ -33,6 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const addMessage = (text, sender, shouldScroll = true) => {
         const msg = document.createElement('div');
         msg.className = `message ${sender}-message`;
+        
+        if (sender === 'ai' && text && text.includes("I'm afraid I can't help with that. Do you have any questions or requests related to your music?")) {
+            msg.classList.add('error-message');
+        }
+        
         if (window.marked && window.DOMPurify) {
             try {
                 const dirtyHtml = marked.parse(text || '');

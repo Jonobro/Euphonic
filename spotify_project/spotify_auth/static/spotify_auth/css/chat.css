@@ -150,8 +150,9 @@ h2, h3, h4, h5, h6 {
     align-self: flex-start;
     border-bottom-left-radius: 5px;
     font-size: 0.875em;
-    font-weight: 400;
     /* Poppins Regular */
+    font-weight: 400;
+    min-width: 10%;
 }
 
 .ai-message.has-playlist-button {
@@ -163,6 +164,10 @@ h2, h3, h4, h5, h6 {
     margin-top: 25px;
 }
 
+.ai-message.error-message {
+    max-width: 69%;
+}
+
 .user-message {
     background-color:rgb(30, 200, 90);
     color:#1A1A1A;
@@ -170,8 +175,8 @@ h2, h3, h4, h5, h6 {
     margin-left: auto;
     border-bottom-right-radius: 5px;
     font-size: 0.875em;
-    font-weight: 500;
     /* Poppins Medium */
+    font-weight: 500;
 }
 
 #chat-input-area {
