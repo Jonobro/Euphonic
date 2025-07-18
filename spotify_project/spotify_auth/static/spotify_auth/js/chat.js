@@ -68,8 +68,18 @@ document.addEventListener('DOMContentLoaded', () => {
         eventSource.onmessage = (event) => {
             const data = JSON.parse(event.data);
             if (data.response) {
-                addMessage(data.response, 'ai', false);
-                userMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (Array.isArray(data.response)) {
+                    let lastMessage = null;
+                    data.response.forEach(text => {
+                        lastMessage = addMessage(text, 'ai', false);
+                    });
+                    if (lastMessage) {
+                        lastMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                } else {
+                    const newMessage = addMessage(data.response, 'ai', false);
+                    newMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             }
             cleanup();
         };
