@@ -69,7 +69,10 @@ function processMessageForPlaylist(messageElement) {
         
         if (trackLinks.length > 0) {
             messageElement.classList.add('has-playlist-button');
-            toggleChatInput(true);
+            const isLastMessage = messageIndex === allMessages.length - 1;
+            if (isLastMessage) {
+                toggleChatInput(true);
+            }
             
             const playlistActionsContainer = document.createElement('div');
             playlistActionsContainer.className = 'save-playlist-container';
