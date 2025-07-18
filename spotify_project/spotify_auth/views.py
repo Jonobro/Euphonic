@@ -410,7 +410,7 @@ FORMATTING_SYSTEM_INSTRUCTION = """You are a playlist formatting bot. You will r
 
 Operational Guidelines:
 * Begin by checking if the message contains a bulleted playlist of songs, typically marked with * signs.
-* If the message does not contain a bulleted playlist of songs, simply respond with the exact phrase "I had a problem with your request. Please send your message again."
+* If the message does not contain a bulleted playlist of songs, simply respond with the exact phrase "Sorry, I had a problem with your request. Please resend your message."
 * If the message does contain a bulleted playlist of songs, your task is to format the playlist according to the rules defined below. Follow these instructions precisely at all times.
 
 Song Formatting:

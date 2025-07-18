@@ -69,11 +69,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = JSON.parse(event.data);
             if (data.response) {
                 if (Array.isArray(data.response)) {
-                    data.response.forEach(text => {
-                        addMessage(text, 'ai', false);
-                    });
+                    const hasContent = data.response.some(text => text && text.trim() !== '');
+                    if (hasContent) {
+                        data.response.forEach(text => {
+                            if (text && text.trim() !== '') {
+                                addMessage(text, 'ai', false);
+                            }
+                        });
+                    } else {
+                        addMessage("Sorry, I had a problem with your request. Please resend your message.", 'ai', false);
+                    }
                 } else {
-                    addMessage(data.response, 'ai', false);
+                    if (data.response && data.response.trim() !== '') {
+                        addMessage(data.response, 'ai', false);
+                    } else {
+                        addMessage("Sorry, I had a problem with your request. Please resend your message.", 'ai', false);
+                    }
                 }
                 setTimeout(() => {
                     const userTop = userMessageElement.offsetTop;
@@ -85,6 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         userMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 }, 10);
+            } else {
+                addMessage("Sorry, I had a problem with your request. Please resend your message.", 'ai', false);
             }
             cleanup();
         };
