@@ -30,6 +30,20 @@ function processMessageForPlaylist(messageElement) {
         return;
     }
 
+    const messageList = messageElement.closest('.message-list');
+    const allMessages = Array.from(messageList.children);
+    const messageIndex = allMessages.indexOf(messageElement);
+    
+    let lastDividerIndex = -1;
+    for (let i = allMessages.length - 1; i >= 0; i--) {
+        if (allMessages[i].classList.contains('conversation-divider')) {
+            lastDividerIndex = i;
+            break;
+        }
+    }
+    
+    const isBeforeLastDivider = lastDividerIndex !== -1 && messageIndex < lastDividerIndex;
+
     const content = messageElement;
     if (!content) return;
 
@@ -64,110 +78,112 @@ function processMessageForPlaylist(messageElement) {
             saveButton.className = 'button save-playlist-button';
             saveButton.textContent = `Save Playlist "${playlistName}" to Spotify`;
             
-            const secondaryActionsContainer = document.createElement('div');
-            secondaryActionsContainer.className = 'additional-buttons-container';
-            
-            const reviseButton = document.createElement('button');
-            reviseButton.className = 'button secondary-button';
-            reviseButton.textContent = 'Revise Playlist';
-            
-            const createAnotherButton = document.createElement('button');
-            createAnotherButton.className = 'button secondary-button';
-            createAnotherButton.textContent = 'New Playlist';
+            if (!isBeforeLastDivider) {
+                const secondaryActionsContainer = document.createElement('div');
+                secondaryActionsContainer.className = 'additional-buttons-container';
+                
+                const reviseButton = document.createElement('button');
+                reviseButton.className = 'button secondary-button';
+                reviseButton.textContent = 'Revise Playlist';
+                
+                const createAnotherButton = document.createElement('button');
+                createAnotherButton.className = 'button secondary-button';
+                createAnotherButton.textContent = 'New Playlist';
 
-            secondaryActionsContainer.appendChild(reviseButton);
-            secondaryActionsContainer.appendChild(createAnotherButton);
+                secondaryActionsContainer.appendChild(reviseButton);
+                secondaryActionsContainer.appendChild(createAnotherButton);
 
-            reviseButton.addEventListener('click', async () => {
-                const chatMode = document.body.dataset.chatMode;
-                const userAction = 'revise_playlist';
-                try {
-                    const response = await fetch('/reset_chat_history_api/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken,
-                        },
-                        body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
-                    });
+                reviseButton.addEventListener('click', async () => {
+                    const chatMode = document.body.dataset.chatMode;
+                    const userAction = 'revise_playlist';
+                    try {
+                        const response = await fetch('/reset_chat_history_api/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
+                        });
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success && data.initial_response) {
-                            const allMessages = messageList.querySelectorAll('.message');
-                            allMessages.forEach(message => {
-                                message.classList.add('previous-conversation');
-                                const existingSecondary = message.querySelector('.additional-buttons-container');
-                                if (existingSecondary) {
-                                    existingSecondary.remove();
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.initial_response) {
+                                const allMessages = messageList.querySelectorAll('.message');
+                                allMessages.forEach(message => {
+                                    message.classList.add('previous-conversation');
+                                    const existingSecondary = message.querySelector('.additional-buttons-container');
+                                    if (existingSecondary) {
+                                        existingSecondary.remove();
+                                    }
+                                });
+                                const dividerElement = document.createElement('div');
+                                dividerElement.className = 'conversation-divider';
+                                messageList.appendChild(dividerElement);
+                                toggleChatInput(false);
+
+                                if (window.addMessageAndScroll) {
+                                    window.addMessageAndScroll(data.initial_response, 'ai');
                                 }
-                            });
-                            const dividerElement = document.createElement('div');
-                            dividerElement.className = 'conversation-divider';
-                            messageList.appendChild(dividerElement);
-                            toggleChatInput(false);
-
-                            if (window.addMessageAndScroll) {
-                                window.addMessageAndScroll(data.initial_response, 'ai');
                             }
+                        } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || 'Failed to reset chat.');
                         }
-                    } else {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Failed to reset chat.');
+                    } catch (error) {
+                        console.error('Error resetting chat:', error);
+                        alert(`Error: ${error.message}`);
+                        toggleChatInput(false);
                     }
-                } catch (error) {
-                    console.error('Error resetting chat:', error);
-                    alert(`Error: ${error.message}`);
-                    toggleChatInput(false);
-                }
-            });
+                });
 
-            createAnotherButton.addEventListener('click', async () => {
-                const chatMode = document.body.dataset.chatMode;
-                const userAction = 'create_another_playlist';
-                try {
-                    const response = await fetch('/reset_chat_history_api/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken,
-                        },
-                        body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
-                    });
+                createAnotherButton.addEventListener('click', async () => {
+                    const chatMode = document.body.dataset.chatMode;
+                    const userAction = 'create_another_playlist';
+                    try {
+                        const response = await fetch('/reset_chat_history_api/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
+                        });
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success && data.initial_response) {
-                            const allMessages = messageList.querySelectorAll('.message');
-                            allMessages.forEach(message => {
-                                message.classList.add('previous-conversation');
-                                const existingSecondary = message.querySelector('.additional-buttons-container');
-                                if (existingSecondary) {
-                                    existingSecondary.remove();
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.initial_response) {
+                                const allMessages = messageList.querySelectorAll('.message');
+                                allMessages.forEach(message => {
+                                    message.classList.add('previous-conversation');
+                                    const existingSecondary = message.querySelector('.additional-buttons-container');
+                                    if (existingSecondary) {
+                                        existingSecondary.remove();
+                                    }
+                                });
+                                const dividerElement = document.createElement('div');
+                                dividerElement.className = 'conversation-divider';
+                                messageList.appendChild(dividerElement);
+                                toggleChatInput(false);
+
+                                if (window.addMessageAndScroll) {
+                                    window.addMessageAndScroll(data.initial_response, 'ai');
                                 }
-                            });
-                            const dividerElement = document.createElement('div');
-                            dividerElement.className = 'conversation-divider';
-                            messageList.appendChild(dividerElement);
-                            toggleChatInput(false);
-
-                            if (window.addMessageAndScroll) {
-                                window.addMessageAndScroll(data.initial_response, 'ai');
                             }
+                        } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || 'Failed to reset chat.');
                         }
-                    } else {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Failed to reset chat.');
+                    } catch (error) {
+                        console.error('Error resetting chat:', error);
+                        alert(`Error: ${error.message}`);
+                        toggleChatInput(false);
                     }
-                } catch (error) {
-                    console.error('Error resetting chat:', error);
-                    alert(`Error: ${error.message}`);
-                    toggleChatInput(false);
-                }
-            });
-            
+                });
+                playlistActionsContainer.appendChild(secondaryActionsContainer);
+            }
+
             playlistActionsContainer.appendChild(saveButton);
-            playlistActionsContainer.appendChild(secondaryActionsContainer);
             content.appendChild(playlistActionsContainer);
 
             saveButton.addEventListener('click', async () => {
