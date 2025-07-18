@@ -57,13 +57,29 @@ function processMessageForPlaylist(messageElement) {
         decoder.innerHTML = playlistNameHTML;
         const playlistName = decoder.value;
 
+        const savedPlaylists = JSON.parse(localStorage.getItem('savedPlaylists') || '{}');
+        const playlistIdentifier = playlistName;
+
         const titleElement = document.createElement('div');
         titleElement.className = 'playlist-title';
         titleElement.textContent = playlistName;
+        
+        const removalRegex = /\+\+\+\+\+.*?\+\+\+\+\+(?:<br>)?/;
+        const cleanContent = content.innerHTML.replace(removalRegex, '').trim();
+        content.innerHTML = cleanContent;
         content.prepend(titleElement);
 
-        const removalRegex = /\+\+\+\+\+.*?\+\+\+\+\+(?:<br>)?/;
-        content.innerHTML = content.innerHTML.replace(removalRegex, '').trim();
+        if (savedPlaylists[playlistIdentifier]) {
+            const successMessage = document.createElement('p');
+            successMessage.className = 'save-playlist-success';
+            successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
+            
+            const playlistActionsContainer = document.createElement('div');
+            playlistActionsContainer.className = 'save-playlist-container';
+            playlistActionsContainer.appendChild(successMessage);
+            content.appendChild(playlistActionsContainer);
+            return;
+        }
 
         const trackLinks = Array.from(content.querySelectorAll('a[href^="https://open.spotify.com/track/"]'));
         
@@ -74,8 +90,8 @@ function processMessageForPlaylist(messageElement) {
                 toggleChatInput(true);
             }
             
-            const existingSuccessMessage = content.querySelector('.save-playlist-success');
-            if (existingSuccessMessage) {
+            const existingErrorContainer = content.querySelector('.save-playlist-error');
+            if (existingErrorContainer) {
                 return;
             }
             
@@ -229,6 +245,10 @@ function processMessageForPlaylist(messageElement) {
                         successMessage.className = 'save-playlist-success';
                         successMessage.innerHTML = `Playlist "<a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
                         saveButton.replaceWith(successMessage);
+
+                        const savedPlaylists = JSON.parse(localStorage.getItem('savedPlaylists') || '{}');
+                        savedPlaylists[playlistIdentifier] = result.playlist_url;
+                        localStorage.setItem('savedPlaylists', JSON.stringify(savedPlaylists));
                     } else {
                         let errorText = `Server error: ${response.status}`;
                         try {
