@@ -30,7 +30,7 @@ function processMessageForPlaylist(messageElement) {
         return;
     }
 
-    const messageList = messageElement.closest('.message-list');
+    const messageList = messageElement.closest('#message-list');
     const allMessages = Array.from(messageList.children);
     const messageIndex = allMessages.indexOf(messageElement);
     
