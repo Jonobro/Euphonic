@@ -57,7 +57,7 @@ function processMessageForPlaylist(messageElement) {
         decoder.innerHTML = playlistNameHTML;
         const playlistName = decoder.value;
 
-        const savedPlaylists = JSON.parse(localStorage.getItem('savedPlaylists') || '{}');
+        const savedPlaylists = JSON.parse(sessionStorage.getItem('savedPlaylists') || '{}');
         const playlistIdentifier = playlistName;
 
         const titleElement = document.createElement('div');
@@ -246,9 +246,9 @@ function processMessageForPlaylist(messageElement) {
                         successMessage.innerHTML = `Playlist "<a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
                         saveButton.replaceWith(successMessage);
 
-                        const savedPlaylists = JSON.parse(localStorage.getItem('savedPlaylists') || '{}');
+                        const savedPlaylists = JSON.parse(sessionStorage.getItem('savedPlaylists') || '{}');
                         savedPlaylists[playlistIdentifier] = result.playlist_url;
-                        localStorage.setItem('savedPlaylists', JSON.stringify(savedPlaylists));
+                        sessionStorage.setItem('savedPlaylists', JSON.stringify(savedPlaylists));
                     } else {
                         let errorText = `Server error: ${response.status}`;
                         try {
