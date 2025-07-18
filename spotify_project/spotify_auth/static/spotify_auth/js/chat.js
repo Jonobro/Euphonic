@@ -76,13 +76,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     addMessage(data.response, 'ai', false);
                 }
                 setTimeout(() => {
-                    const userMessageRect = userMessageElement.getBoundingClientRect();
-                    const containerRect = messageList.getBoundingClientRect();
-                    if (userMessageRect.top < containerRect.top) {
-                        userMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        return;
-                    } else {
+                    const userTop = userMessageElement.offsetTop;
+                    const contentHeight = messageList.scrollHeight;
+                    const viewHeight = messageList.clientHeight;
+                    if (contentHeight - userTop <= viewHeight) {
                         scrollToBottom();
+                    } else {
+                        userMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 }, 10);
             }
