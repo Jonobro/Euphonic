@@ -74,6 +74,16 @@ function processMessageForPlaylist(messageElement) {
                 toggleChatInput(true);
             }
             
+            const existingSuccessMessage = content.querySelector('.save-playlist-success');
+            if (existingSuccessMessage) {
+                return;
+            }
+            
+            const existingSaveButton = content.querySelector('.save-playlist-button');
+            if (existingSaveButton) {
+                return;
+            }
+            
             const playlistActionsContainer = document.createElement('div');
             playlistActionsContainer.className = 'save-playlist-container';
             
