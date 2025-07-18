@@ -46,6 +46,7 @@ h2, h3, h4, h5, h6 {
     padding-top: 4.5px;
     padding-bottom: 4.5px;
     min-width: 30%;
+    transform: translateX(10px);
 }
 
 .button {
@@ -274,6 +275,7 @@ h2, h3, h4, h5, h6 {
     display: flex;
     justify-content: center;
     gap: 10px;
+    transform: translateX(10px);
 }
 
 .save-playlist-success {
@@ -289,6 +291,7 @@ h2, h3, h4, h5, h6 {
     box-shadow: 0 0 9px rgba(30, 200, 90, 0.4);
     font-size: 13.5px;
     margin-top: 6px;
+    transform: translateX(10px);
 }
 
 .secondary-button {
