@@ -1990,7 +1990,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             final_history_for_session = final_history_for_session[1:]
         else:
             final_history_for_session.append({'role': 'user', 'parts': [{'text': user_message}]})
-            if '+++++' in processed_ai_response_text:
+            if re.search(r"\+\+\+\+\+.*?\+\+\+\+\+", processed_ai_response_text):
                 intro_text = "Here's your playlist — enjoy!"
                 final_history_for_session.append({'role': 'model', 'parts': [{'text': intro_text}]})
                 final_history_for_session.append({'role': 'model', 'parts': [{'text': processed_ai_response_text}]})
