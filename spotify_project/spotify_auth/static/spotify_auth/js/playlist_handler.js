@@ -70,6 +70,10 @@ function processMessageForPlaylist(messageElement) {
         content.prepend(titleElement);
 
         if (savedPlaylists[playlistIdentifier]) {
+            messageElement.classList.add('has-playlist-button');
+            if (isBeforeLastDivider) {
+                messageElement.classList.add('previous-conversation');
+            }
             const successMessage = document.createElement('p');
             successMessage.className = 'save-playlist-success';
             successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
