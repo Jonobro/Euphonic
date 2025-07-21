@@ -73,7 +73,111 @@ function processMessageForPlaylist(messageElement) {
             messageElement.classList.add('has-playlist-button');
             if (isBeforeLastDivider) {
                 messageElement.classList.add('previous-conversation');
+            } else {
+                const secondaryActionsContainer = document.createElement('div');
+                secondaryActionsContainer.className = 'additional-buttons-container';
+                
+                const reviseButton = document.createElement('button');
+                reviseButton.className = 'button secondary-button';
+                reviseButton.textContent = 'Revise Playlist';
+                
+                const createAnotherButton = document.createElement('button');
+                createAnotherButton.className = 'button secondary-button';
+                createAnotherButton.textContent = 'New Playlist';
+
+                secondaryActionsContainer.appendChild(reviseButton);
+                secondaryActionsContainer.appendChild(createAnotherButton);
+
+                reviseButton.addEventListener('click', async () => {
+                    const chatMode = document.body.dataset.chatMode;
+                    const userAction = 'revise_playlist';
+                    try {
+                        const response = await fetch('/reset_chat_history_api/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.initial_response) {
+                                const allMessages = messageList.querySelectorAll('.message');
+                                allMessages.forEach(message => {
+                                    message.classList.add('previous-conversation');
+                                    const existingSecondary = message.querySelector('.additional-buttons-container');
+                                    if (existingSecondary) {
+                                        existingSecondary.remove();
+                                    }
+                                });
+                                const dividerElement = document.createElement('div');
+                                dividerElement.className = 'conversation-divider';
+                                messageList.appendChild(dividerElement);
+                                toggleChatInput(false);
+
+                                if (window.addMessageAndScroll) {
+                                    window.addMessageAndScroll(data.initial_response, 'ai');
+                                }
+                            }
+                        } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || 'Failed to reset chat.');
+                        }
+                    } catch (error) {
+                        console.error('Error resetting chat:', error);
+                        alert(`Error: ${error.message}`);
+                        toggleChatInput(false);
+                    }
+                });
+
+                createAnotherButton.addEventListener('click', async () => {
+                    const chatMode = document.body.dataset.chatMode;
+                    const userAction = 'create_another_playlist';
+                    try {
+                        const response = await fetch('/reset_chat_history_api/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.initial_response) {
+                                const allMessages = messageList.querySelectorAll('.message');
+                                allMessages.forEach(message => {
+                                    message.classList.add('previous-conversation');
+                                    const existingSecondary = message.querySelector('.additional-buttons-container');
+                                    if (existingSecondary) {
+                                        existingSecondary.remove();
+                                    }
+                                });
+                                const dividerElement = document.createElement('div');
+                                dividerElement.className = 'conversation-divider';
+                                messageList.appendChild(dividerElement);
+                                toggleChatInput(false);
+
+                                if (window.addMessageAndScroll) {
+                                    window.addMessageAndScroll(data.initial_response, 'ai');
+                                }
+                            }
+                        } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || 'Failed to reset chat.');
+                        }
+                    } catch (error) {
+                        console.error('Error resetting chat:', error);
+                        alert(`Error: ${error.message}`);
+                        toggleChatInput(false);
+                    }
+                });
+                playlistActionsContainer.appendChild(secondaryActionsContainer);
             }
+
             const successMessage = document.createElement('p');
             successMessage.className = 'save-playlist-success';
             successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
