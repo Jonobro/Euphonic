@@ -74,6 +74,9 @@ function processMessageForPlaylist(messageElement) {
             if (isBeforeLastDivider) {
                 messageElement.classList.add('previous-conversation');
             } else {
+                const playlistActionsContainer = document.createElement('div');
+                playlistActionsContainer.className = 'save-playlist-container';
+                
                 const secondaryActionsContainer = document.createElement('div');
                 secondaryActionsContainer.className = 'additional-buttons-container';
                 
@@ -175,7 +178,15 @@ function processMessageForPlaylist(messageElement) {
                         toggleChatInput(false);
                     }
                 });
+
+                const successMessage = document.createElement('p');
+                successMessage.className = 'save-playlist-success';
+                successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
+                
+                playlistActionsContainer.appendChild(successMessage);
                 playlistActionsContainer.appendChild(secondaryActionsContainer);
+                content.appendChild(playlistActionsContainer);
+                return;
             }
 
             const successMessage = document.createElement('p');
