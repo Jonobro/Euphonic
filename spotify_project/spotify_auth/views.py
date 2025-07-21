@@ -600,7 +600,20 @@ def pre_chat_view(request):
 
 def logout_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    request.session.flush() 
+    
+    user_id = request.session.get('spotify_user_id')
+    if user_id:
+        keys_to_delete = [
+            f'spotify_user_tracks_{user_id}',
+            f'library_size_message_{user_id}',
+            f'last_processed_playlist_{user_id}',
+            f'last_processed_playlist_details_{user_id}',
+            f'analysis_in_progress_{user_id}'
+        ]
+        cache.delete_many(keys_to_delete)
+        _log_to_file(GENERAL_LOG_FILE, f"Cleared cache for user {user_id} on logout.")
+
+    request.session.flush()
     return redirect(reverse('index'))
 
 def _generate_musical_analysis(session_data):
@@ -1703,7 +1716,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                 'response': ai_response_text,
                 'session_data': mock_request.session
             }
-            cache.set(task_id, result, timeout=300)
+            cache.set(task_id, result, timeout=600)
             return
 
         unfound_tracks_for_feedback = []
@@ -2017,11 +2030,11 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             'response': response_data,
             'session_data': mock_request.session
         }
-        cache.set(task_id, result, timeout=300)
+        cache.set(task_id, result, timeout=600)
 
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in chat processing thread for task {task_id}: {e}")
-        cache.set(task_id, {'error': 'An unexpected error occurred processing your message.'}, timeout=300)
+        cache.set(task_id, {'error': 'An unexpected error occurred processing your message.'}, timeout=600)
 
 @csrf_protect
 @require_http_methods(["POST"])
@@ -2132,7 +2145,7 @@ def stream_initial_analysis(request, task_id):
                     'response': final_history,
                     'session_data': session_data
                 }
-                cache.set(task_id, result, timeout=300)
+                cache.set(task_id, result, timeout=600)
                 yield f"data: {json.dumps(result)}\n\n"
             else:
                 error_data = {'message': 'Failed to retrieve musical analysis.'}
