@@ -186,6 +186,7 @@ function processMessageForPlaylist(messageElement) {
                 playlistActionsContainer.appendChild(successMessage);
                 playlistActionsContainer.appendChild(secondaryActionsContainer);
                 content.appendChild(playlistActionsContainer);
+                toggleChatInput(true);
                 return;
             }
 
