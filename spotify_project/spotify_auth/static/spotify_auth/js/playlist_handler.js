@@ -110,7 +110,8 @@ function processMessageForPlaylist(messageElement) {
             const saveButton = document.createElement('button');
             saveButton.className = 'button save-playlist-button';
             saveButton.textContent = `Save Playlist "${playlistName}" to Spotify`;
-            
+            playlistActionsContainer.appendChild(saveButton);
+
             if (!isBeforeLastDivider) {
                 const secondaryActionsContainer = document.createElement('div');
                 secondaryActionsContainer.className = 'additional-buttons-container';
@@ -216,7 +217,6 @@ function processMessageForPlaylist(messageElement) {
                 playlistActionsContainer.appendChild(secondaryActionsContainer);
             }
 
-            playlistActionsContainer.appendChild(saveButton);
             content.appendChild(playlistActionsContainer);
 
             saveButton.addEventListener('click', async () => {
