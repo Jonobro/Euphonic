@@ -25,6 +25,71 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+async function handlePlaylistAction(userAction) {
+    const chatMode = document.body.dataset.chatMode;
+    const messageList = document.getElementById('message-list');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    try {
+        const response = await fetch('/reset_chat_history_api/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.initial_response) {
+                const allMessages = messageList.querySelectorAll('.message');
+                allMessages.forEach(message => {
+                    message.classList.add('previous-conversation');
+                    const existingSecondary = message.querySelector('.additional-buttons-container');
+                    if (existingSecondary) {
+                        existingSecondary.remove();
+                    }
+                });
+                const dividerElement = document.createElement('div');
+                dividerElement.className = 'conversation-divider';
+                messageList.appendChild(dividerElement);
+                toggleChatInput(false);
+
+                if (window.addMessageAndScroll) {
+                    window.addMessageAndScroll(data.initial_response, 'ai');
+                }
+            }
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to reset chat.');
+        }
+    } catch (error) {
+        console.error('Error resetting chat:', error);
+        alert(`Error: ${error.message}`);
+        toggleChatInput(false);
+    }
+}
+
+function createSecondaryActionsContainer() {
+    const secondaryActionsContainer = document.createElement('div');
+    secondaryActionsContainer.className = 'additional-buttons-container';
+
+    const reviseButton = document.createElement('button');
+    reviseButton.className = 'button secondary-button';
+    reviseButton.textContent = 'Revise Playlist';
+    reviseButton.addEventListener('click', () => handlePlaylistAction('revise_playlist'));
+
+    const createAnotherButton = document.createElement('button');
+    createAnotherButton.className = 'button secondary-button';
+    createAnotherButton.textContent = 'New Playlist';
+    createAnotherButton.addEventListener('click', () => handlePlaylistAction('create_another_playlist'));
+
+    secondaryActionsContainer.appendChild(reviseButton);
+    secondaryActionsContainer.appendChild(createAnotherButton);
+
+    return secondaryActionsContainer;
+}
+
 function processMessageForPlaylist(messageElement) {
     if (!messageElement.classList.contains('ai-message')) {
         return;
@@ -77,107 +142,7 @@ function processMessageForPlaylist(messageElement) {
                 const playlistActionsContainer = document.createElement('div');
                 playlistActionsContainer.className = 'save-playlist-container';
                 
-                const secondaryActionsContainer = document.createElement('div');
-                secondaryActionsContainer.className = 'additional-buttons-container';
-                
-                const reviseButton = document.createElement('button');
-                reviseButton.className = 'button secondary-button';
-                reviseButton.textContent = 'Revise Playlist';
-                
-                const createAnotherButton = document.createElement('button');
-                createAnotherButton.className = 'button secondary-button';
-                createAnotherButton.textContent = 'New Playlist';
-
-                secondaryActionsContainer.appendChild(reviseButton);
-                secondaryActionsContainer.appendChild(createAnotherButton);
-
-                reviseButton.addEventListener('click', async () => {
-                    const chatMode = document.body.dataset.chatMode;
-                    const userAction = 'revise_playlist';
-                    try {
-                        const response = await fetch('/reset_chat_history_api/', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrfToken,
-                            },
-                            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
-                        });
-
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.success && data.initial_response) {
-                                const allMessages = messageList.querySelectorAll('.message');
-                                allMessages.forEach(message => {
-                                    message.classList.add('previous-conversation');
-                                    const existingSecondary = message.querySelector('.additional-buttons-container');
-                                    if (existingSecondary) {
-                                        existingSecondary.remove();
-                                    }
-                                });
-                                const dividerElement = document.createElement('div');
-                                dividerElement.className = 'conversation-divider';
-                                messageList.appendChild(dividerElement);
-                                toggleChatInput(false);
-
-                                if (window.addMessageAndScroll) {
-                                    window.addMessageAndScroll(data.initial_response, 'ai');
-                                }
-                            }
-                        } else {
-                            const errorData = await response.json();
-                            throw new Error(errorData.error || 'Failed to reset chat.');
-                        }
-                    } catch (error) {
-                        console.error('Error resetting chat:', error);
-                        alert(`Error: ${error.message}`);
-                        toggleChatInput(false);
-                    }
-                });
-
-                createAnotherButton.addEventListener('click', async () => {
-                    const chatMode = document.body.dataset.chatMode;
-                    const userAction = 'create_another_playlist';
-                    try {
-                        const response = await fetch('/reset_chat_history_api/', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrfToken,
-                            },
-                            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
-                        });
-
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.success && data.initial_response) {
-                                const allMessages = messageList.querySelectorAll('.message');
-                                allMessages.forEach(message => {
-                                    message.classList.add('previous-conversation');
-                                    const existingSecondary = message.querySelector('.additional-buttons-container');
-                                    if (existingSecondary) {
-                                        existingSecondary.remove();
-                                    }
-                                });
-                                const dividerElement = document.createElement('div');
-                                dividerElement.className = 'conversation-divider';
-                                messageList.appendChild(dividerElement);
-                                toggleChatInput(false);
-
-                                if (window.addMessageAndScroll) {
-                                    window.addMessageAndScroll(data.initial_response, 'ai');
-                                }
-                            }
-                        } else {
-                            const errorData = await response.json();
-                            throw new Error(errorData.error || 'Failed to reset chat.');
-                        }
-                    } catch (error) {
-                        console.error('Error resetting chat:', error);
-                        alert(`Error: ${error.message}`);
-                        toggleChatInput(false);
-                    }
-                });
+                const secondaryActionsContainer = createSecondaryActionsContainer();
 
                 const successMessage = document.createElement('p');
                 successMessage.className = 'save-playlist-success';
@@ -229,107 +194,7 @@ function processMessageForPlaylist(messageElement) {
             playlistActionsContainer.appendChild(saveButton);
 
             if (!isBeforeLastDivider) {
-                const secondaryActionsContainer = document.createElement('div');
-                secondaryActionsContainer.className = 'additional-buttons-container';
-                
-                const reviseButton = document.createElement('button');
-                reviseButton.className = 'button secondary-button';
-                reviseButton.textContent = 'Revise Playlist';
-                
-                const createAnotherButton = document.createElement('button');
-                createAnotherButton.className = 'button secondary-button';
-                createAnotherButton.textContent = 'New Playlist';
-
-                secondaryActionsContainer.appendChild(reviseButton);
-                secondaryActionsContainer.appendChild(createAnotherButton);
-
-                reviseButton.addEventListener('click', async () => {
-                    const chatMode = document.body.dataset.chatMode;
-                    const userAction = 'revise_playlist';
-                    try {
-                        const response = await fetch('/reset_chat_history_api/', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrfToken,
-                            },
-                            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
-                        });
-
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.success && data.initial_response) {
-                                const allMessages = messageList.querySelectorAll('.message');
-                                allMessages.forEach(message => {
-                                    message.classList.add('previous-conversation');
-                                    const existingSecondary = message.querySelector('.additional-buttons-container');
-                                    if (existingSecondary) {
-                                        existingSecondary.remove();
-                                    }
-                                });
-                                const dividerElement = document.createElement('div');
-                                dividerElement.className = 'conversation-divider';
-                                messageList.appendChild(dividerElement);
-                                toggleChatInput(false);
-
-                                if (window.addMessageAndScroll) {
-                                    window.addMessageAndScroll(data.initial_response, 'ai');
-                                }
-                            }
-                        } else {
-                            const errorData = await response.json();
-                            throw new Error(errorData.error || 'Failed to reset chat.');
-                        }
-                    } catch (error) {
-                        console.error('Error resetting chat:', error);
-                        alert(`Error: ${error.message}`);
-                        toggleChatInput(false);
-                    }
-                });
-
-                createAnotherButton.addEventListener('click', async () => {
-                    const chatMode = document.body.dataset.chatMode;
-                    const userAction = 'create_another_playlist';
-                    try {
-                        const response = await fetch('/reset_chat_history_api/', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrfToken,
-                            },
-                            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
-                        });
-
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.success && data.initial_response) {
-                                const allMessages = messageList.querySelectorAll('.message');
-                                allMessages.forEach(message => {
-                                    message.classList.add('previous-conversation');
-                                    const existingSecondary = message.querySelector('.additional-buttons-container');
-                                    if (existingSecondary) {
-                                        existingSecondary.remove();
-                                    }
-                                });
-                                const dividerElement = document.createElement('div');
-                                dividerElement.className = 'conversation-divider';
-                                messageList.appendChild(dividerElement);
-                                toggleChatInput(false);
-
-                                if (window.addMessageAndScroll) {
-                                    window.addMessageAndScroll(data.initial_response, 'ai');
-                                }
-                            }
-                        } else {
-                            const errorData = await response.json();
-                            throw new Error(errorData.error || 'Failed to reset chat.');
-                        }
-                    } catch (error) {
-                        console.error('Error resetting chat:', error);
-                        alert(`Error: ${error.message}`);
-                        toggleChatInput(false);
-                    }
-                });
+                const secondaryActionsContainer = createSecondaryActionsContainer();
                 playlistActionsContainer.appendChild(secondaryActionsContainer);
             }
 
