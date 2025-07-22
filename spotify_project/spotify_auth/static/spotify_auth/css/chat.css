@@ -57,6 +57,7 @@ h2, h3, h4, h5, h6 {
     border: none;
     border-radius: 20px;
     text-decoration: none;
+    /* Poppins SemiBold */
     font-weight: 600;
     font-size: 13px;
     transition: background-color 0.3s;
