@@ -154,6 +154,7 @@ h2, h3, h4, h5, h6 {
     /* Poppins Regular */
     font-weight: 400;
     min-width: 10%;
+    text-shadow: 0 0 2.25px #181818;
 }
 
 .ai-message.has-playlist-button {
