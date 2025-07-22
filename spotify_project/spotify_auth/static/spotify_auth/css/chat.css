@@ -337,3 +337,127 @@ h2, h3, h4, h5, h6 {
         opacity: 1;
     }
 }
+
+.legal-links {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    opacity: 0.7;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.legal-links a {
+    color: rgb(30, 200, 90);
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.legal-links a:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.support-email {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.support-email a {
+    color: rgb(30, 200, 90);
+    text-decoration: none;
+}
+
+/* Legal Modal Styles */
+.legal-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8);
+    overflow-y: auto;
+}
+
+.modal-content {
+    background-color: #2a2a2a;
+    margin: 2% auto;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 15px;
+}
+
+.modal-header h2 {
+    color: rgb(30, 200, 90);
+    margin: 0;
+}
+
+.close-modal {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-modal:hover {
+    color: white;
+}
+
+.modal-body {
+    line-height: 1.6;
+    color: #e0e0e0;
+}
+
+.modal-body h3 {
+    margin-top: 25px;
+    margin-bottom: 15px;
+    color: rgb(30, 200, 90);
+    font-size: 1.1em;
+}
+
+.modal-body p {
+    margin-bottom: 15px;
+}
+
+.modal-body ul {
+    margin-bottom: 15px;
+    padding-left: 20px;
+}
+
+.modal-body li {
+    margin-bottom: 8px;
+}
+
+.modal-body code {
+    background-color: rgba(30, 200, 90, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Poppins', monospace;
+    font-size: 0.9em;
+}
+
+.modal-body a {
+    color: rgb(30, 200, 90);
+    text-decoration: none;
+}
+
+.modal-body a:hover {
+    text-decoration: underline;
+}
