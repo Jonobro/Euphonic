@@ -19,7 +19,9 @@
         <div class="header-row">
             <img src="{% static 'spotify_auth/images/EuphonicIntelligenceLogo.svg' %}" alt="Euphonic Intelligence Logo" class="header-logo">
             <div class="header-buttons">
-                <a href="{% url 'pre_chat' %}" class="button">Back</a>
+                {% if chat_mode == 'saved_songs' or chat_mode == 'analysis' %}
+                <a href="{% url 'new_song_chat' %}" class="button">Back</a>
+                {% endif %}
                 <div class="tooltip-container">
                     <a href="{% url 'logout' %}" class="button">Disconnect</a>
                     <span class="custom-tooltip">Purges your data with Euphonic Intelligence</span>

@@ -495,7 +495,7 @@ def get_gemini_client():
 def index(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     if request.session.get('spotify_access_token'):
-        return redirect(reverse('pre_chat'))
+        return redirect(reverse('new_song_chat'))
     return render(request, 'spotify_auth/index.html')
 
 @csrf_protect
@@ -589,14 +589,8 @@ def spotify_callback(request):
         del request.session['spotify_code_verifier']
     if 'spotify_auth_state' in request.session:
         del request.session['spotify_auth_state']
-    
-    return redirect(reverse('pre_chat'))
 
-def pre_chat_view(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    if not request.session.get('spotify_access_token'):
-        return redirect(reverse('spotify_login'))
-    return render(request, 'spotify_auth/pre_chat.html')
+    return redirect(reverse('new_song_chat'))
 
 def logout_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
