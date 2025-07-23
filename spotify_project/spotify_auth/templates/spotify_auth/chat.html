@@ -80,7 +80,7 @@
                 privacy: {
                     title: 'Privacy Policy',
                     body: `
-                        <p style="font-size:inherit; margin-bottom:20px;"><strong>Last Updated:</strong> May 15, 2025</p>
+                        <p style="font-size:inherit; margin-bottom:20px;"><strong>Last Updated:</strong> July 22, 2025</p>
                         <p>Jonathan Yoder, operating as Euphonic Intelligence ("we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, share, and retain your information when you use the Euphonic Intelligence application (the "Application" or "Service").</p>
 
                         <p>Please read this Privacy Policy carefully. By accessing or using the Application, you agree to the collection and use of information in accordance with this policy. This Privacy Policy should be read in conjunction with our End-User License Agreement (EULA).</p>
@@ -88,15 +88,15 @@
                         <h3>1. Information We Collect and Use</h3>
                         <p>We collect the following types of information:</p>
                         <div style="padding-left:20px;">
-                            <p><strong>a. Information from Spotify:</strong> When you connect your Spotify account to our Service, we request your authorization to access certain information from your Spotify account via the Spotify API. We only request the permissions (OAuth scopes) necessary to provide the features of our Service. This includes:</p>
+                            <p><strong>A. Information from Spotify:</strong> When you connect your Spotify account to our Service, we request your authorization to access certain information from your Spotify account via the Spotify API. We only request the permissions (OAuth scopes) necessary to provide the features of our Service. This includes:</p>
                             <ul style="padding-left:40px;">
                                 <li><strong>Spotify Authentication Tokens</strong>: Access and refresh tokens from Spotify to authenticate you and access your Spotify data on your behalf and to maintain your login session. These are stored securely in your session.</li>
-                                <li><strong>Spotify Library</strong>: We use the <code>user-library-read</code> scope to access your "Liked Songs" which we then parse and send to Google's Gemini API. This allows us to understand your musical preferences and create custom playlists using your saved songs. It also allows you to have an engaging conversation with Gemini regarding your music.</li>
-                                <li><strong>Spotify Playlists</strong>: We use the <code>playlist-read-private</code> and <code>playlist-read-collaborative</code> scopes to access your playlists which we then parse and send to Google's Gemini API. This allows us to understand your musical preferences and create playlists using the songs from your existing playlists.</li>
-                                <li><strong>Search for an Item</strong>: We use the <code>user-read-private</code> scope to search for songs on Spotify which helps us to create playlists for our users.</li>
-                                <li><strong>Playlist Creation</strong>: We use the <code>playlist-modify-private</code> and <code>playlist-modify-public</code> scopes to create new public and private playlists on your behalf (when you request and approve our doing so).</li>
+                                <li><strong>Spotify Library</strong>: We use the user-library-read scope to access your "Liked Songs" which we then parse and send to Google's Gemini API. This allows us to understand your musical preferences and create custom playlists using your saved songs. It also allows you to have an engaging conversation with Gemini regarding your music.</li>
+                                <li><strong>Spotify Playlists</strong>: We use the playlist-read-private and playlist-read-collaborative scopes to access your playlists which we then parse and send to Google's Gemini API. This allows us to understand your musical preferences and create playlists using the songs from your existing playlists.</li>
+                                <li><strong>Search for an Item</strong>: We use the user-read-private scope to search for songs on Spotify which helps us to create playlists for our users.</li>
+                                <li><strong>Playlist Creation</strong>: We use the playlist-modify-private and playlist-modify-public scopes to create new public and private playlists on your behalf (when you request and approve our doing so).</li>
                             </ul>
-                            <p><strong>b. User Input Data:</strong></p>
+                            <p><strong>B. User Input Data:</strong></p>
                             <ul style="padding-left:40px;">
                                 <li><strong>Chat History</strong>: The history of your conversation with the AI, including your messages and the AI's responses, will be stored in your session data for continuity during your active use.</li>
                             </ul>
@@ -107,23 +107,23 @@
                         <h3>2. How We Share Your Information</h3>
                         <p>We do not sell your personal information. We share your information only in the following limited circumstances:</p>
                         <div style="padding-left:20px;">
-                            <p><strong>a. With Google (Gemini API):</strong></p>
+                            <p><strong>A. With Google (Gemini API):</strong></p>
                             <ul style="padding-left:40px;">
                                 <li>To provide the core AI chat and music analysis features, we send your Spotify library information (as a structured string of track names and artists) and your chat messages/prompts to Google's Gemini API for processing.</li>
                                 <li>Google's use of this data is governed by Google's API Terms of Service and Privacy Policy. We send system instructions and user prompts to the Gemini model. As stated above, Google is not authorized to retain this data or use this data for training purposes.</li>
                             </ul>
-                            <p><strong>b. With Spotify:</strong></p>
+                            <p><strong>B. With Spotify:</strong></p>
                             <ul style="padding-left:40px;">
                                 <li>We interact with the Spotify API to authenticate you, access your authorized library data, and perform actions on your behalf (such as saving playlists). Our interactions are governed by your authorizations and Spotify's Developer Terms. We do not share your private chat messages or Gemini responses directly back to Spotify unless it's an explicit action you take (e.g., creating a new playlist based on a chat message from Gemini).</li>
                             </ul>
-                            <p><strong>c. Legal Requirements:</strong></p>
+                            <p><strong>C. Legal Requirements:</strong></p>
                             <ul style="padding-left:40px;">
                                 <li>We may disclose your information if required to do so by law or in the good faith belief that such action is necessary to comply with a legal obligation, protect and defend our rights or property, prevent or investigate possible wrongdoing in connection with the Service, protect the personal safety of users of the Service or the public, or protect against legal liability.</li>
                             </ul>
                         </div>
 
                         <h3>3. Contact Us</h3>
-                        <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your personal information, please contact us at: <a href="mailto:jyoder433@gmail.com">jyoder433@gmail.com</a></p>
+                        <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your personal information, please contact us at: <a href="mailto:support@euphonicintelligence.com">support@euphonicintelligence.com</a></p>
 
                         <p>By using Euphonic Intelligence, you signify your acceptance of this Privacy Policy. If you do not agree to these terms, please do not use our Service.</p>
                     `
@@ -131,7 +131,7 @@
                 eula: {
                     title: 'End-User License Agreement',
                     body: `
-                        <p style="font-size:inherit; margin-bottom:20px;"><strong>Last Updated:</strong> May 15, 2025</p>
+                        <p style="font-size:inherit; margin-bottom:20px;"><strong>Last Updated:</strong> July 22, 2025</p>
                         
                         <h3>1. INTRODUCTION AND ACCEPTANCE OF TERMS</h3>
                         <p>This End-User License Agreement ("Agreement" or "EULA") is a legal contract between you ("User") and the Application developer ("we", "us", or "our"). By installing, accessing, or using the Application, you agree to be bound by these terms. If you do not agree to these terms, do not use the Application.</p>
@@ -171,7 +171,7 @@
                         </ul>
 
                         <h3>6. CONTACT</h3>
-                        <p>If you have questions about this Agreement, please contact us at: <a href="mailto:jyoder433@gmail.com">jyoder433@gmail.com</a></p>
+                        <p>If you have questions about this Agreement, please contact us at: <a href="mailto:support@euphonicintelligence.com">support@euphonicintelligence.com</a></p>
 
                         <p>By using the Application, you acknowledge that you have read this Agreement, understand it, and agree to be bound by its terms and conditions.</p>
                     `

@@ -357,11 +357,6 @@ h2, h3, h4, h5, h6 {
     margin-left: 12.5px;
 }
 
-.legal-links a:hover {
-    opacity: 1;
-    text-decoration: underline;
-}
-
 /* Legal Modal Styles */
 .legal-modal {
     display: none;
@@ -416,6 +411,7 @@ h2, h3, h4, h5, h6 {
 .modal-body {
     line-height: 1.6;
     color: #e0e0e0;
+    font-size: 0.9em;
 }
 
 .modal-body h3 {
