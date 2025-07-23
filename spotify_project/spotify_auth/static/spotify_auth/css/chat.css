@@ -382,6 +382,32 @@ h2, h3, h4, h5, h6 {
     position: relative;
 }
 
+.modal-content::-webkit-scrollbar {
+    width: 11px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #1D1D1D;
+    border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, rgb(40, 220, 100), rgb(20, 180, 80));
+    border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, rgb(45, 230, 110), rgb(25, 190, 90));
+}
+
+/* Scrollbar fallback */
+@supports not selector(::-webkit-scrollbar) {
+    .modal-content {
+        scrollbar-width: auto;
+        scrollbar-color: rgb(30, 200, 90) #1D1D1D;
+    }
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
