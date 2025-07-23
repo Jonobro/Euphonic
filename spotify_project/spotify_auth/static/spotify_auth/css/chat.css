@@ -154,7 +154,7 @@ h2, h3, h4, h5, h6 {
     /* Poppins Regular */
     font-weight: 400;
     min-width: 10%;
-    text-shadow: 0 0 2.25px #181818;
+    text-shadow: 0 0 2px #181818;
 }
 
 .ai-message.has-playlist-button {
@@ -252,7 +252,7 @@ h2, h3, h4, h5, h6 {
     text-align: center;
     margin-top: 17.5px;
     color: #B3B3B3;
-    font-size: 12px;
+    font-size: 12.5px;
     display: flex;
     align-items: center;
     flex-direction: column;
@@ -269,8 +269,8 @@ h2, h3, h4, h5, h6 {
 
 .spotify-logo {
     display: block;
-    height: 40px;
-    margin: 10px auto;
+    height: 35px;
+    margin-left: 5px;
 }
 
 .save-playlist-container {
@@ -344,17 +344,16 @@ h2, h3, h4, h5, h6 {
 .legal-links {
     display: flex;
     gap: 10px;
-    font-size: 12px;
     opacity: 1;
     align-items: center;
     justify-content: center;
-    margin-bottom: 4px;
+    margin-bottom: 9px;
 }
 
 .powered-by-container {
     display: flex;
     align-items: center;
-    margin-left: 12.5px;
+    margin-left: 16px;
 }
 
 .legal-links a {
