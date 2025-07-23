@@ -468,3 +468,20 @@ h2, h3, h4, h5, h6 {
 .modal-body a:hover {
     text-decoration: underline;
 }
+
+.modal-body .last-updated {
+    font-size: inherit;
+    margin-bottom: 20px;
+}
+
+.modal-body .section-content ul {
+    padding-left: 40px;
+}
+
+.modal-body .restrictions-header {
+    margin-bottom: 0;
+}
+
+.modal-body .restrictions-list {
+    margin-top: 0;
+}
