@@ -29,58 +29,6 @@ REDIS_CLIENT = settings.REDIS_CLIENT
 ANALYSIS_EVENT_CHANNEL_PREFIX = 'analysis_completion:'
 ANALYSIS_EVENT_TIMEOUT = 300
 
-def generate_code_verifier(length=64):
-    possible_chars = string.ascii_letters + string.digits + '-._~'
-    code_verifier = ''.join(secrets.choice(possible_chars) for _ in range(length))
-    return code_verifier
-
-def _prefetch_spotify_tracks_worker(session_key):
-    try:
-        session_store = Session.get_session_store_class()
-        session = session_store(session_key=session_key)
-
-        class MockRequest:
-            def __init__(self, session_obj):
-                self.session = session_obj
-                self.user_id = session_obj.get('spotify_user_id')
-
-        mock_request = MockRequest(session)
-        
-        if not mock_request.user_id:
-            access_token = mock_request.session.get('spotify_access_token')
-            if access_token:
-                headers = {'Authorization': f'Bearer {access_token}'}
-                url = 'https://api.spotify.com/v1/me'
-                try:
-                    response = requests.get(url, headers=headers, timeout=10)
-                    if response.status_code == 200:
-                        user_data = response.json()
-                        mock_request.user_id = user_data.get('id')
-                        session['spotify_user_id'] = mock_request.user_id
-                    else:
-                        _log_to_file(GENERAL_LOG_FILE, f"Prefetch worker could not get user_id for session {session_key}. Status: {response.status_code}")
-                except Exception as e:
-                    _log_to_file(GENERAL_LOG_FILE, f"Prefetch worker exception getting user_id for session {session_key}: {e}")
-        
-        if session.modified:
-            session.save()
-        
-        if mock_request.user_id:
-            _, fetch_success = _fetch_all_spotify_tracks(mock_request)
-            if fetch_success:
-                session_data_for_analysis = dict(session)
-                session_data_for_analysis['session_key'] = session_key
-                _generate_musical_analysis(session_data_for_analysis)
-
-    except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error in prefetch worker for session {session_key}: {e}")
-
-def generate_code_challenge(verifier):
-    sha256_hash = hashlib.sha256(verifier.encode('utf-8')).digest()
-    code_challenge = base64.urlsafe_b64encode(sha256_hash).decode('utf-8')
-    code_challenge = code_challenge.replace('=', '')
-    return code_challenge
-
 GEMINI_CLIENT = None
 MODEL_NAME = "gemini-2.5-flash-preview-05-20"
 
@@ -88,25 +36,6 @@ CACHE_KEY_GROUNDED_TIMESTAMPS = 'grounded_api_call_timestamps'
 GROUNDING_API_LIMIT = 1495
 ONE_DAY_IN_SECONDS = 24 * 60 * 60
 GOOGLE_SEARCH_TOOL = Tool(google_search=types.GoogleSearch())
-
-SAFETY_SETTINGS = [
-    {
-        "category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        "threshold": HarmBlockThreshold.BLOCK_NONE,
-    },
-    {
-        "category": HarmCategory.HARM_CATEGORY_HARASSMENT,
-        "threshold": HarmBlockThreshold.BLOCK_NONE,
-    },
-    {
-        "category": HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-        "threshold": HarmBlockThreshold.BLOCK_NONE,
-    },
-    {
-        "category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-        "threshold": HarmBlockThreshold.BLOCK_NONE,
-    },
-]
 
 GROUNDING_USAGE_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'grounding_usage.log'
 GEMINI_API_LOG_FILE = Path(settings.BASE_DIR) / 'logs' / 'custom_logs' / 'gemini_api.log'
@@ -448,6 +377,52 @@ Other Rules:
 6. **No Other Alterations:** Do not perform any other alterations to <text_to_edit> beyond those described above.
 """
 
+SAFETY_SETTINGS = [
+    {
+        "category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        "threshold": HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+        "category": HarmCategory.HARM_CATEGORY_HARASSMENT,
+        "threshold": HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+        "category": HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        "threshold": HarmBlockThreshold.BLOCK_NONE,
+    },
+    {
+        "category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        "threshold": HarmBlockThreshold.BLOCK_NONE,
+    },
+]
+
+def _get_token_line(tokens_file, line_number):
+    _log_to_file(GENERAL_LOG_FILE, f"_get_token_line called with file: {tokens_file}, line_number: {line_number}")
+    try:
+        with open(tokens_file, "r") as f:
+            _log_to_file(GENERAL_LOG_FILE, f"Successfully opened tokens file: {tokens_file}")
+            for i, line in enumerate(f):
+                if i == line_number:
+                    token_preview = line.strip()[:10] + "..." if len(line.strip()) > 10 else line.strip()
+                    _log_to_file(GENERAL_LOG_FILE, f"Found token at line {line_number}: {token_preview}")
+                    return line.strip()
+        _log_to_file(GENERAL_LOG_FILE, f"Line {line_number} not found in file {tokens_file} (file has fewer lines)")
+    except Exception as e:
+        _log_to_file(GENERAL_LOG_FILE, f"Error reading tokens file {tokens_file}: {e}")
+    _log_to_file(GENERAL_LOG_FILE, f"_get_token_line returning None for file: {tokens_file}, line: {line_number}")
+    return None
+
+SPOTIFY_ACCESS_TOKEN = _get_token_line(Path(__file__).parent.parent / "tokens", 0)
+SPOTIFY_ID = settings.SPOTIFY_ID
+
+def _ensure_euphonic_intelligence_user_id(request):
+    if not request.session.get('euphonic_intelligence_user_id'):
+        euphonic_user_id = str(uuid.uuid4())
+        request.session['euphonic_intelligence_user_id'] = euphonic_user_id
+        request.session.modified = True
+        _log_to_file(GENERAL_LOG_FILE, f"Generated new euphonic_intelligence_user_id: {euphonic_user_id} for session {request.session.session_key}")
+    return request.session['euphonic_intelligence_user_id']
+
 def _log_to_file(log_file_path, message):
     try:
         log_file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -494,108 +469,12 @@ def get_gemini_client():
 
 def index(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    if request.session.get('spotify_access_token'):
-        return redirect(reverse('new_song_chat'))
-    return render(request, 'spotify_auth/index.html')
-
-@csrf_protect
-def spotify_login(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    code_verifier = generate_code_verifier(64)
-    request.session['spotify_code_verifier'] = code_verifier
-    code_challenge = generate_code_challenge(code_verifier)
-    state = secrets.token_urlsafe(16)
-    request.session['spotify_auth_state'] = state
-    auth_params = {
-        'client_id': settings.SPOTIFY_CLIENT_ID,
-        'response_type': 'code',
-        'redirect_uri': settings.SPOTIFY_REDIRECT_URI,
-        'state': state,
-        'scope': 'user-read-private user-library-read playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public',
-        'code_challenge_method': 'S256',
-        'code_challenge': code_challenge
-    }
-    auth_url = f"https://accounts.spotify.com/authorize?{urlencode(auth_params)}"
-    return redirect(auth_url)
-
-@csrf_protect
-def spotify_callback(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    # Adding this line to better understand occasional "GET /callback/ from session None" lines in logs and ensure the user has a valid session
-    if not request.session.session_key:
-            return render(request, 'spotify_auth/error.html')
-    code = request.GET.get('code')
-    state = request.GET.get('state')
-    error = request.GET.get('error')
-
-    if error:
-        return render(request, 'spotify_auth/error.html', {'error': error})
-    stored_state = request.session.get('spotify_auth_state')
-    
-    if not state or state != stored_state:
-        return render(request, 'spotify_auth/error.html', {
-            'error': 'State verification failed. Possible CSRF attack.'
-        })
-    
-    code_verifier = request.session.get('spotify_code_verifier')
-    
-    if not code_verifier:
-        return render(request, 'spotify_auth/error.html', {
-            'error': 'Code verifier not found in session.'
-        })
-    
-    token_url = 'https://accounts.spotify.com/api/token'
-    
-    token_data = {
-        'client_id': settings.SPOTIFY_CLIENT_ID,
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': settings.SPOTIFY_REDIRECT_URI,
-        'code_verifier': code_verifier,
-    }
-    
-    headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-    }
-    
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {token_url}")
-    response = requests.post(token_url, data=token_data, headers=headers)
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {token_url} | Status: {response.status_code} | Body: {response.text}")
-    
-    if response.status_code != 200:
-        log_message = f"Token exchange failed: {response.status_code} - {response.text}"
-        _log_to_file(GENERAL_LOG_FILE, log_message)
-        return render(request, 'spotify_auth/error.html', {
-            'error': 'Token exchange with Spotify failed. Please try again.'
-        })
-    
-    token_info = response.json()
-    
-    request.session['spotify_access_token'] = token_info['access_token']
-    if 'refresh_token' in token_info:
-        request.session['spotify_refresh_token'] = token_info['refresh_token']
-
-    request.session.save()
-    
-    prefetch_thread = threading.Thread(
-        target=_prefetch_spotify_tracks_worker,
-        args=(request.session.session_key,)
-    )
-    prefetch_thread.daemon = True
-    prefetch_thread.start()
-    _log_to_file(GENERAL_LOG_FILE, f"Started prefetch thread for session {request.session.session_key}")
-
-    if 'spotify_code_verifier' in request.session:
-        del request.session['spotify_code_verifier']
-    if 'spotify_auth_state' in request.session:
-        del request.session['spotify_auth_state']
-
+    _ensure_euphonic_intelligence_user_id(request)
     return redirect(reverse('new_song_chat'))
 
-def logout_view(request):
+def disconnect_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    
-    user_id = request.session.get('spotify_user_id')
+    user_id = request.session.get('euphonic_intelligence_user_id')
     if user_id:
         keys_to_delete = [
             f'spotify_user_tracks_{user_id}',
@@ -605,8 +484,7 @@ def logout_view(request):
             f'analysis_in_progress_{user_id}'
         ]
         cache.delete_many(keys_to_delete)
-        _log_to_file(GENERAL_LOG_FILE, f"Cleared cache for user {user_id} on logout.")
-
+        _log_to_file(GENERAL_LOG_FILE, f"Cleared cache for user {user_id}")
     request.session.flush()
     return redirect(reverse('index'))
 
@@ -614,7 +492,7 @@ def _generate_musical_analysis(session_data):
     class MockRequest:
         def __init__(self, session_dict):
             self.session = session_dict
-            self.user_id = session_dict.get('spotify_user_id')
+            self.user_id = session_dict.get('euphonic_intelligence_user_id')
 
     mock_request = MockRequest(session_data)
     user_id = mock_request.user_id
@@ -757,41 +635,6 @@ Here are a few questions you might find interesting:
             except Exception as redis_error:
                 _log_to_file(GENERAL_LOG_FILE, f"Failed to publish analysis completion to Redis for session {session_key_from_data}: {redis_error}")
 
-def _refresh_token_helper(request):
-    refresh_token = request.session.get('spotify_refresh_token')
-    if not refresh_token:
-        return False
-    
-    token_url = 'https://accounts.spotify.com/api/token'
-    
-    payload = {
-        'grant_type': 'refresh_token',
-        'refresh_token': refresh_token,
-        'client_id': settings.SPOTIFY_CLIENT_ID,
-    }
-    
-    headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-    }
-    
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {token_url}")
-    response = requests.post(token_url, data=payload, headers=headers)
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {token_url} | Status: {response.status_code} | Body: {response.text}")
-    
-    if response.status_code != 200:
-        if 'spotify_refresh_token' in request.session:
-            del request.session['spotify_refresh_token']
-        if 'spotify_access_token' in request.session:
-            del request.session['spotify_access_token']
-        return False
-    
-    token_info = response.json()
-    
-    request.session['spotify_access_token'] = token_info['access_token']
-    if 'refresh_token' in token_info:
-        request.session['spotify_refresh_token'] = token_info['refresh_token']
-    return True
-
 def _get_spotify_track_url_with_backoff(request, song_title, artist_name, max_retries=5):
     worker_id = threading.get_ident()
     
@@ -834,7 +677,7 @@ def _get_spotify_track_url(request, song_title, artist_name):
     chat_mode = request.session.get('chat_mode')
 
     if chat_mode == 'saved_songs':
-        user_id = request.session.get('spotify_user_id')
+        user_id = request.session.get('euphonic_intelligence_user_id')
         if not user_id:
             _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [ERROR] User ID missing for saved songs search. Song: '{song_title}', Artist: '{artist_name}'")
             return 'error', None, None
@@ -861,7 +704,7 @@ def _get_spotify_track_url(request, song_title, artist_name):
         _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [CACHE_SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'.")
         return 'not_found', None, None
 
-    access_token = request.session.get('spotify_access_token')
+    access_token = SPOTIFY_ACCESS_TOKEN
     if not access_token:
         _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [ERROR] Access token missing for Spotify search. Song: '{song_title}', Artist: '{artist_name}'")
         return 'error', None, None
@@ -927,171 +770,46 @@ def _get_spotify_track_url(request, song_title, artist_name):
         _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [UNEXPECTED_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {e_unexp}. Request URL: {log_url}, Headers: {log_headers}, Response (if available): {response_text_on_unexp}")
         return 'error', None, response
 
-def _fetch_page_worker_with_backoff(offset, access_token, limit, max_retries=5):
-    worker_id = threading.get_ident()
-    
-    for attempt in range(max_retries):
-        result = _fetch_page_worker(offset, access_token, limit)
-        
-        if result['status'] in ['success', 'auth_error']:
-            return result
-        
-        if result['status'] == 'error' and attempt < max_retries - 1:
-            delay = 2 ** attempt + random.uniform(0, 1)
-            if 'retry_after' in result:
-                delay = int(result['retry_after']) + random.uniform(0, 1)
-            
-            _log_to_file(SPOTIFY_API_LOG_FILE, 
-                f"Worker {worker_id}: Rate limited for offset {offset}. "
-                f"Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
-            time.sleep(delay)
-        else:
-            break
-    
-    return result
-
-def _fetch_page_worker(offset, access_token, limit):
-    worker_id = threading.get_ident()
-    _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: Fetching songs {offset} - {offset + limit - 1}")
-    headers = {'Authorization': f'Bearer {access_token}'}
-    url = f'https://api.spotify.com/v1/me/tracks?limit={limit}&offset={offset}'
-    
-    try:
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
-        response = requests.get(url, headers=headers, timeout=15)
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} | Status: {response.status_code}")
-
-        if response.status_code == 401:
-            return {'status': 'auth_error', 'offset': offset}
-
-        if response.status_code == 429:
-            retry_after = response.headers.get('Retry-After', 10)
-            return {'status': 'error', 'offset': offset, 'error': 'Rate limited', 'retry_after': retry_after, 'response': response}
-
-        response.raise_for_status()
-        
-        data = response.json()
-        items = data.get('items', [])
-        
-        page_simplified_tracks = []
-        for item in items:
-            track = item.get('track')
-            if not track: continue
-            page_simplified_tracks.append({
-                'id': track.get('id'),
-                'name': track.get('name'),
-                'artists': ', '.join([a.get('name') for a in track.get('artists', [])])
-            })
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: Successfully fetched {len(page_simplified_tracks)} songs from offset {offset}")
-        return {'status': 'success', 'tracks': page_simplified_tracks}
-
-    except requests.exceptions.RequestException as e:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Error fetching Spotify tracks batch starting at offset {offset}: {e}")
-        response_obj = e.response if hasattr(e, 'response') else None
-        return {'status': 'error', 'offset': offset, 'error': str(e), 'response': response_obj}
-    except Exception as e:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Unexpected error processing Spotify batch at offset {offset}: {e}")
-        return {'status': 'error', 'offset': offset, 'error': str(e), 'response': None}
-
 def _fetch_all_spotify_tracks(request):
-    user_id = getattr(request, 'user_id', request.session.get('spotify_user_id'))
+    user_id = request.session.get('euphonic_intelligence_user_id')
     if not user_id:
         _log_to_file(SPOTIFY_API_LOG_FILE, "Cannot fetch tracks without user_id.")
         return None, False
 
     cache_key_tracks = f'spotify_user_tracks_{user_id}'
-    cache_key_lib_msg = f'library_size_message_{user_id}'
-    limit = 50
     
-    access_token = request.session.get('spotify_access_token')
-    if not access_token:
-        _log_to_file(SPOTIFY_API_LOG_FILE, "Access token missing during library fetch.")
-        return None, False
-
-    headers = {'Authorization': f'Bearer {access_token}'}
-    url = f'https://api.spotify.com/v1/me/tracks?limit=1&offset=0'
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url} (for total count)")
-    try:
-        response = requests.get(url, headers=headers, timeout=15)
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} | Status: {response.status_code}")
-        
-        if response.status_code == 401:
-            _log_to_file(SPOTIFY_API_LOG_FILE, "Token expired on initial library fetch, attempting refresh...")
-            if not _refresh_token_helper(request):
-                _log_to_file(SPOTIFY_API_LOG_FILE, "Token refresh failed during initial library fetch.")
-                return None, False
-            access_token = request.session.get('spotify_access_token')
-            headers['Authorization'] = f'Bearer {access_token}'
-            response = requests.get(url, headers=headers, timeout=15)
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} (retry) | Status: {response.status_code}")
-
-        response.raise_for_status()
-        data = response.json()
-        total = data.get('total', 0)
-        
-    except requests.exceptions.RequestException as e:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Error fetching total track count: {e}")
-        return None, False
-
-    if total == 0:
-        cache.set(cache_key_tracks, [], timeout=3600)
-        return [], True
-
-    simplified_tracks = []
-    max_tracks_to_fetch = 1000
-    if total > max_tracks_to_fetch:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"User library has {total} tracks, which is larger than the limit of {max_tracks_to_fetch}. Only fetching the first {max_tracks_to_fetch}.")
-        library_size_message = f"Note: Your Spotify music collection contains {total} tracks which exceeds the maximum length of 1000 songs. I will fetch & use only the first 1000 to keep things running smoothly. Feel free to adjust which tracks you have included."
-        cache.set(cache_key_lib_msg, library_size_message, timeout=3600)
-        total = max_tracks_to_fetch
-
-    offsets_to_fetch = list(range(0, total, limit))
+    cached_tracks = cache.get(cache_key_tracks)
+    if cached_tracks is not None:
+        return cached_tracks, True
     
-    retries = 2
-    while offsets_to_fetch and retries > 0:
-        auth_error_detected = False
-        next_offsets_to_fetch = []
-        
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            current_access_token = request.session.get('spotify_access_token')
-            future_to_offset = {executor.submit(_fetch_page_worker_with_backoff, offset, current_access_token, limit): offset for offset in offsets_to_fetch}
-            
-            for future in concurrent.futures.as_completed(future_to_offset):
-                result = future.result()
-                if result['status'] == 'success':
-                    simplified_tracks.extend(result['tracks'])
-                else:
-                    next_offsets_to_fetch.append(result['offset'])
-                    if result['status'] == 'auth_error':
-                        auth_error_detected = True
-
-        offsets_to_fetch = next_offsets_to_fetch
-        if auth_error_detected:
-            retries -= 1
-            _log_to_file(SPOTIFY_API_LOG_FILE, "Token expired during library fetch batch, attempting refresh...")
-            if not _refresh_token_helper(request):
-                _log_to_file(SPOTIFY_API_LOG_FILE, "Token refresh failed. Aborting library fetch.")
-                return None, False
-        else:
-            if offsets_to_fetch:
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch {len(offsets_to_fetch)} pages due to non-authentication errors. Library will be incomplete.")
-            break
-
-    if not simplified_tracks and total > 0:
-        _log_to_file(SPOTIFY_API_LOG_FILE, "Failed to fetch any tracks, though total was > 0.")
-        return None, False
-
-    cache.set(cache_key_tracks, simplified_tracks, timeout=3600)
-    return simplified_tracks, True
+    sample_tracks = [
+        {
+            'id': '7tFiyTwD0nx5a1eklYtX2J',
+            'name': 'Bohemian Rhapsody',
+            'artists': 'Queen'
+        },
+        {
+            'id': '7qiZfU4dY1lWllzX7mPBI3',
+            'name': 'Shape of You',
+            'artists': 'Ed Sheeran'
+        },
+        {
+            'id': '0VjIjW4GlUZAMYd2vXMi3b',
+            'name': 'Blinding Lights',
+            'artists': 'The Weeknd'
+        }
+    ]
+    
+    cache.set(cache_key_tracks, sample_tracks, timeout=3600)
+    
+    return sample_tracks, True
 
 @csrf_protect
 @require_http_methods(["GET"])
 @never_cache
 def musical_analysis_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    if not request.session.get('spotify_access_token'):
-        return redirect(reverse('spotify_login'))
-    
+    _ensure_euphonic_intelligence_user_id(request)
     request.session['chat_mode'] = request.GET.get('mode', 'analysis')
     final_chat_history = request.session.get('final_analysis_chat_history', [])
     is_loading_initial = not final_chat_history
@@ -1113,9 +831,7 @@ def musical_analysis_view(request):
 @never_cache
 def saved_songs_chat_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    if not request.session.get('spotify_access_token'):
-        return redirect(reverse('spotify_login'))
-    
+    _ensure_euphonic_intelligence_user_id(request)
     request.session['chat_mode'] = request.GET.get('mode', 'saved_songs')
     final_chat_history = request.session.get('final_saved_songs_chat_history', [])
     is_loading_initial = not final_chat_history
@@ -1131,9 +847,7 @@ def saved_songs_chat_view(request):
 @never_cache
 def new_song_chat_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    if not request.session.get('spotify_access_token'):
-        return redirect(reverse('spotify_login'))
-
+    _ensure_euphonic_intelligence_user_id(request)
     request.session['chat_mode'] = request.GET.get('mode', 'new_songs')
     final_chat_history = request.session.get('final_new_songs_chat_history', [])
     is_loading_initial = not final_chat_history
@@ -1149,8 +863,9 @@ def new_song_chat_view(request):
 @never_cache
 def initialize_chat_data_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    if not request.session.get('spotify_access_token'):
-        return JsonResponse({'error': 'User not authenticated'}, status=401)
+    _ensure_euphonic_intelligence_user_id(request)
+    if not SPOTIFY_ACCESS_TOKEN:
+        return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
     
     try:
         data = json.loads(request.body)
@@ -1185,32 +900,11 @@ def initialize_chat_data_view(request):
         return JsonResponse({'first_ai_message': first_ai_message, 'already_initialized': True})
 
     try:
-        if not request.session.get('spotify_user_id'):
-            access_token = request.session.get('spotify_access_token')
-            headers = {'Authorization': f'Bearer {access_token}'}
-            url = 'https://api.spotify.com/v1/me'
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
-            response = requests.get(url, headers=headers, timeout=10)
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} | Status: {response.status_code}")
-            if response.status_code == 401:
-                if _refresh_token_helper(request):
-                    access_token = request.session.get('spotify_access_token')
-                    headers['Authorization'] = f'Bearer {access_token}'
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url} (retry)")
-                    response = requests.get(url, headers=headers, timeout=10)
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url} (retry) | Status: {response.status_code}")
-                else:
-                    _log_to_file(SPOTIFY_API_LOG_FILE, "Token refresh failed while getting user profile.")
-                    return JsonResponse({'error': 'Could not authenticate with Spotify to get user profile.'}, status=401)
-            
-            if response.status_code == 200:
-                user_data = response.json()
-                request.session['spotify_user_id'] = user_data['id']
-            else:
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to get user profile: {response.status_code} - {response.text}")
-                return JsonResponse({'error': 'Could not retrieve Spotify user profile.'}, status=500)
+        if not request.session.get('euphonic_intelligence_user_id'):
+            _log_to_file(GENERAL_LOG_FILE, f"Error in initialize_chat_data_view: user_id missing from session")
+            return JsonResponse({'error': 'Session error. Please refresh the page.'}, status=500)
 
-        user_id = request.session.get('spotify_user_id')
+        user_id = request.session.get('euphonic_intelligence_user_id')
         cache_key_tracks = f'spotify_user_tracks_{user_id}'
         cache_key_lib_msg = f'library_size_message_{user_id}'
         
@@ -1337,8 +1031,8 @@ I've talked too much – let's get started! What can I do for you?"""
 @never_cache
 def reset_chat_history_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    if not request.session.get('spotify_access_token'):
-        return JsonResponse({'error': 'User not authenticated'}, status=401)
+    if not SPOTIFY_ACCESS_TOKEN:
+        return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
 
     try:
         data = json.loads(request.body)
@@ -1367,7 +1061,7 @@ def reset_chat_history_api(request):
         initial_prompt = ""
         initial_response = ""
 
-        user_id = request.session.get('spotify_user_id')
+        user_id = request.session.get('euphonic_intelligence_user_id')
         full_library_string = ""
         if user_id:
             cache_key_tracks = f'spotify_user_tracks_{user_id}'
@@ -1466,12 +1160,12 @@ I've talked too much – let's get started! What can I do for you?"""
 @never_cache
 def create_playlist_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
-    if not request.session.get('spotify_access_token'):
-        return JsonResponse({'error': 'User not authenticated'}, status=401)
+    if not SPOTIFY_ACCESS_TOKEN:
+        return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
     
-    user_id = request.session.get('spotify_user_id')
+    user_id = SPOTIFY_ID
     if not user_id:
-        return JsonResponse({'error': 'User ID not found in session. Please re-initialize the chat.'}, status=400)
+        return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
 
     try:
         data = json.loads(request.body)
@@ -1489,23 +1183,12 @@ def create_playlist_api(request):
             'description': description
         }
         
-        access_token = request.session.get('spotify_access_token')
+        access_token = SPOTIFY_ACCESS_TOKEN
         headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
 
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {create_playlist_url} | Body: {json.dumps(playlist_data)}")
         response = requests.post(create_playlist_url, headers=headers, json=playlist_data, timeout=10)
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {create_playlist_url} | Status: {response.status_code} | Body: {response.text}")
-
-        if response.status_code == 401:
-            if _refresh_token_helper(request):
-                access_token = request.session.get('spotify_access_token')
-                headers['Authorization'] = f'Bearer {access_token}'
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {create_playlist_url} (retry) | Body: {json.dumps(playlist_data)}")
-                response = requests.post(create_playlist_url, headers=headers, json=playlist_data, timeout=10)
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {create_playlist_url} (retry) | Status: {response.status_code} | Body: {response.text}")
-            else:
-                _log_to_file(SPOTIFY_API_LOG_FILE, "Token refresh failed during playlist creation.")
-                return JsonResponse({'error': 'Spotify token refresh failed.'}, status=401)
 
         if response.status_code != 201:
             _log_to_file(SPOTIFY_API_LOG_FILE, f"Error creating playlist: {response.status_code} - {response.text}")
@@ -1524,17 +1207,6 @@ def create_playlist_api(request):
             add_tracks_response = requests.post(add_tracks_url, headers=headers, json=tracks_data, timeout=15)
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {add_tracks_url} | Status: {add_tracks_response.status_code} | Body: {add_tracks_response.text}")
 
-            if add_tracks_response.status_code == 401:
-                if _refresh_token_helper(request):
-                    access_token = request.session.get('spotify_access_token')
-                    headers['Authorization'] = f'Bearer {access_token}'
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {add_tracks_url} (retry) | Body: {json.dumps(tracks_data)}")
-                    add_tracks_response = requests.post(add_tracks_url, headers=headers, json=tracks_data, timeout=15)
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {add_tracks_url} (retry) | Status: {add_tracks_response.status_code} | Body: {add_tracks_response.text}")
-                else:
-                    _log_to_file(SPOTIFY_API_LOG_FILE, "Token refresh failed while adding tracks.")
-                    return JsonResponse({'error': 'Playlist created, but adding tracks failed due to token issue.', 'playlist_url': playlist_url}, status=207)
-            
             if add_tracks_response.status_code != 201:
                 _log_to_file(SPOTIFY_API_LOG_FILE, f"Error adding tracks to playlist {playlist_id}: {add_tracks_response.status_code} - {add_tracks_response.text}")
                 return JsonResponse({'error': f'Playlist created, but failed to add some tracks.', 'playlist_url': playlist_url}, status=207)
@@ -1569,7 +1241,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 
         track_url_cache = {}
         if mock_request.session.get('user_currently_revising_playlist'):
-            user_id = mock_request.session.get('spotify_user_id')
+            user_id = mock_request.session.get('euphonic_intelligence_user_id')
             if user_id:
                 last_playlist_details = cache.get(f"last_processed_playlist_details_{user_id}", [])
                 for track in last_playlist_details:
@@ -1582,14 +1254,6 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                 return track_url_cache[cache_key]
             
             status, track_url = _get_spotify_track_url_with_backoff(mock_request, song_title, artist_name)
-            
-            if status == 'auth_error':
-                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token expired during single track search for '{song_title}', attempting refresh...")
-                if _refresh_token_helper(mock_request):
-                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token refresh successful, retrying search for '{song_title}'...")
-                    status, track_url = _get_spotify_track_url_with_backoff(mock_request, song_title, artist_name)
-                else:
-                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Token refresh failed. Aborting single track search for '{song_title}'.")
 
             final_url = track_url if status == 'success' else None
             track_url_cache[cache_key] = final_url
@@ -1780,7 +1444,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 </tracks_to_correct>
 
 <user_library_tracks>
-{"\n".join([f"- {t['name']} by {t['artists']}" for t in cache.get(f"spotify_user_tracks_{mock_request.session.get('spotify_user_id')}", [])])}
+{"\n".join([f"- {t['name']} by {t['artists']}" for t in cache.get(f"spotify_user_tracks_{mock_request.session.get('euphonic_intelligence_user_id')}", [])])}
 </user_library_tracks>
 """
             feedback_system_instruction_map = {
@@ -1953,7 +1617,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         processed_ai_response_text = re.sub(r"([\w]),([\w])", r"\1, \2", processed_ai_response_text)
         processed_ai_response_text = re.sub(r"[\$@]{2,}", "", processed_ai_response_text)
 
-        user_id = mock_request.session.get('spotify_user_id')
+        user_id = mock_request.session.get('euphonic_intelligence_user_id')
         if user_id and playlist_for_cache:
             playlist_string_for_cache = "* " + "\n* ".join([f"{p['title']} by {p['artist']}" for p in playlist_for_cache])
             cache.set(f"last_processed_playlist_{user_id}", playlist_string_for_cache, timeout=3600)
@@ -2007,7 +1671,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                 response_data = processed_ai_response_text
 
         if chat_mode == 'saved_songs':
-            library_size_message = cache.get(f"library_size_message_{mock_request.session.get('spotify_user_id')}")
+            library_size_message = cache.get(f"library_size_message_{mock_request.session.get('euphonic_intelligence_user_id')}")
             if library_size_message:
                 message_exists = any(
                     entry.get('role') == 'model' and
@@ -2035,8 +1699,8 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 @never_cache
 def chat_message_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
-    if not request.session.get('spotify_access_token'):
-        return JsonResponse({'error': 'User not authenticated'}, status=401)
+    if not SPOTIFY_ACCESS_TOKEN:
+        return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
     
     try:
         data = json.loads(request.body)

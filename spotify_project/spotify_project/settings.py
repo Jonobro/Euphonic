@@ -119,3 +119,5 @@ if not SPOTIFY_CLIENT_ID:
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY environment variable is required. Please set it in your .env file.")
+    
+SPOTIFY_ID = os.environ.get('SPOTIFY_ID')
