@@ -450,6 +450,8 @@ def _ensure_euphonic_intelligence_user_id(request):
         euphonic_user_id = str(uuid.uuid4())
         request.session['euphonic_intelligence_user_id'] = euphonic_user_id
         request.session.modified = True
+        if not request.session.session_key:
+            request.session.save()
         _log_to_file(GENERAL_LOG_FILE, f"Generated new euphonic_intelligence_user_id: {euphonic_user_id} for session {request.session.session_key}")
     return request.session['euphonic_intelligence_user_id']
 
