@@ -3,7 +3,6 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('callback/', views.spotify_callback, name='spotify_callback'),
     path('disconnect/', views.disconnect_view, name='disconnect'),
     path('chat/saved/', views.saved_songs_chat_view, name='saved_songs_chat'),
     path('chat/new/', views.new_song_chat_view, name='new_song_chat'),

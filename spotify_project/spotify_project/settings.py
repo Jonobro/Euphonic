@@ -112,7 +112,6 @@ USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
 SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
-SPOTIFY_REDIRECT_URI = os.environ.get('SPOTIFY_REDIRECT_URI', 'https://localhost/callback/')
 if not SPOTIFY_CLIENT_ID:
     raise ValueError("SPOTIFY_CLIENT_ID environment variable is required. Please set it in your .env file.")
 
