@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error - Spotify Authentication</title>
+    <title>Error</title>
     {% load static %}
     <link rel="preload" href="{% static 'spotify_auth/fonts/Poppins-Regular-subset.ttf' %}" as="font" type="font/ttf" crossorigin>
     <link rel="preload" href="{% static 'spotify_auth/fonts/Poppins-Medium-subset.ttf' %}" as="font" type="font/ttf" crossorigin>
@@ -13,17 +13,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Authentication Error</h1>
-        
-        <p>There was a problem connecting to Spotify. Please return to the login screen and try again.</p>
-
-        <!-- Comment out the below unless you are encountering an error -->
-
-        <!-- {% if error %}
-            <p><strong>Details:</strong> {{ error }}</p>
-        {% endif %} -->
-        
-        <a href="{% url 'index' %}" class="button">Back to Login</a>
+        <h1>Error</h1>
+        <p>We're sorry, but something went wrong. Please close this window and try again. If the problem persists, please contact us at jonathan@euphonicintelligence.com.</p>
     </div>
 </body>
 </html>
