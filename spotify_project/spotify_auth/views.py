@@ -396,6 +396,28 @@ SAFETY_SETTINGS = [
     },
 ]
 
+SPOTIFY_ID = settings.SPOTIFY_ID
+
+def get_spotify_access_token():
+    token_file_path = Path(__file__).parent.parent / "tokens"
+    cache_key = 'spotify_access_token_data'
+
+    try:
+        current_mtime = token_file_path.stat().st_mtime
+    except FileNotFoundError:
+        _log_to_file(GENERAL_LOG_FILE, "Could not find the 'tokens' file.")
+        return None
+
+    cached_data = cache.get(cache_key)
+
+    if cached_data and cached_data.get('mtime') == current_mtime:
+        return cached_data.get('token')
+
+    token = _get_token_line(token_file_path, 0)
+    if token:
+        cache.set(cache_key, {'token': token, 'mtime': current_mtime}, timeout=None)
+    return token
+
 def _log_to_file(log_file_path, message):
     try:
         log_file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -422,9 +444,6 @@ def _get_token_line(tokens_file, line_number):
         _log_to_file(GENERAL_LOG_FILE, f"Error reading tokens file {tokens_file}: {e}")
     _log_to_file(GENERAL_LOG_FILE, f"_get_token_line returning None for file: {tokens_file}, line: {line_number}")
     return None
-
-SPOTIFY_ACCESS_TOKEN = _get_token_line(Path(__file__).parent.parent / "tokens", 0)
-SPOTIFY_ID = settings.SPOTIFY_ID
 
 def _ensure_euphonic_intelligence_user_id(request):
     if not request.session.get('euphonic_intelligence_user_id'):
@@ -704,7 +723,7 @@ def _get_spotify_track_url(request, song_title, artist_name):
         _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [CACHE_SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'.")
         return 'not_found', None, None
 
-    access_token = SPOTIFY_ACCESS_TOKEN
+    access_token = get_spotify_access_token()
     if not access_token:
         _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [ERROR] Access token missing for Spotify search. Song: '{song_title}', Artist: '{artist_name}'")
         return 'error', None, None
@@ -864,7 +883,7 @@ def new_song_chat_view(request):
 def initialize_chat_data_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     _ensure_euphonic_intelligence_user_id(request)
-    if not SPOTIFY_ACCESS_TOKEN:
+    if not get_spotify_access_token():
         return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
     
     try:
@@ -1031,7 +1050,7 @@ I've talked too much – let's get started! What can I do for you?"""
 @never_cache
 def reset_chat_history_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    if not SPOTIFY_ACCESS_TOKEN:
+    if not get_spotify_access_token():
         return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
 
     try:
@@ -1160,7 +1179,7 @@ I've talked too much – let's get started! What can I do for you?"""
 @never_cache
 def create_playlist_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
-    if not SPOTIFY_ACCESS_TOKEN:
+    if not get_spotify_access_token():
         return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
     
     user_id = SPOTIFY_ID
@@ -1183,7 +1202,7 @@ def create_playlist_api(request):
             'description': description
         }
         
-        access_token = SPOTIFY_ACCESS_TOKEN
+        access_token = get_spotify_access_token()
         headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
 
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {create_playlist_url} | Body: {json.dumps(playlist_data)}")
@@ -1699,7 +1718,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 @never_cache
 def chat_message_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
-    if not SPOTIFY_ACCESS_TOKEN:
+    if not get_spotify_access_token():
         return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
     
     try:
