@@ -396,6 +396,17 @@ SAFETY_SETTINGS = [
     },
 ]
 
+def _log_to_file(log_file_path, message):
+    try:
+        log_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_file_path, 'a') as f:
+            timestamp = time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(time.time()))
+            f.write(f"{timestamp} - {message}\n")
+    except Exception as e:
+        print(f"Error writing to log file {log_file_path}: {e}")
+        with open(GENERAL_LOG_FILE, 'a') as general_log_file:
+            general_log_file.write(f"Error writing to log file {log_file_path}: {e}\n")
+
 def _get_token_line(tokens_file, line_number):
     _log_to_file(GENERAL_LOG_FILE, f"_get_token_line called with file: {tokens_file}, line_number: {line_number}")
     try:
@@ -422,17 +433,6 @@ def _ensure_euphonic_intelligence_user_id(request):
         request.session.modified = True
         _log_to_file(GENERAL_LOG_FILE, f"Generated new euphonic_intelligence_user_id: {euphonic_user_id} for session {request.session.session_key}")
     return request.session['euphonic_intelligence_user_id']
-
-def _log_to_file(log_file_path, message):
-    try:
-        log_file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(log_file_path, 'a') as f:
-            timestamp = time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(time.time()))
-            f.write(f"{timestamp} - {message}\n")
-    except Exception as e:
-        print(f"Error writing to log file {log_file_path}: {e}")
-        with open(GENERAL_LOG_FILE, 'a') as general_log_file:
-            general_log_file.write(f"Error writing to log file {log_file_path}: {e}\n")
 
 def check_and_update_grounding_usage():
     current_time = time.time()
