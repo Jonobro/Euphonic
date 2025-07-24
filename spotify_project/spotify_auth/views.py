@@ -1177,10 +1177,12 @@ I've talked too much – let's get started! What can I do for you?"""
 def create_playlist_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     if not get_spotify_access_token():
+        _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token in create_playlist_api for session {request.session.session_key}")
         return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
     
     user_id = SPOTIFY_ID
     if not user_id:
+        _log_to_file(GENERAL_LOG_FILE, f"SPOTIFY_ID not configured in create_playlist_api for session {request.session.session_key}")
         return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
 
     try:
@@ -1190,7 +1192,10 @@ def create_playlist_api(request):
         description = data.get('description', f'Playlist created by Euphonic Intelligence.')
 
         if not playlist_name or not track_uris:
-            return JsonResponse({'error': 'Playlist name and track URIs are required.'}, status=400)
+            _log_to_file(GENERAL_LOG_FILE, f"Missing required fields in create_playlist_api. Session: {request.session.session_key}, has_name: {bool(playlist_name)}, has_track_uris: {bool(track_uris)}")
+            return JsonResponse({'error': 'Error creating playlist'}, status=400)
+
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Creating playlist '{playlist_name}' with {len(track_uris)} tracks for session {request.session.session_key}")
 
         create_playlist_url = f'https://api.spotify.com/v1/users/{user_id}/playlists'
         playlist_data = {
@@ -1207,12 +1212,14 @@ def create_playlist_api(request):
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {create_playlist_url} | Status: {response.status_code} | Body: {response.text}")
 
         if response.status_code != 201:
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"Error creating playlist: {response.status_code} - {response.text}")
-            return JsonResponse({'error': 'Failed to create playlist on Spotify.'}, status=response.status_code)
+            _log_to_file(GENERAL_LOG_FILE, f"Failed to create playlist on Spotify. Session: {request.session.session_key}, Status: {response.status_code}, Response: {response.text}")
+            return JsonResponse({'error': 'Error creating playlist'}, status=500)
 
         playlist_info = response.json()
         playlist_id = playlist_info['id']
         playlist_url = playlist_info['external_urls']['spotify']
+
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully created playlist '{playlist_name}' (ID: {playlist_id}) for session {request.session.session_key}")
 
         add_tracks_url = f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks'
         for i in range(0, len(track_uris), 100):
@@ -1230,10 +1237,11 @@ def create_playlist_api(request):
         return JsonResponse({'playlist_url': playlist_url})
 
     except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        _log_to_file(GENERAL_LOG_FILE, f"Invalid JSON in create_playlist_api request. Session: {request.session.session_key}, Body: {request.body.decode('utf-8')}")
+        return JsonResponse({'error': 'Invalid request format'}, status=400)
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error in create_playlist_api: {e}")
-        return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
+        _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in create_playlist_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
 
 def _process_chat_message_thread(session_data, user_message, task_id):
     try:
