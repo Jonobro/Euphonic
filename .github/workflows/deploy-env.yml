@@ -50,6 +50,10 @@ jobs:
             ${{ secrets.ENV_FILE_CONTENT }}
             EOF
             
+            echo "==> Setting .env file ownership and permissions..."
+            chown appuser:appuser .env
+            chmod 600 .env
+            
             echo "==> Docker compose down..."
             docker compose -f docker-compose.yml down
 
