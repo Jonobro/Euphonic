@@ -400,7 +400,7 @@ def get_spotify_access_token():
     try:
         current_mtime = token_file_path.stat().st_mtime
     except FileNotFoundError:
-        _log_to_file(GENERAL_LOG_FILE, "Could not find the '.tokens' file.")
+        _log_to_file(GENERAL_LOG_FILE, f"Could not find the '.tokens' file. Searched directory: {token_file_path.parent}")
         return None
 
     cached_data = cache.get(cache_key)
