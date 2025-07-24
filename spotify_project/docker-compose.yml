@@ -4,6 +4,7 @@ services:
     volumes:
       - static_volume:/app/staticfiles
       - ./logs:/app/logs
+      - /opt/euphonic-intelligence/Euphonic-Intelligence/spotify_project/.tokens:/app/.tokens:ro
     env_file:
       - .env
     environment:
