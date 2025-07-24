@@ -1,9 +1,4 @@
-import base64
-import hashlib
-import secrets
-import string
 import requests
-from urllib.parse import urlencode
 import json
 import re
 import uuid
@@ -17,7 +12,7 @@ from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.http import require_http_methods
 from google import genai
 from google.genai import types
-from google.genai.types import Tool, GenerateContentConfig, GoogleSearch, HarmCategory, HarmBlockThreshold
+from google.genai.types import Tool, HarmCategory, HarmBlockThreshold
 from django.views.decorators.cache import never_cache
 from pathlib import Path
 import time
@@ -399,13 +394,13 @@ SAFETY_SETTINGS = [
 SPOTIFY_ID = settings.SPOTIFY_ID
 
 def get_spotify_access_token():
-    token_file_path = Path(__file__).parent.parent / "tokens"
+    token_file_path = Path(__file__).parent.parent / ".tokens"
     cache_key = 'spotify_access_token_data'
 
     try:
         current_mtime = token_file_path.stat().st_mtime
     except FileNotFoundError:
-        _log_to_file(GENERAL_LOG_FILE, "Could not find the 'tokens' file.")
+        _log_to_file(GENERAL_LOG_FILE, "Could not find the '.tokens' file.")
         return None
 
     cached_data = cache.get(cache_key)

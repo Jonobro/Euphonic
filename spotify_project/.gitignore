@@ -1,6 +1,7 @@
 # Secrets and environment variables
 .env
 nginx/ssl/
+.tokens
 
 # Python and Django
 __pycache__/

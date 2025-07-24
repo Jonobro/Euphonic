@@ -1,6 +1,9 @@
 # Environment variables
 .env*
 
+# Tokens file
+.tokens
+
 # Version control
 .git/
 .gitignore
