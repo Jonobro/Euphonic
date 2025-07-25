@@ -440,7 +440,25 @@ def _get_token_line(tokens_file, line_number):
     _log_to_file(GENERAL_LOG_FILE, f"_get_token_line returning None for file: {tokens_file}, line: {line_number}")
     return None
 
+def _is_crawler(request):
+    user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
+    if not user_agent:
+        return False
+    crawler_patterns = [
+        'bot', 'crawler', 'scraper', 'checker', 'spider', 'slurp', 
+        'googlebot', 'bingbot', 'yahoobot', 'duckduckbot', 
+        'baiduspider', 'yandexbot', 'facebookexternalhit', 
+        'twitterbot', 'linkedinbot', 'applebot', 'petalbot',
+        'msnbot', 'slackbot', 'discordbot', 'whatsapp',
+        'telegrambot', 'pinterest', 'redditbot'
+    ]
+    return any(pattern in user_agent for pattern in crawler_patterns)
+
 def _ensure_euphonic_intelligence_user_id(request):
+    if _is_crawler(request):
+        _log_to_file(GENERAL_LOG_FILE, f"Crawler detected, skipping user ID generation. UA: {request.META.get('HTTP_USER_AGENT', '')}")
+        return None
+
     if not request.session.get('euphonic_intelligence_user_id'):
         euphonic_user_id = str(uuid.uuid4())
         request.session['euphonic_intelligence_user_id'] = euphonic_user_id
@@ -494,7 +512,6 @@ def disconnect_view(request):
     if user_id:
         keys_to_delete = [
             f'spotify_user_tracks_{user_id}',
-            f'library_size_message_{user_id}',
             f'last_processed_playlist_{user_id}',
             f'last_processed_playlist_details_{user_id}',
             f'analysis_in_progress_{user_id}'
@@ -529,7 +546,6 @@ def _generate_musical_analysis(session_data):
 
     try:
         cache_key_tracks = f'spotify_user_tracks_{user_id}'
-        cache_key_lib_msg = f'library_size_message_{user_id}'
         
         simplified_tracks_list = cache.get(cache_key_tracks)
 
@@ -620,10 +636,6 @@ Here are a few questions you might find interesting:
             {'role': 'model', 'parts': [{'text': introductory_message_body_display}]},
             {'role': 'model', 'parts': [{'text': introductory_message_end}]}
         ]
-        
-        library_size_message = cache.get(cache_key_lib_msg)
-        if library_size_message:
-            final_history_list.append({'role': 'model', 'parts': [{'text': library_size_message}]})
         
         mock_request.session['final_analysis_chat_history'] = final_history_list
         
@@ -922,7 +934,6 @@ def initialize_chat_data_view(request):
 
         user_id = request.session.get('euphonic_intelligence_user_id')
         cache_key_tracks = f'spotify_user_tracks_{user_id}'
-        cache_key_lib_msg = f'library_size_message_{user_id}'
         
         simplified_tracks_list = cache.get(cache_key_tracks)
         fetch_success = True
@@ -993,19 +1004,11 @@ I've talked too much – let's get started! What can I do for you?"""
             request.session['saved_songs_chat_history'] = history_list
             final_history_list = [{'role': 'model', 'parts': [{'text': initial_response}]}]
 
-            library_size_message = cache.get(cache_key_lib_msg)
-            if library_size_message:
-                final_history_list.append({'role': 'model', 'parts': [{'text': library_size_message}]})
-
             request.session['final_saved_songs_chat_history'] = final_history_list
             request.session.modified = True
 
-            first_ai_message = [initial_response]
-            if library_size_message is not None:
-                first_ai_message.append(library_size_message)
-
             return JsonResponse({
-                'first_ai_message': first_ai_message
+                'first_ai_message': [initial_response]
             })
 
         # If statement for new songs mode
@@ -1694,17 +1697,6 @@ def _process_chat_message_thread(session_data, user_message, task_id):
                 final_history_for_session.append({'role': 'model', 'parts': [{'text': processed_ai_response_text}]})
                 response_data = processed_ai_response_text
 
-        if chat_mode == 'saved_songs':
-            library_size_message = cache.get(f"library_size_message_{mock_request.session.get('euphonic_intelligence_user_id')}")
-            if library_size_message:
-                message_exists = any(
-                    entry.get('role') == 'model' and
-                    entry.get('parts') and
-                    entry['parts'][0].get('text') == library_size_message
-                    for entry in final_history_for_session
-                )
-                if not message_exists:
-                    final_history_for_session.insert(1, {'role': 'model', 'parts': [{'text': library_size_message}]})
         if final_chat_history_placeholder:
             mock_request.session[final_chat_history_placeholder] = final_history_for_session
         
