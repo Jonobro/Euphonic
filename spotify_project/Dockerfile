@@ -18,7 +18,7 @@ COPY . .
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Create non-root user first
-RUN useradd -m appuser
+RUN groupadd --gid 1000 appuser && useradd --uid 1000 --gid appuser -m appuser
 
 # Create necessary directories before changing ownership
 RUN mkdir -p /app/staticfiles /app/logs /app/logs/custom_logs
