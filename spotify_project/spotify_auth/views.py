@@ -811,27 +811,54 @@ def _fetch_all_spotify_tracks(request):
     if cached_tracks is not None:
         return cached_tracks, True
     
-    sample_tracks = [
-        {
-            'id': '7tFiyTwD0nx5a1eklYtX2J',
-            'name': 'Bohemian Rhapsody',
-            'artists': 'Queen'
-        },
-        {
-            'id': '7qiZfU4dY1lWllzX7mPBI3',
-            'name': 'Shape of You',
-            'artists': 'Ed Sheeran'
-        },
-        {
-            'id': '0VjIjW4GlUZAMYd2vXMi3b',
-            'name': 'Blinding Lights',
-            'artists': 'The Weeknd'
-        }
-    ]
+    access_token = get_spotify_access_token()
+    if not access_token:
+        _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist fetch in session {request.session.session_key}")
+        return None, False
+
+    playlist_url = "https://api.spotify.com/v1/playlists/3hCxpuVLuVKsBszSi3ANBJ/tracks?fields=items(track(id,name,artists(name)))"
+    headers = {'Authorization': f'Bearer {access_token}'}
     
-    cache.set(cache_key_tracks, sample_tracks, timeout=3600)
-    
-    return sample_tracks, True
+    try:
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_url}")
+        response = requests.get(playlist_url, headers=headers, timeout=10)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_url} | Status: {response.status_code}")
+        
+        if response.status_code != 200:
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist tracks. Status: {response.status_code}, Response: {response.text}")
+            return None, False
+        
+        data = response.json()
+        tracks = []
+        
+        for item in data.get('items', []):
+            track = item.get('track')
+            if track and track.get('id') and track.get('name'):
+                artists = track.get('artists', [])
+                artist_names = [artist.get('name', '') for artist in artists if artist.get('name')]
+                
+                if artist_names:
+                    tracks.append({
+                        'id': track['id'],
+                        'name': track['name'],
+                        'artists': ', '.join(artist_names)
+                    })
+        
+        if not tracks:
+            _log_to_file(GENERAL_LOG_FILE, f"No valid tracks found in playlist response for session {request.session.session_key}")
+            return None, False
+        
+        cache.set(cache_key_tracks, tracks, timeout=3600)
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully fetched {len(tracks)} tracks from playlist for session {request.session.session_key}")
+        
+        return tracks, True
+        
+    except requests.exceptions.RequestException as e:
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception when fetching playlist tracks: {e}")
+        return None, False
+    except Exception as e:
+        _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in _fetch_all_spotify_tracks: {e}")
+        return None, False
 
 @csrf_protect
 @require_http_methods(["GET"])
