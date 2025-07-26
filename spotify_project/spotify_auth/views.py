@@ -393,6 +393,17 @@ SAFETY_SETTINGS = [
 
 SPOTIFY_ID = settings.SPOTIFY_ID
 
+def _log_to_file(log_file_path, message):
+    try:
+        log_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_file_path, 'a') as f:
+            timestamp = time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(time.time()))
+            f.write(f"{timestamp} - {message}\n")
+    except Exception as e:
+        print(f"Error writing to log file {log_file_path}: {e}")
+        with open(GENERAL_LOG_FILE, 'a') as general_log_file:
+            general_log_file.write(f"Error writing to log file {log_file_path}: {e}\n")
+
 def get_spotify_access_token():
     token_file_path = Path(__file__).parent.parent / ".tokens"
     cache_key = 'spotify_access_token_data'
@@ -408,21 +419,10 @@ def get_spotify_access_token():
     if cached_data and cached_data.get('mtime') == current_mtime:
         return cached_data.get('token')
 
-    token = _get_token_line(token_file_path, 0)
+    token = _get_token_line(token_file_path, 2)
     if token:
         cache.set(cache_key, {'token': token, 'mtime': current_mtime}, timeout=None)
     return token
-
-def _log_to_file(log_file_path, message):
-    try:
-        log_file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(log_file_path, 'a') as f:
-            timestamp = time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(time.time()))
-            f.write(f"{timestamp} - {message}\n")
-    except Exception as e:
-        print(f"Error writing to log file {log_file_path}: {e}")
-        with open(GENERAL_LOG_FILE, 'a') as general_log_file:
-            general_log_file.write(f"Error writing to log file {log_file_path}: {e}\n")
 
 def _get_token_line(tokens_file, line_number):
     _log_to_file(GENERAL_LOG_FILE, f"_get_token_line called with file: {tokens_file}, line_number: {line_number}")
