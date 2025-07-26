@@ -19,6 +19,7 @@ services:
     volumes:
       - ./logs:/app/logs
       - /opt/euphonic-intelligence/Euphonic-Intelligence/spotify_project/.tokens:/app/.tokens
+    entrypoint: ""
     command: ["python", "token_refresher.py"]
 
   nginx:
