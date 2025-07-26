@@ -15,6 +15,13 @@
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
 </head>
 <body data-chat-mode="{{ chat_mode|escapejs }}">
+    <div class="beta-notice">
+        <h3>Beta Release Notice</h3>
+        <p>Euphonic Intelligence is currently in beta testing. We appreciate your patience as we continue to refine and improve the experience.</p>
+        <p>If you encounter any bugs, have suggestions, or would like to share feedback, please reach out to <a href="mailto:jonathan@euphonicintelligence.com">jonathan@euphonicintelligence.com</a>. Your input helps us build a better product.</p>
+        <p>Thank you for being part of our beta community!</p>
+    </div>
+    
     <div class="container">
         <div class="header-row">
             <img src="{% static 'spotify_auth/images/EuphonicIntelligenceLogo.svg' %}" alt="Euphonic Intelligence Logo" class="header-logo">
@@ -27,13 +34,6 @@
                     <span class="custom-tooltip">Purges your data with Euphonic Intelligence</span>
                 </div>
             </div>
-        </div>
-        
-        <div class="beta-notice">
-            <h3>Beta Release Notice</h3>
-            <p>Euphonic Intelligence is currently in beta testing. We appreciate your patience as we continue to refine and improve the experience.</p>
-            <p>If you encounter any bugs, have suggestions, or would like to share feedback, please reach out to <a href="mailto:jonathan@euphonicintelligence.com">jonathan@euphonicintelligence.com</a>. Your input helps us build a better product.</p>
-            <p>Thank you for being part of our beta community!</p>
         </div>
         
         <div id="chat-container">
