@@ -490,7 +490,7 @@ h2, h3, h4, h5, h6 {
     background-color: #2a2a2a;
     border: 1px solid rgb(30, 200, 90);
     border-radius: 8px;
-    padding: 15px;
+    padding: 10px;
     margin: 20px auto;
     text-align: center;
     width: 90vw;
@@ -499,15 +499,15 @@ h2, h3, h4, h5, h6 {
 
 .beta-notice h3 {
     color: rgb(30, 200, 90);
-    margin: 0 0 10px 0;
-    font-size: 1.1em;
+    margin: 0 0 5px 0;
+    font-size: 0.925em;
     font-weight: 600;
 }
 
 .beta-notice p {
     margin: 8px 0;
-    font-size: 0.9em;
-    line-height: 1.5;
+    font-size: 0.825em;
+    line-height: 1.35;
     color: #e0e0e0;
 }
 
