@@ -800,8 +800,9 @@ def _get_spotify_track_url(request, song_title, artist_name):
 
 def _fetch_all_spotify_tracks(request):
     user_id = request.session.get('euphonic_intelligence_user_id')
-    if not user_id:
-        _log_to_file(SPOTIFY_API_LOG_FILE, "Cannot fetch tracks without user_id.")
+
+    if not get_spotify_access_token():
+        _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token in _fetch_all_spotify_tracks for session {request.session.session_key}")
         return None, False
 
     cache_key_tracks = f'spotify_user_tracks_{user_id}'
@@ -892,8 +893,6 @@ def new_song_chat_view(request):
 def initialize_chat_data_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     _ensure_euphonic_intelligence_user_id(request)
-    if not get_spotify_access_token():
-        return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
     
     try:
         data = json.loads(request.body)
@@ -1050,8 +1049,6 @@ I've talked too much – let's get started! What can I do for you?"""
 @never_cache
 def reset_chat_history_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    if not get_spotify_access_token():
-        return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
 
     try:
         data = json.loads(request.body)
@@ -1715,9 +1712,6 @@ def _process_chat_message_thread(session_data, user_message, task_id):
 @never_cache
 def chat_message_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
-    if not get_spotify_access_token():
-        return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
-    
     try:
         data = json.loads(request.body)
         user_message = data.get('message')

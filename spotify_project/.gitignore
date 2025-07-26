@@ -16,3 +16,7 @@ logs/
 # Debugging
 temp_spotify_search.py
 spotify_rate_limit_tester.py
+
+# Token management
+token_getter.py
+token_refresher.py

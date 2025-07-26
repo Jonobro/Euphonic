@@ -13,6 +13,14 @@ services:
     depends_on:
       - redis
 
+  token-refresher:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+      - /opt/euphonic-intelligence/Euphonic-Intelligence/spotify_project/.tokens:/app/.tokens
+    command: ["python", "token_refresher.py"]
+
   nginx:
     image: nginx:1.27-alpine
     ports:
