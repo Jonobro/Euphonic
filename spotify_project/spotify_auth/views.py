@@ -1934,17 +1934,41 @@ def import_playlists_api(request):
         if not valid_urls:
             return JsonResponse({'error': 'No valid playlist URLs provided'}, status=400)
         
-        # Store playlist URLs in session
-        request.session['imported_playlist_urls'] = valid_urls
-        request.session.modified = True
+        _log_to_file(GENERAL_LOG_FILE, f"Starting playlist import process for {len(valid_urls)} URLs for session {request.session.session_key}")
         
-        _log_to_file(GENERAL_LOG_FILE, f"Successfully stored {len(valid_urls)} playlist URLs for session {request.session.session_key}")
-        
-        return JsonResponse({
+        # Send immediate response to JavaScript
+        response_data = {
             'success': True, 
             'message': f'Successfully imported {len(valid_urls)} playlist URLs',
             'count': len(valid_urls)
-        })
+        }
+        
+        # Create response object
+        response = JsonResponse(response_data)
+        
+        # Start playlist viewing process in a separate thread after response is sent
+        def process_playlists():
+            session_key = request.session.session_key
+            for i, url in enumerate(valid_urls, 1):
+                _log_to_file(GENERAL_LOG_FILE, f"Processing playlist {i}/{len(valid_urls)}: {url} for session {session_key}")
+                try:
+                    result = view_playlist(url, session_key)
+                    if result:
+                        _log_to_file(GENERAL_LOG_FILE, f"Successfully processed playlist {i}/{len(valid_urls)}: {url} for session {session_key}")
+                    else:
+                        _log_to_file(GENERAL_LOG_FILE, f"Failed to process playlist {i}/{len(valid_urls)}: {url} for session {session_key}")
+                except Exception as e:
+                    _log_to_file(GENERAL_LOG_FILE, f"Error processing playlist {i}/{len(valid_urls)}: {url} for session {session_key}: {e}")
+            
+            _log_to_file(GENERAL_LOG_FILE, f"Completed playlist import process for session {session_key}")
+        
+        # Start the playlist processing in a separate thread
+        import threading
+        thread = threading.Thread(target=process_playlists)
+        thread.daemon = True
+        thread.start()
+        
+        return response
         
     except json.JSONDecodeError:
         _log_to_file(GENERAL_LOG_FILE, f"Invalid JSON in import_playlists_api request. Session: {request.session.session_key}, Body: {request.body.decode('utf-8')}")

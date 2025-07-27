@@ -331,10 +331,7 @@
                         const result = await response.json();
                         
                         if (response.ok) {
-                            alert('Playlists imported successfully!');
                             closeImportModal();
-                            // Optionally redirect to saved songs mode
-                            window.location.href = '/saved_songs_chat/';
                         } else {
                             alert(`Error: ${result.error || 'Failed to import playlists'}`);
                         }
