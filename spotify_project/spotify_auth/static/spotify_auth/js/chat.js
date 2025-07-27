@@ -416,21 +416,23 @@ I've talked too much – let's get started! What can I do for you?`;
         }
     }
 
-    const tooltipImport = document.querySelector('.custom-tooltip-import');
     const tooltipDisconnect = document.querySelector('.custom-tooltip-disconnect');
-    const tooltipContainer = document.querySelector('.tooltip-container');
-    
-    if (tooltipImport && tooltipContainer) {
-        tooltipContainer.addEventListener('mousemove', (e) => {
-            tooltipImport.style.left = (e.clientX + 10) + 'px';
-            tooltipImport.style.top = (e.clientY + 10) + 'px';
+    const tooltipContainerDisconnect = document.querySelector('.tooltip-container-disconnect');
+
+    if (tooltipDisconnect && tooltipContainerDisconnect) {
+        tooltipContainerDisconnect.addEventListener('mousemove', (e) => {
+            tooltipDisconnect.style.left = (e.clientX + 10) + 'px';
+            tooltipDisconnect.style.top = (e.clientY + 10) + 'px';
         });
     }
 
-    if (tooltipDisconnect && tooltipContainer) {
-        tooltipContainer.addEventListener('mousemove', (e) => {
-            tooltipDisconnect.style.left = (e.clientX + 10) + 'px';
-            tooltipDisconnect.style.top = (e.clientY + 10) + 'px';
+    const tooltipImport = document.querySelector('.custom-tooltip-import');
+    const tooltipContainerImport = document.querySelector('.tooltip-container-import');
+
+    if (tooltipImport && tooltipContainerImport) {
+        tooltipContainerImport.addEventListener('mousemove', (e) => {
+            tooltipImport.style.left = (e.clientX + 10) + 'px';
+            tooltipImport.style.top = (e.clientY + 10) + 'px';
         });
     }
 });

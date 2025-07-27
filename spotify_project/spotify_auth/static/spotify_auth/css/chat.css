@@ -204,7 +204,7 @@ h2, h3, h4, h5, h6 {
     font-size: 14px;
 }
 
-.tooltip-container {
+.tooltip-container-disconnect {
     position: relative;
     display: inline-block;
 }
@@ -229,6 +229,11 @@ h2, h3, h4, h5, h6 {
 .tooltip-container:hover .custom-tooltip-disconnect {
     visibility: visible;
     opacity: 1;
+}
+
+.tooltip-container-import {
+    position: relative;
+    display: inline-block;
 }
 
 .custom-tooltip-import {
