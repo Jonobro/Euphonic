@@ -19,6 +19,7 @@ import time
 from django.core.cache import cache
 from django.contrib.sessions.models import Session
 import random
+from playlist_viewer import view_playlist
 
 REDIS_CLIENT = settings.REDIS_CLIENT
 ANALYSIS_EVENT_CHANNEL_PREFIX = 'analysis_completion:'
@@ -816,7 +817,7 @@ def _fetch_all_spotify_tracks(request):
         _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist fetch in session {request.session.session_key}")
         return None, False
 
-    playlist_url = "https://api.spotify.com/v1/playlists/3hCxpuVLuVKsBszSi3ANBJ/tracks?fields=items(track(id,name,artists(name)))"
+    playlist_url = "https://api.spotify.com/v1/playlists/3iSeOatSVAk9Z7KCUfZpZb/tracks?fields=items(track(id,name,artists(name)))"
     headers = {'Authorization': f'Bearer {access_token}'}
     
     try:
