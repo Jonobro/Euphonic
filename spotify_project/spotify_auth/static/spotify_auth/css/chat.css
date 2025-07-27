@@ -209,7 +209,7 @@ h2, h3, h4, h5, h6 {
     display: inline-block;
 }
 
-.custom-tooltip {
+.custom-tooltip-disconnect {
     visibility: hidden;
     position: fixed;
     z-index: 1;
@@ -226,7 +226,29 @@ h2, h3, h4, h5, h6 {
     pointer-events: none;
 }
 
-.tooltip-container:hover .custom-tooltip {
+.tooltip-container:hover .custom-tooltip-disconnect {
+    visibility: visible;
+    opacity: 1;
+}
+
+.custom-tooltip-import {
+    visibility: hidden;
+    position: fixed;
+    z-index: 1;
+    background-color: #333;
+    color: white;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px 12px;
+    width: 155px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    font-size: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    pointer-events: none;
+}
+
+.tooltip-container:hover .custom-tooltip-import {
     visibility: visible;
     opacity: 1;
 }
