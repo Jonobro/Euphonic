@@ -26,6 +26,14 @@
                 {% if chat_mode == 'saved_songs' or chat_mode == 'analysis' %}
                 <a href="{% url 'new_song_chat' %}" class="button">Back</a>
                 {% endif %}
+
+                {% if chat_mode == 'new_songs' %}
+                <div class="tooltip-container">
+                    <a href="{% url 'disconnect' %}" class="button">Import My Music</a>
+                    <span class="custom-tooltip">Import your Spotify playlists to generate personalized playlists and get insights into your music</span>
+                </div>
+                {% endif %}
+
                 <div class="tooltip-container">
                     <a href="{% url 'disconnect' %}" class="button">Disconnect</a>
                     <span class="custom-tooltip">Purges your data with Euphonic Intelligence</span>
