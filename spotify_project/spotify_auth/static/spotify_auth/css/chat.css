@@ -546,3 +546,49 @@ h2, h3, h4, h5, h6 {
 .beta-notice a:hover {
     text-decoration: underline;
 }
+
+/* Import Modal Styles */
+.playlist-url-input {
+    margin-bottom: 15px;
+}
+
+.playlist-url-input label {
+    display: block;
+    margin-bottom: 5px;
+    color: rgb(30, 200, 90);
+    font-weight: 500;
+}
+
+.playlist-url-input input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #535353;
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+    font-family: 'Poppins', sans-serif, Arial;
+    font-size: 14px;
+}
+
+.playlist-url-input input:focus {
+    outline: none;
+    border-color: rgb(30, 200, 90);
+    box-shadow: 0 0 5px rgba(30, 200, 90, 0.3);
+}
+
+.playlist-url-input input::placeholder {
+    color: #999;
+}
+
+.import-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #444;
+}
+
+.import-buttons .button {
+    min-width: 100px;
+}

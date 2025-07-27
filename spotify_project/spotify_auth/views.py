@@ -1898,3 +1898,57 @@ def stream_chat_response(request, task_id):
     response['Cache-Control'] = 'no-cache'
     response['X-Accel-Buffering'] = 'no'
     return response
+
+@csrf_protect
+@require_http_methods(["POST"])
+@never_cache
+def import_playlists_api(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
+    _ensure_euphonic_intelligence_user_id(request)
+    
+    try:
+        data = json.loads(request.body)
+        playlist_urls = data.get('playlist_urls', [])
+        
+        if not playlist_urls or not isinstance(playlist_urls, list):
+            return JsonResponse({'error': 'No playlist URLs provided'}, status=400)
+        
+        if len(playlist_urls) > 5:
+            return JsonResponse({'error': 'Maximum of 5 playlists allowed'}, status=400)
+        
+        # Validate URLs
+        valid_urls = []
+        for url in playlist_urls:
+            if not isinstance(url, str):
+                continue
+            url = url.strip()
+            if not url:
+                continue
+            
+            # Basic Spotify playlist URL validation
+            if 'open.spotify.com/playlist/' not in url and 'spotify.com/playlist/' not in url:
+                return JsonResponse({'error': f'Invalid Spotify playlist URL: {url}'}, status=400)
+            
+            valid_urls.append(url)
+        
+        if not valid_urls:
+            return JsonResponse({'error': 'No valid playlist URLs provided'}, status=400)
+        
+        # Store playlist URLs in session
+        request.session['imported_playlist_urls'] = valid_urls
+        request.session.modified = True
+        
+        _log_to_file(GENERAL_LOG_FILE, f"Successfully stored {len(valid_urls)} playlist URLs for session {request.session.session_key}")
+        
+        return JsonResponse({
+            'success': True, 
+            'message': f'Successfully imported {len(valid_urls)} playlist URLs',
+            'count': len(valid_urls)
+        })
+        
+    except json.JSONDecodeError:
+        _log_to_file(GENERAL_LOG_FILE, f"Invalid JSON in import_playlists_api request. Session: {request.session.session_key}, Body: {request.body.decode('utf-8')}")
+        return JsonResponse({'error': 'Invalid request format'}, status=400)
+    except Exception as e:
+        _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in import_playlists_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)

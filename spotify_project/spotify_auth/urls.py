@@ -13,4 +13,5 @@ urlpatterns = [
     path('stream_chat_response/<str:task_id>/', views.stream_chat_response, name='stream_chat_response'),
     path('create_playlist_api/', views.create_playlist_api, name='create_playlist_api'),
     path('reset_chat_history_api/', views.reset_chat_history_api, name='reset_chat_history_api'),
+    path('import_playlists/', views.import_playlists_api, name='import_playlists'),
 ]
