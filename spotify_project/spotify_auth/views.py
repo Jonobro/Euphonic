@@ -19,7 +19,7 @@ import time
 from django.core.cache import cache
 from django.contrib.sessions.models import Session
 import random
-from playlist_viewer import view_playlist
+from playlist_viewer import view_playlists
 
 REDIS_CLIENT = settings.REDIS_CLIENT
 ANALYSIS_EVENT_CHANNEL_PREFIX = 'analysis_completion:'
@@ -1949,16 +1949,15 @@ def import_playlists_api(request):
         # Start playlist viewing process in a separate thread after response is sent
         def process_playlists():
             session_key = request.session.session_key
-            for i, url in enumerate(valid_urls, 1):
-                _log_to_file(GENERAL_LOG_FILE, f"Processing playlist {i}/{len(valid_urls)}: {url} for session {session_key}")
-                try:
-                    result = view_playlist(url, session_key)
-                    if result:
-                        _log_to_file(GENERAL_LOG_FILE, f"Successfully processed playlist {i}/{len(valid_urls)}: {url} for session {session_key}")
-                    else:
-                        _log_to_file(GENERAL_LOG_FILE, f"Failed to process playlist {i}/{len(valid_urls)}: {url} for session {session_key}")
-                except Exception as e:
-                    _log_to_file(GENERAL_LOG_FILE, f"Error processing playlist {i}/{len(valid_urls)}: {url} for session {session_key}: {e}")
+            _log_to_file(GENERAL_LOG_FILE, f"Processing {len(valid_urls)} playlists for session {session_key}")
+            try:
+                result = view_playlists(valid_urls, session_key)
+                if result:
+                    _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
+                else:
+                    _log_to_file(GENERAL_LOG_FILE, f"Failed to process {len(valid_urls)} playlists for session {session_key}")
+            except Exception as e:
+                _log_to_file(GENERAL_LOG_FILE, f"Error processing playlists for session {session_key}: {e}")
             
             _log_to_file(GENERAL_LOG_FILE, f"Completed playlist import process for session {session_key}")
         
