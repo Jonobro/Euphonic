@@ -1916,7 +1916,7 @@ def import_playlists_api(request):
         if len(playlist_urls) > 5:
             return JsonResponse({'error': 'Maximum of 5 playlists allowed'}, status=400)
         
-        # Validate URLs
+        # Validate URLs and extract playlist IDs
         valid_urls = []
         for url in playlist_urls:
             if not isinstance(url, str):
@@ -1946,16 +1946,86 @@ def import_playlists_api(request):
         # Create response object
         response = JsonResponse(response_data)
         
-        # Start playlist viewing process in a separate thread after response is sent
+        # Start playlist processing in a separate thread after response is sent
         def process_playlists():
             session_key = request.session.session_key
             _log_to_file(GENERAL_LOG_FILE, f"Processing {len(valid_urls)} playlists for session {session_key}")
+            
             try:
-                result = view_playlists(valid_urls, session_key)
-                if result:
-                    _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
-                else:
-                    _log_to_file(GENERAL_LOG_FILE, f"Failed to process {len(valid_urls)} playlists for session {session_key}")
+                # Get Spotify access token
+                access_token = get_spotify_access_token()
+                if not access_token:
+                    _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist import in session {session_key}")
+                    return
+                
+                # Set up headers for Spotify API requests
+                spotify_get_playlist_items_headers = {
+                    'Authorization': f'Bearer {access_token}',
+                    'Content-Type': 'application/json'
+                }
+
+                spotify_get_playlist_URL_headers = settings.SPOTIFY_HEADERS
+                
+                all_tracks = []
+                
+                for url in valid_urls:
+                    try:
+                        # Extract playlist ID from URL
+                        if 'open.spotify.com/playlist/' in url:
+                            playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
+                        elif 'spotify.com/playlist/' in url:
+                            playlist_id = url.split('spotify.com/playlist/')[1].split('?')[0]
+                        else:
+                            _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
+                            continue
+                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
+                        requests.get(url, headers=spotify_get_playlist_URL_headers)
+                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url}")
+                        time.sleep(1)
+                        playlist_api_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks?fields=items(track(id,name,artists(name)))"
+                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_api_url}")
+                        response = requests.get(playlist_api_url, headers=spotify_get_playlist_items_headers, timeout=10)
+                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_api_url} | Status: {response.status_code}")
+
+                        if response.status_code == 200:
+                            playlist_data = response.json()
+                            
+                            # Process tracks from this playlist
+                            for item in playlist_data.get('items', []):
+                                track = item.get('track')
+                                if track and track.get('id') and track.get('name'):
+                                    artists = track.get('artists', [])
+                                    artist_names = [artist.get('name', '') for artist in artists if artist.get('name')]
+                                    
+                                    if artist_names:
+                                        track_info = {
+                                            'id': track['id'],
+                                            'name': track['name'],
+                                            'artists': ', '.join(artist_names)
+                                        }
+                                        # Avoid duplicates
+                                        if track_info not in all_tracks:
+                                            all_tracks.append(track_info)
+                            
+                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully processed playlist {playlist_id} with {len(playlist_data.get('items', []))} tracks")
+                        
+                        else:
+                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id}. Status: {response.status_code}, Response: {response.text}")
+                    
+                    except Exception as e:
+                        _log_to_file(GENERAL_LOG_FILE, f"Error processing playlist URL {url}: {e}")
+                        continue
+                
+                # Cache the combined tracks for the user
+                if all_tracks:
+                    user_id = request.session.get('euphonic_intelligence_user_id')
+                    if user_id:
+                        cache_key_tracks = f'spotify_user_tracks_{user_id}'
+                        cache.set(cache_key_tracks, all_tracks, timeout=3600)
+                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully cached {len(all_tracks)} total tracks for user {user_id}")
+                
+                _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
+                
             except Exception as e:
                 _log_to_file(GENERAL_LOG_FILE, f"Error processing playlists for session {session_key}: {e}")
             

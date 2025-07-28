@@ -1,5 +1,6 @@
 # Django settings for spotify_project
 import os
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 import redis
@@ -120,3 +121,5 @@ if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY environment variable is required. Please set it in your .env file.")
     
 SPOTIFY_ID = os.environ.get('SPOTIFY_ID')
+
+SPOTIFY_HEADERS = json.loads(os.environ.get('SPOTIFY_HEADERS', '{}'))
