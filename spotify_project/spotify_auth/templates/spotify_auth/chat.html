@@ -302,54 +302,6 @@
             document.getElementById('importPlaylistForm').reset();
         }
         
-        // Handle form submission
-        document.addEventListener('DOMContentLoaded', function() {
-            const importForm = document.getElementById('importPlaylistForm');
-            if (importForm) {
-                importForm.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    
-                    const formData = new FormData(importForm);
-                    const playlistUrls = [];
-                    
-                    // Collect non-empty URLs
-                    for (let i = 1; i <= 5; i++) {
-                        const url = formData.get(`playlist${i}`);
-                        if (url && url.trim()) {
-                            playlistUrls.push(url.trim());
-                        }
-                    }
-                    
-                    if (playlistUrls.length === 0) {
-                        alert('Please enter at least one playlist URL.');
-                        return;
-                    }
-                    
-                    try {
-                        const response = await fetch('/import_playlists/', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-                            },
-                            body: JSON.stringify({ playlist_urls: playlistUrls })
-                        });
-                        
-                        const result = await response.json();
-                        
-                        if (response.ok) {
-                            closeImportModal();
-                        } else {
-                            alert(`Error: ${result.error || 'Failed to import playlists'}`);
-                        }
-                    } catch (error) {
-                        alert('An error occurred while importing playlists. Please try again.');
-                        console.error('Import error:', error);
-                    }
-                });
-            }
-        });
-        
         // Close modal when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('legalModal');
