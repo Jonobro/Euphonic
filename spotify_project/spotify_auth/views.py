@@ -468,6 +468,20 @@ def _ensure_euphonic_intelligence_user_id(request):
         _log_to_file(GENERAL_LOG_FILE, f"Generated new euphonic_intelligence_user_id: {euphonic_user_id} for session {request.session.session_key}")
     return request.session['euphonic_intelligence_user_id']
 
+@csrf_protect
+@require_http_methods(["GET"])
+@never_cache
+def check_import_status(request):
+    """Check if playlist import has completed by verifying if user tracks are cached"""
+    user_id = request.session.get('euphonic_intelligence_user_id')
+    if not user_id:
+        return JsonResponse({'completed': False})
+    
+    cache_key_tracks = f'spotify_user_tracks_{user_id}'
+    tracks_list = cache.get(cache_key_tracks)
+    
+    return JsonResponse({'completed': bool(tracks_list)})
+
 def check_and_update_grounding_usage():
     current_time = time.time()
     timestamps = cache.get(CACHE_KEY_GROUNDED_TIMESTAMPS, [])
@@ -1949,13 +1963,13 @@ def import_playlists_api(request):
                     if user_id:
                         cache_key_tracks = f'spotify_user_tracks_{user_id}'
                         cache.set(cache_key_tracks, all_tracks, timeout=3600)
+                        cache.set(f'import_completed_{user_id}', True, timeout=300)
                         _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully cached {len(all_tracks)} total tracks for user {user_id}")
-                
-                _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
-                
-                # Now that playlists are processed, generate the musical analysis
-                _log_to_file(GENERAL_LOG_FILE, f"Playlist processing complete for session {session_key}. Starting musical analysis.")
-                _generate_musical_analysis(session_data_for_thread)
+                        _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
+                        
+                        # Now that playlists are processed, generate the musical analysis
+                        _log_to_file(GENERAL_LOG_FILE, f"Playlist processing complete for session {session_key}. Starting musical analysis.")
+                        _generate_musical_analysis(session_data_for_thread)
 
             except Exception as e:
                 _log_to_file(GENERAL_LOG_FILE, f"Error processing playlists for session {session_key}: {e}")
