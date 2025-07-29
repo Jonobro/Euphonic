@@ -1855,7 +1855,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
         requests.get(url, headers=spotify_get_playlist_URL_headers)
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url}")
-        time.sleep(1)
+        time.sleep(0.2)
         
         tracks = []
         offset = 0
