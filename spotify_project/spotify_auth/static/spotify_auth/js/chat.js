@@ -437,63 +437,52 @@ I've talked too much – let's get started! What can I do for you?`;
     }
 
     // Handle form submission
-    document.addEventListener('DOMContentLoaded', function() {
-        const importForm = document.getElementById('importPlaylistForm');
-        if (importForm) {
-            importForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const formData = new FormData(importForm);
-                const playlistUrls = [];
-                
-                // Collect non-empty URLs
-                for (let i = 1; i <= 5; i++) {
-                    const url = formData.get(`playlist${i}`);
-                    if (url && url.trim()) {
-                        playlistUrls.push(url.trim());
-                    }
+    const importForm = document.getElementById('importPlaylistForm');
+    if (importForm) {
+        importForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(importForm);
+            const playlistUrls = [];
+            
+            // Collect non-empty URLs
+            for (let i = 1; i <= 5; i++) {
+                const url = formData.get(`playlist${i}`);
+                if (url && url.trim()) {
+                    playlistUrls.push(url.trim());
                 }
-                
-                if (playlistUrls.length === 0) {
-                    alert('Please enter at least one playlist URL.');
-                    return;
-                }
-                
-                // Show loading indicator
-                const importButton = document.querySelector('.tooltip-container-import .button');
-                const tooltipContainer = document.querySelector('.tooltip-container-import');
-                
-                if (importButton && tooltipContainer) {
-                    tooltipContainer.innerHTML = '<div class="import-loading-indicator"></div>';
-                }
+            }
+            
+            if (playlistUrls.length === 0) {
+                alert('Please enter at least one playlist URL.');
+                return;
+            }
+            
+            // Show loading indicator
+            const importButton = document.querySelector('.tooltip-container-import .button');
+            const tooltipContainer = document.querySelector('.tooltip-container-import');
+            
+            if (importButton && tooltipContainer) {
+                tooltipContainer.innerHTML = '<div class="import-loading-indicator"></div>';
+            }
 
-                try {
-                    const response = await fetch('/import_playlists/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-                        },
-                        body: JSON.stringify({ playlist_urls: playlistUrls })
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (response.ok) {
-                        closeImportModal();
-                        // Start polling for completion
-                        pollForImportCompletion();
-                    } else {
-                        // Restore button on error
-                        if (tooltipContainer) {
-                            tooltipContainer.innerHTML = `
-                                <button class="button" onclick="openImportModal()">Import My Music</button>
-                                <span class="custom-tooltip-import">Import your Spotify playlists to generate personalized playlists and get insights into your music</span>
-                            `;
-                        }
-                        alert(`Error: ${result.error || 'Failed to import playlists'}`);
-                    }
-                } catch (error) {
+            try {
+                const response = await fetch('/import_playlists/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ playlist_urls: playlistUrls })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    closeImportModal();
+                    // Start polling for completion
+                    pollForImportCompletion();
+                } else {
                     // Restore button on error
                     if (tooltipContainer) {
                         tooltipContainer.innerHTML = `
@@ -501,41 +490,49 @@ I've talked too much – let's get started! What can I do for you?`;
                             <span class="custom-tooltip-import">Import your Spotify playlists to generate personalized playlists and get insights into your music</span>
                         `;
                     }
-                    alert('An error occurred while importing playlists. Please try again.');
-                    console.error('Import error:', error);
+                    alert(`Error: ${result.error || 'Failed to import playlists'}`);
                 }
-            });
-        }
+            } catch (error) {
+                // Restore button on error
+                if (tooltipContainer) {
+                    tooltipContainer.innerHTML = `
+                        <button class="button" onclick="openImportModal()">Import My Music</button>
+                        <span class="custom-tooltip-import">Import your Spotify playlists to generate personalized playlists and get insights into your music</span>
+                    `;
+                }
+                alert('An error occurred while importing playlists. Please try again.');
+                console.error('Import error:', error);
+            }
+        });
+    }
 
-        // Initialize mode toggle if it exists
-        const modeToggle = document.getElementById('modeToggle');
-        if (modeToggle) {
-            modeToggle.addEventListener('click', function() {
-                const currentMode = document.body.dataset.chatMode;
-                const newMode = currentMode === 'new_songs' ? 'saved_songs' : 'new_songs';
-                
-                // Update toggle appearance
-                if (newMode === 'saved_songs') {
-                    modeToggle.classList.add('saved-songs');
-                    modeToggle.querySelector('[data-mode="saved_songs"]').classList.add('active');
-                    modeToggle.querySelector('[data-mode="new_songs"]').classList.remove('active');
-                } else {
-                    modeToggle.classList.remove('saved-songs');
-                    modeToggle.querySelector('[data-mode="new_songs"]').classList.add('active');
-                    modeToggle.querySelector('[data-mode="saved_songs"]').classList.remove('active');
-                }
-                
-                // Navigate to the appropriate view
-                const targetUrl = newMode === 'saved_songs' ? '/saved_songs_chat/' : '/new_song_chat/';
-                window.location.href = targetUrl;
-            });
-        }
-    });
+    // Initialize mode toggle if it exists
+    const modeToggle = document.getElementById('modeToggle');
+    if (modeToggle) {
+        modeToggle.addEventListener('click', function() {
+            const currentMode = document.body.dataset.chatMode;
+            const newMode = currentMode === 'new_songs' ? 'saved_songs' : 'new_songs';
+            
+            // Update toggle appearance
+            if (newMode === 'saved_songs') {
+                modeToggle.classList.add('saved-songs');
+                modeToggle.querySelector('[data-mode="saved_songs"]').classList.add('active');
+                modeToggle.querySelector('[data-mode="new_songs"]').classList.remove('active');
+            } else {
+                modeToggle.classList.remove('saved-songs');
+                modeToggle.querySelector('[data-mode="new_songs"]').classList.add('active');
+                modeToggle.querySelector('[data-mode="saved_songs"]').classList.remove('active');
+            }
+            
+            // Navigate to the appropriate view
+            const targetUrl = newMode === 'saved_songs' ? '/saved_songs_chat/' : '/new_song_chat/';
+            window.location.href = targetUrl;
+        });
+    }
 
     function pollForImportCompletion() {
         const checkCompletion = async () => {
             try {
-                // Check if user tracks are available in session storage or make a simple request
                 const response = await fetch('/check_import_status/', {
                     method: 'GET',
                     headers: {
