@@ -1852,7 +1852,13 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
             _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
             return []
         
-        # Fetch playlist name first
+        # Necessary GET request to obtain access to the playlist
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
+        requests.get(url, headers=spotify_get_playlist_URL_headers)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url}")
+
+        time.sleep(0.1)
+
         playlist_name_url = f"https://api.spotify.com/v1/playlists/{playlist_id}?fields=name"
         playlist_name = "Unknown Playlist"
         
@@ -1869,11 +1875,6 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
                 _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist name for {playlist_id}. Status: {name_response.status_code}")
         except Exception as e:
             _log_to_file(SPOTIFY_API_LOG_FILE, f"Error fetching playlist name for {playlist_id}: {e}")
-        
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
-        requests.get(url, headers=spotify_get_playlist_URL_headers)
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url}")
-        time.sleep(0.2)
         
         tracks = []
         offset = 0
