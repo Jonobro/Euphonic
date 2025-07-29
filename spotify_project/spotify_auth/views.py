@@ -1876,9 +1876,13 @@ def import_playlists_api(request):
         # Create response object
         response = JsonResponse(response_data)
         
+        session_data = dict(request.session)
+        session_data['session_key'] = request.session.session_key
+
         # Start playlist processing in a separate thread after response is sent
-        def process_playlists():
-            session_key = request.session.session_key
+        def process_playlists_and_analyze(session_data_for_thread):
+            session_key = session_data_for_thread.get('session_key')
+            user_id = session_data_for_thread.get('euphonic_intelligence_user_id')
             _log_to_file(GENERAL_LOG_FILE, f"Processing {len(valid_urls)} playlists for session {session_key}")
             
             try:
@@ -1942,7 +1946,6 @@ def import_playlists_api(request):
                 
                 # Cache the combined tracks for the user
                 if all_tracks:
-                    user_id = request.session.get('euphonic_intelligence_user_id')
                     if user_id:
                         cache_key_tracks = f'spotify_user_tracks_{user_id}'
                         cache.set(cache_key_tracks, all_tracks, timeout=3600)
@@ -1950,14 +1953,17 @@ def import_playlists_api(request):
                 
                 _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
                 
+                # Now that playlists are processed, generate the musical analysis
+                _log_to_file(GENERAL_LOG_FILE, f"Playlist processing complete for session {session_key}. Starting musical analysis.")
+                _generate_musical_analysis(session_data_for_thread)
+
             except Exception as e:
                 _log_to_file(GENERAL_LOG_FILE, f"Error processing playlists for session {session_key}: {e}")
             
             _log_to_file(GENERAL_LOG_FILE, f"Completed playlist import process for session {session_key}")
         
         # Start the playlist processing in a separate thread
-        import threading
-        thread = threading.Thread(target=process_playlists)
+        thread = threading.Thread(target=process_playlists_and_analyze, args=(session_data,))
         thread.daemon = True
         thread.start()
         
