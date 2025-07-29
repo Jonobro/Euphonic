@@ -207,6 +207,7 @@ h2, h3, h4, h5, h6 {
 .tooltip-container-reset {
     position: relative;
     display: inline-block;
+    height: fit-content;
 }
 
 .custom-tooltip-reset {
@@ -273,6 +274,7 @@ h2, h3, h4, h5, h6 {
 .header-buttons {
     display: flex;
     gap: 10px;
+    align-items: center;
 }
 
 .spotify-footer {
