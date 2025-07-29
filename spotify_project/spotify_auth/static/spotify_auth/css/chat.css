@@ -660,3 +660,146 @@ h2, h3, h4, h5, h6 {
 .mode-toggle.saved-songs .mode-toggle-slider {
     transform: translateX(100%);
 }
+
+.playlist-summary {
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    border-left: 4px solid rgb(30, 200, 90);
+}
+
+.playlist-summary p {
+    color: rgb(30, 200, 90);
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+.playlist-input-group {
+    margin-bottom: 1rem;
+}
+
+.playlist-input-label {
+    display: block;
+    color: rgb(30, 200, 90);
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.playlist-input-container {
+    background-color: #3a3a3a;
+    border: 1px solid #535353;
+    border-radius: 5px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.playlist-input-container:focus-within {
+    border-color: rgb(30, 200, 90);
+    box-shadow: 0 0 5px rgba(30, 200, 90, 0.3);
+}
+
+.playlist-input-field {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e0e0e0;
+    padding: 0.75rem;
+    font-family: 'Poppins', sans-serif, Arial;
+    font-size: 14px;
+}
+
+.playlist-input-field::placeholder {
+    color: #999;
+}
+
+.playlist-loading-state {
+    display: flex;
+    align-items: center;
+    color: #e0e0e0;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.playlist-error-state {
+    display: flex;
+    align-items: center;
+    color: #ff6b6b;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.playlist-success-state {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgb(30, 200, 90);
+    color: #181818;
+    border-radius: 5px;
+    margin: 0.25rem;
+    padding: 0.75rem;
+}
+
+.playlist-success-content {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    flex: 1;
+}
+
+.playlist-success-info {
+    min-width: 0;
+    flex: 1;
+    margin-left: 0.5rem;
+}
+
+.playlist-name {
+    font-weight: 500;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.playlist-track-count {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+.playlist-remove-btn {
+    background: none;
+    border: none;
+    color: #181818;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 50%;
+    margin-left: 0.5rem;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.playlist-remove-btn:hover {
+    background-color: rgba(24, 24, 24, 0.2);
+}
+
+.spinner-small {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

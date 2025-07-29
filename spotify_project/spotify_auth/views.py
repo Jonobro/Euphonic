@@ -1843,7 +1843,7 @@ def stream_chat_response(request, task_id):
     response['X-Accel-Buffering'] = 'no'
     return response
 
-def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_get_playlist_URL_headers, track_counter):
+def _process_single_playlist(url, spotify_get_playlist_items_headers, track_counter):
     try:
         # Extract playlist ID from URL
         if 'open.spotify.com/playlist/' in url:
@@ -1852,29 +1852,8 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
             _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
             return []
         
-        # Necessary GET request to obtain access to the playlist
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
-        requests.get(url, headers=spotify_get_playlist_URL_headers)
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url}")
-
-        time.sleep(0.1)
-
-        playlist_name_url = f"https://api.spotify.com/v1/playlists/{playlist_id}?fields=name"
-        playlist_name = "Unknown Playlist"
-        
-        try:
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_name_url}")
-            name_response = requests.get(playlist_name_url, headers=spotify_get_playlist_items_headers, timeout=10)
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_name_url} | Status: {name_response.status_code}")
-            
-            if name_response.status_code == 200:
-                name_data = name_response.json()
-                playlist_name = name_data.get('name', 'Unknown Playlist')
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Retrieved playlist name for {playlist_id}: {playlist_name}")
-            else:
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist name for {playlist_id}. Status: {name_response.status_code}")
-        except Exception as e:
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"Error fetching playlist name for {playlist_id}: {e}")
+        # Check if we have cached playlist details from validation
+        # Note: We'll get user_id from the session data passed to the import function
         
         tracks = []
         offset = 0
@@ -1885,7 +1864,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
             # Check if we've exceeded the 1000 track limit
             with track_counter['lock']:
                 if track_counter['count'] >= 1000:
-                    _log_to_file(GENERAL_LOG_FILE, f"Track limit of 1000 reached, stopping playlist {playlist_id} ({playlist_name}) processing")
+                    _log_to_file(GENERAL_LOG_FILE, f"Track limit of 1000 reached, stopping playlist {playlist_id} processing")
                     break
             
             playlist_api_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
@@ -1908,40 +1887,40 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
                         # Rate limited - implement backoff
                         retry_after = int(response.headers.get('Retry-After', 2 ** attempt))
                         delay = retry_after + random.uniform(0, 1)
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Rate limited for playlist {playlist_id} ({playlist_name}). Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Rate limited for playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                         time.sleep(delay)
                         continue
                     elif response.status_code in {400, 401, 403, 404, 422}:
                         # Non-retryable error
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} for playlist {playlist_id} ({playlist_name})")
+                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} for playlist {playlist_id}")
                         return tracks
                     else:
                         # Other errors - implement exponential backoff
                         if attempt < max_retries - 1:
                             delay = 2 ** attempt + random.uniform(0, 1)
-                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Error {response.status_code} for playlist {playlist_id} ({playlist_name}). Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Error {response.status_code} for playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                             time.sleep(delay)
                             continue
                         else:
-                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id} ({playlist_name}) after {max_retries} attempts. Status: {response.status_code}")
+                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id} after {max_retries} attempts. Status: {response.status_code}")
                             return tracks
                             
                 except requests.exceptions.RequestException as e:
                     if attempt < max_retries - 1:
                         delay = 2 ** attempt + random.uniform(0, 1)
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception for playlist {playlist_id} ({playlist_name}): {e}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception for playlist {playlist_id}: {e}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                         time.sleep(delay)
                         continue
                     else:
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request failed for playlist {playlist_id} ({playlist_name}) after {max_retries} attempts: {e}")
+                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request failed for playlist {playlist_id} after {max_retries} attempts: {e}")
                         return tracks
             else:
                 # All retries exhausted
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"All retries exhausted for playlist {playlist_id} ({playlist_name})")
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"All retries exhausted for playlist {playlist_id}")
                 return tracks
             
             if response.status_code != 200:
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id} ({playlist_name}). Status: {response.status_code}, Response: {response.text}")
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id}. Status: {response.status_code}, Response: {response.text}")
                 return tracks
             
             playlist_data = response.json()
@@ -1975,7 +1954,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
                     batch_tracks = batch_tracks[:remaining_slots]
                     tracks.extend(batch_tracks)
                     track_counter['count'] += len(batch_tracks)
-                    _log_to_file(GENERAL_LOG_FILE, f"Reached 1000 track limit while processing playlist {playlist_id} ({playlist_name})")
+                    _log_to_file(GENERAL_LOG_FILE, f"Reached 1000 track limit while processing playlist {playlist_id}")
                     break
                 else:
                     tracks.extend(batch_tracks)
@@ -1988,7 +1967,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
             if offset >= total_tracks:
                 break
         
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully processed playlist {playlist_id} ({playlist_name}) with {len(tracks)} tracks")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully processed playlist {playlist_id} with {len(tracks)} tracks")
         return tracks
         
     except Exception as e:
@@ -2043,7 +2022,6 @@ def import_playlists_api(request):
         
         # Set up headers for Spotify API requests
         spotify_get_playlist_items_headers = {'Authorization': f'Bearer {access_token}'}
-        spotify_get_playlist_URL_headers = settings.SPOTIFY_HEADERS
         
         all_tracks = []
         
@@ -2057,7 +2035,7 @@ def import_playlists_api(request):
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             # Submit all playlist processing tasks
             future_to_url = {
-                executor.submit(_process_single_playlist, url, spotify_get_playlist_items_headers, spotify_get_playlist_URL_headers, track_counter): url 
+                executor.submit(_process_single_playlist, url, spotify_get_playlist_items_headers, track_counter): url 
                 for url in valid_urls
             }
             
@@ -2109,4 +2087,91 @@ def import_playlists_api(request):
         return JsonResponse({'error': 'Invalid request format'}, status=400)
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in import_playlists_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
+        return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
+@csrf_protect
+@require_http_methods(["POST"])
+@never_cache
+def validate_playlist_api(request):
+    """Validate a single playlist URL and return its details"""
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
+    
+    try:
+        data = json.loads(request.body)
+        playlist_url = data.get('playlist_url', '').strip()
+        
+        if not playlist_url:
+            return JsonResponse({'error': 'No playlist URL provided'}, status=400)
+        
+        # Basic Spotify playlist URL validation
+        if 'https://open.spotify.com/playlist/' not in playlist_url:
+            return JsonResponse({'error': 'Invalid Spotify playlist URL'}, status=400)
+        
+        # Extract playlist ID from URL
+        try:
+            playlist_id = playlist_url.split('open.spotify.com/playlist/')[1].split('?')[0]
+        except (IndexError, AttributeError):
+            return JsonResponse({'error': 'Invalid Spotify playlist URL format'}, status=400)
+        
+        # Get Spotify access token
+        access_token = get_spotify_access_token()
+        if not access_token:
+            _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist validation in session {request.session.session_key}")
+            return JsonResponse({'error': 'Failed to connect to Spotify'}, status=500)
+        
+        # Set up headers for Spotify API requests
+        spotify_get_playlist_items_headers = {'Authorization': f'Bearer {access_token}'}
+        spotify_get_playlist_URL_headers = settings.SPOTIFY_HEADERS
+        
+        try:
+            # First GET request to obtain access to the playlist
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_url}")
+            requests.get(playlist_url, headers=spotify_get_playlist_URL_headers, timeout=10)
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_url}")
+            
+            time.sleep(0.1)
+            
+            # Second GET request to fetch playlist details
+            playlist_details_url = f"https://api.spotify.com/v1/playlists/{playlist_id}?fields=name,tracks.total"
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_details_url}")
+            response = requests.get(playlist_details_url, headers=spotify_get_playlist_items_headers, timeout=10)
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_details_url} | Status: {response.status_code}")
+            
+            if response.status_code == 200:
+                playlist_data = response.json()
+                playlist_name = playlist_data.get('name', 'Unknown Playlist')
+                track_count = playlist_data.get('tracks', {}).get('total', 0)
+                
+                # Cache the playlist details for later use
+                user_id = request.session.get('euphonic_intelligence_user_id')
+                if user_id:
+                    cache_key = f"validated_playlist_{user_id}_{playlist_id}"
+                    cache.set(cache_key, {
+                        'name': playlist_name,
+                        'track_count': track_count,
+                        'url': playlist_url,
+                        'id': playlist_id
+                    }, timeout=3600)
+                
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully validated playlist {playlist_id}: {playlist_name} ({track_count} tracks)")
+                
+                return JsonResponse({
+                    'success': True,
+                    'name': playlist_name,
+                    'track_count': track_count,
+                    'playlist_id': playlist_id
+                })
+            else:
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist details for {playlist_id}. Status: {response.status_code}")
+                return JsonResponse({'error': 'Playlist not found or not accessible'}, status=404)
+                
+        except requests.exceptions.RequestException as e:
+            _log_to_file(GENERAL_LOG_FILE, f"Request exception during playlist validation for {playlist_id}: {e}")
+            return JsonResponse({'error': 'Failed to validate playlist'}, status=500)
+            
+    except json.JSONDecodeError:
+        _log_to_file(GENERAL_LOG_FILE, f"Invalid JSON in validate_playlist_api request. Session: {request.session.session_key}, Body: {request.body.decode('utf-8')}")
+        return JsonResponse({'error': 'Invalid request format'}, status=400)
+    except Exception as e:
+        _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in validate_playlist_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)

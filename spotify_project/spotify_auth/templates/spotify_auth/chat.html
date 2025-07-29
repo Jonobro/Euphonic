@@ -92,33 +92,19 @@
                 <span class="close-modal" onclick="closeImportModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <p>Enter up to 5 Spotify playlist URLs to import your music collection:</p>
-                <form id="importPlaylistForm">
-                    <div class="playlist-url-input">
-                        <label for="playlist1">Playlist 1:</label>
-                        <input type="url" id="playlist1" name="playlist1" placeholder="https://open.spotify.com/playlist/..." />
-                    </div>
-                    <div class="playlist-url-input">
-                        <label for="playlist2">Playlist 2:</label>
-                        <input type="url" id="playlist2" name="playlist2" placeholder="https://open.spotify.com/playlist/..." />
-                    </div>
-                    <div class="playlist-url-input">
-                        <label for="playlist3">Playlist 3:</label>
-                        <input type="url" id="playlist3" name="playlist3" placeholder="https://open.spotify.com/playlist/..." />
-                    </div>
-                    <div class="playlist-url-input">
-                        <label for="playlist4">Playlist 4:</label>
-                        <input type="url" id="playlist4" name="playlist4" placeholder="https://open.spotify.com/playlist/..." />
-                    </div>
-                    <div class="playlist-url-input">
-                        <label for="playlist5">Playlist 5:</label>
-                        <input type="url" id="playlist5" name="playlist5" placeholder="https://open.spotify.com/playlist/..." />
-                    </div>
-                    <div class="import-buttons">
-                        <button type="button" class="button secondary-button" onclick="closeImportModal()">Cancel</button>
-                        <button type="submit" class="button">Import Playlists</button>
-                    </div>
-                </form>
+                <p style="margin-bottom: 1.5rem; color: #d1d5db;">Paste Spotify playlist URLs below. We'll automatically detect and load the playlist details:</p>
+                
+                <div id="playlistInputsContainer">
+                </div>
+                
+                <div id="playlistSummary" class="playlist-summary" style="display: none;">
+                    <p id="summaryText"></p>
+                </div>
+                
+                <div class="import-buttons">
+                    <button type="button" class="button secondary-button" onclick="closeImportModal()">Cancel</button>
+                    <button type="button" class="button" id="importPlaylistsBtn" disabled>Import Playlists</button>
+                </div>
             </div>
         </div>
     </div>
@@ -128,6 +114,7 @@
     </script>
     <script src="{% static 'spotify_auth/js/chat.js' %}"></script>
     <script src="{% static 'spotify_auth/js/playlist_handler.js' %}"></script>
+    <script src="{% static 'spotify_auth/js/playlist_import.js' %}"></script>
     <script>
         function openModal(type) {
             const modal = document.getElementById('legalModal');
@@ -295,11 +282,14 @@
         
         function openImportModal() {
             document.getElementById('importModal').style.display = 'block';
+            // Initialize playlist import functionality
+            if (window.playlistImport) {
+                window.playlistImport.initialize();
+            }
         }
         
         function closeImportModal() {
             document.getElementById('importModal').style.display = 'none';
-            document.getElementById('importPlaylistForm').reset();
         }
         
         // Close modal when clicking outside
