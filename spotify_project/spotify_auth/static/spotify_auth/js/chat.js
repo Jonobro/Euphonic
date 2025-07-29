@@ -459,12 +459,22 @@ I've talked too much – let's get started! What can I do for you?`;
             }
             
             // Show loading indicator
-            const importButton = document.querySelector('.tooltip-container-import .button');
-            const tooltipContainer = document.querySelector('.tooltip-container-import');
+            const importButton = document.querySelector('#importPlaylistForm button[type="submit"]');
+            const originalButtonText = importButton.textContent;
+            importButton.disabled = true;
+            importButton.textContent = 'Importing...';
             
-            if (importButton && tooltipContainer) {
-                tooltipContainer.innerHTML = '<div class="import-loading-indicator"></div>';
-            }
+            // Add loading indicator to modal body
+            const modalBody = document.querySelector('#importModal .modal-body');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'import-loading-modal';
+            loadingDiv.innerHTML = `
+                <div class="import-loading-indicator"></div>
+                <p style="text-align: center; margin-top: 10px; color: #e0e0e0;">
+                    Importing your playlists... This may take a moment.
+                </p>
+            `;
+            modalBody.appendChild(loadingDiv);
 
             try {
                 const response = await fetch('/import_playlists/', {
@@ -479,29 +489,24 @@ I've talked too much – let's get started! What can I do for you?`;
                 const result = await response.json();
                 
                 if (response.ok) {
+                    // Close modal and show mode toggle
                     closeImportModal();
-                    // Start polling for completion
-                    pollForImportCompletion();
-                } else {
-                    // Restore button on error
+                    showModeToggle();
+                    
+                    // Update the import button in header
+                    const tooltipContainer = document.querySelector('.tooltip-container-import');
                     if (tooltipContainer) {
-                        tooltipContainer.innerHTML = `
-                            <button class="button" onclick="openImportModal()">Import My Music</button>
-                            <span class="custom-tooltip-import">Import your Spotify playlists to generate personalized playlists and get insights into your music</span>
-                        `;
+                        tooltipContainer.style.display = 'none';
                     }
-                    alert(`Error: ${result.error || 'Failed to import playlists'}`);
+                } else {
+                    throw new Error(result.error || 'Failed to import playlists');
                 }
             } catch (error) {
-                // Restore button on error
-                if (tooltipContainer) {
-                    tooltipContainer.innerHTML = `
-                        <button class="button" onclick="openImportModal()">Import My Music</button>
-                        <span class="custom-tooltip-import">Import your Spotify playlists to generate personalized playlists and get insights into your music</span>
-                    `;
-                }
-                alert('An error occurred while importing playlists. Please try again.');
-                console.error('Import error:', error);
+                // Remove loading indicator and restore form
+                loadingDiv.remove();
+                importButton.disabled = false;
+                importButton.textContent = originalButtonText;
+                alert(`Error: ${error.message}`);
             }
         });
     }

@@ -1878,110 +1878,101 @@ def import_playlists_api(request):
         if not valid_urls:
             return JsonResponse({'error': 'No valid playlist URLs provided'}, status=400)
         
-        _log_to_file(GENERAL_LOG_FILE, f"Starting playlist import process for {len(valid_urls)} URLs for session {request.session.session_key}")
+        user_id = request.session.get('euphonic_intelligence_user_id')
+        session_key = request.session.session_key
         
-        # Send immediate response to JavaScript
+        _log_to_file(GENERAL_LOG_FILE, f"Starting synchronous playlist import for {len(valid_urls)} URLs for session {session_key}")
+        
+        # Get Spotify access token
+        access_token = get_spotify_access_token()
+        if not access_token:
+            _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist import in session {session_key}")
+            return JsonResponse({'error': 'Failed to connect to Spotify'}, status=500)
+        
+        # Set up headers for Spotify API requests
+        spotify_get_playlist_items_headers = {'Authorization': f'Bearer {access_token}'}
+        spotify_get_playlist_URL_headers = settings.SPOTIFY_HEADERS
+        
+        all_tracks = []
+        
+        for url in valid_urls:
+            try:
+                # Extract playlist ID from URL
+                if 'open.spotify.com/playlist/' in url:
+                    playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
+                else:
+                    _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
+                    continue
+                
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
+                requests.get(url, headers=spotify_get_playlist_URL_headers)
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url}")
+                time.sleep(1)
+                
+                playlist_api_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks?fields=items(track(id,name,artists(name)))"
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_api_url}")
+                response = requests.get(playlist_api_url, headers=spotify_get_playlist_items_headers, timeout=10)
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_api_url} | Status: {response.status_code}")
+
+                if response.status_code == 200:
+                    playlist_data = response.json()
+                    
+                    # Process tracks from this playlist
+                    for item in playlist_data.get('items', []):
+                        track = item.get('track')
+                        if track and track.get('id') and track.get('name'):
+                            artists = track.get('artists', [])
+                            artist_names = [artist.get('name', '') for artist in artists if artist.get('name')]
+                            
+                            if artist_names:
+                                track_info = {
+                                    'id': track['id'],
+                                    'name': track['name'],
+                                    'artists': ', '.join(artist_names)
+                                }
+                                # Avoid duplicates
+                                if track_info not in all_tracks:
+                                    all_tracks.append(track_info)
+                    
+                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully processed playlist {playlist_id} with {len(playlist_data.get('items', []))} tracks")
+                
+                else:
+                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id}. Status: {response.status_code}, Response: {response.text}")
+            
+            except Exception as e:
+                _log_to_file(GENERAL_LOG_FILE, f"Error processing playlist URL {url}: {e}")
+                continue
+        
+        # Cache the combined tracks for the user
+        if all_tracks:
+            if user_id:
+                cache_key_tracks = f'spotify_user_tracks_{user_id}'
+                cache.set(cache_key_tracks, all_tracks, timeout=3600)
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully cached {len(all_tracks)} total tracks for user {user_id}")
+                _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
+                
+                # Generate the musical analysis asynchronously
+                _log_to_file(GENERAL_LOG_FILE, f"Playlist processing complete for session {session_key}. Starting musical analysis in background.")
+                session_data = dict(request.session)
+                session_data['session_key'] = session_key
+                
+                # Start analysis in background thread
+                thread = threading.Thread(
+                    target=_generate_musical_analysis,
+                    args=(session_data,)
+                )
+                thread.daemon = True
+                thread.start()
+                _log_to_file(GENERAL_LOG_FILE, f"Started musical analysis thread for session {session_key} from import_playlists_api")
+        
         response_data = {
             'success': True, 
-            'message': f'Successfully imported {len(valid_urls)} playlist URLs',
-            'count': len(valid_urls)
+            'message': f'Successfully imported {len(valid_urls)} playlists with {len(all_tracks)} tracks',
+            'track_count': len(all_tracks)
         }
         
-        # Create response object
-        response = JsonResponse(response_data)
-        
-        session_data = dict(request.session)
-        session_data['session_key'] = request.session.session_key
-
-        # Start playlist processing in a separate thread after response is sent
-        def process_playlists_and_analyze(session_data_for_thread):
-            session_key = session_data_for_thread.get('session_key')
-            user_id = session_data_for_thread.get('euphonic_intelligence_user_id')
-            _log_to_file(GENERAL_LOG_FILE, f"Processing {len(valid_urls)} playlists for session {session_key}")
-            
-            try:
-                # Get Spotify access token
-                access_token = get_spotify_access_token()
-                if not access_token:
-                    _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist import in session {session_key}")
-                    return
-                
-                # Set up headers for Spotify API requests
-                spotify_get_playlist_items_headers = {'Authorization': f'Bearer {access_token}'}
-                spotify_get_playlist_URL_headers = settings.SPOTIFY_HEADERS
-                
-                all_tracks = []
-                
-                for url in valid_urls:
-                    try:
-                        # Extract playlist ID from URL
-                        if 'open.spotify.com/playlist/' in url:
-                            playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
-                        else:
-                            _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
-                            continue
-                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
-                        requests.get(url, headers=spotify_get_playlist_URL_headers)
-                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url}")
-                        time.sleep(1)
-                        playlist_api_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks?fields=items(track(id,name,artists(name)))"
-                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_api_url}")
-                        response = requests.get(playlist_api_url, headers=spotify_get_playlist_items_headers, timeout=10)
-                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_api_url} | Status: {response.status_code}")
-
-                        if response.status_code == 200:
-                            playlist_data = response.json()
-                            
-                            # Process tracks from this playlist
-                            for item in playlist_data.get('items', []):
-                                track = item.get('track')
-                                if track and track.get('id') and track.get('name'):
-                                    artists = track.get('artists', [])
-                                    artist_names = [artist.get('name', '') for artist in artists if artist.get('name')]
-                                    
-                                    if artist_names:
-                                        track_info = {
-                                            'id': track['id'],
-                                            'name': track['name'],
-                                            'artists': ', '.join(artist_names)
-                                        }
-                                        # Avoid duplicates
-                                        if track_info not in all_tracks:
-                                            all_tracks.append(track_info)
-                            
-                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully processed playlist {playlist_id} with {len(playlist_data.get('items', []))} tracks")
-                        
-                        else:
-                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id}. Status: {response.status_code}, Response: {response.text}")
-                    
-                    except Exception as e:
-                        _log_to_file(GENERAL_LOG_FILE, f"Error processing playlist URL {url}: {e}")
-                        continue
-                
-                # Cache the combined tracks for the user
-                if all_tracks:
-                    if user_id:
-                        cache_key_tracks = f'spotify_user_tracks_{user_id}'
-                        cache.set(cache_key_tracks, all_tracks, timeout=3600)
-                        cache.set(f'import_completed_{user_id}', True, timeout=300)
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully cached {len(all_tracks)} total tracks for user {user_id}")
-                        _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
-                        
-                        # Now that playlists are processed, generate the musical analysis
-                        _log_to_file(GENERAL_LOG_FILE, f"Playlist processing complete for session {session_key}. Starting musical analysis.")
-                        _generate_musical_analysis(session_data_for_thread)
-
-            except Exception as e:
-                _log_to_file(GENERAL_LOG_FILE, f"Error processing playlists for session {session_key}: {e}")
-            
-            _log_to_file(GENERAL_LOG_FILE, f"Completed playlist import process for session {session_key}")
-        
-        # Start the playlist processing in a separate thread
-        thread = threading.Thread(target=process_playlists_and_analyze, args=(session_data,))
-        thread.daemon = True
-        thread.start()
-        
-        return response
+        _log_to_file(GENERAL_LOG_FILE, f"Completed synchronous playlist import for session {session_key}")
+        return JsonResponse(response_data)
         
     except json.JSONDecodeError:
         _log_to_file(GENERAL_LOG_FILE, f"Invalid JSON in import_playlists_api request. Session: {request.session.session_key}, Body: {request.body.decode('utf-8')}")
