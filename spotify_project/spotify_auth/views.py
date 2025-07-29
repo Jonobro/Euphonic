@@ -1843,6 +1843,55 @@ def stream_chat_response(request, task_id):
     response['X-Accel-Buffering'] = 'no'
     return response
 
+def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_get_playlist_URL_headers):
+    try:
+        # Extract playlist ID from URL
+        if 'open.spotify.com/playlist/' in url:
+            playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
+        else:
+            _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
+            return []
+        
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
+        requests.get(url, headers=spotify_get_playlist_URL_headers)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url}")
+        time.sleep(1)
+        
+        playlist_api_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks?fields=items(track(id,name,artists(name)))"
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_api_url}")
+        response = requests.get(playlist_api_url, headers=spotify_get_playlist_items_headers, timeout=10)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_api_url} | Status: {response.status_code}")
+
+        if response.status_code == 200:
+            playlist_data = response.json()
+            tracks = []
+            
+            # Process tracks from this playlist
+            for item in playlist_data.get('items', []):
+                track = item.get('track')
+                if track and track.get('id') and track.get('name'):
+                    artists = track.get('artists', [])
+                    artist_names = [artist.get('name', '') for artist in artists if artist.get('name')]
+                    
+                    if artist_names:
+                        track_info = {
+                            'id': track['id'],
+                            'name': track['name'],
+                            'artists': ', '.join(artist_names)
+                        }
+                        tracks.append(track_info)
+            
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully processed playlist {playlist_id} with {len(tracks)} tracks")
+            return tracks
+        
+        else:
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id}. Status: {response.status_code}, Response: {response.text}")
+            return []
+    
+    except Exception as e:
+        _log_to_file(GENERAL_LOG_FILE, f"Error processing playlist URL {url}: {e}")
+        return []
+
 @csrf_protect
 @require_http_methods(["POST"])
 @never_cache
@@ -1895,53 +1944,25 @@ def import_playlists_api(request):
         
         all_tracks = []
         
-        for url in valid_urls:
-            try:
-                # Extract playlist ID from URL
-                if 'open.spotify.com/playlist/' in url:
-                    playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
-                else:
-                    _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
-                    continue
-                
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
-                requests.get(url, headers=spotify_get_playlist_URL_headers)
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url}")
-                time.sleep(1)
-                
-                playlist_api_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks?fields=items(track(id,name,artists(name)))"
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_api_url}")
-                response = requests.get(playlist_api_url, headers=spotify_get_playlist_items_headers, timeout=10)
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_api_url} | Status: {response.status_code}")
-
-                if response.status_code == 200:
-                    playlist_data = response.json()
-                    
-                    # Process tracks from this playlist
-                    for item in playlist_data.get('items', []):
-                        track = item.get('track')
-                        if track and track.get('id') and track.get('name'):
-                            artists = track.get('artists', [])
-                            artist_names = [artist.get('name', '') for artist in artists if artist.get('name')]
-                            
-                            if artist_names:
-                                track_info = {
-                                    'id': track['id'],
-                                    'name': track['name'],
-                                    'artists': ', '.join(artist_names)
-                                }
-                                # Avoid duplicates
-                                if track_info not in all_tracks:
-                                    all_tracks.append(track_info)
-                    
-                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully processed playlist {playlist_id} with {len(playlist_data.get('items', []))} tracks")
-                
-                else:
-                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id}. Status: {response.status_code}, Response: {response.text}")
+        # Process playlists in parallel using ThreadPoolExecutor
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            # Submit all playlist processing tasks
+            future_to_url = {
+                executor.submit(_process_single_playlist, url, spotify_get_playlist_items_headers, spotify_get_playlist_URL_headers): url 
+                for url in valid_urls
+            }
             
-            except Exception as e:
-                _log_to_file(GENERAL_LOG_FILE, f"Error processing playlist URL {url}: {e}")
-                continue
+            # Collect results as they complete
+            for future in concurrent.futures.as_completed(future_to_url):
+                url = future_to_url[future]
+                try:
+                    tracks = future.result()
+                    # Add tracks to all_tracks, avoiding duplicates
+                    for track in tracks:
+                        if track not in all_tracks:
+                            all_tracks.append(track)
+                except Exception as e:
+                    _log_to_file(GENERAL_LOG_FILE, f"Exception occurred while processing playlist {url}: {e}")
         
         # Cache the combined tracks for the user
         if all_tracks:
