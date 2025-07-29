@@ -1852,6 +1852,24 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
             _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
             return []
         
+        # Fetch playlist name first
+        playlist_name_url = f"https://api.spotify.com/v1/playlists/{playlist_id}?fields=name"
+        playlist_name = "Unknown Playlist"
+        
+        try:
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_name_url}")
+            name_response = requests.get(playlist_name_url, headers=spotify_get_playlist_items_headers, timeout=10)
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_name_url} | Status: {name_response.status_code}")
+            
+            if name_response.status_code == 200:
+                name_data = name_response.json()
+                playlist_name = name_data.get('name', 'Unknown Playlist')
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"Retrieved playlist name for {playlist_id}: {playlist_name}")
+            else:
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist name for {playlist_id}. Status: {name_response.status_code}")
+        except Exception as e:
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Error fetching playlist name for {playlist_id}: {e}")
+        
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {url}")
         requests.get(url, headers=spotify_get_playlist_URL_headers)
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {url}")
@@ -1866,7 +1884,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
             # Check if we've exceeded the 1000 track limit
             with track_counter['lock']:
                 if track_counter['count'] >= 1000:
-                    _log_to_file(GENERAL_LOG_FILE, f"Track limit of 1000 reached, stopping playlist {playlist_id} processing")
+                    _log_to_file(GENERAL_LOG_FILE, f"Track limit of 1000 reached, stopping playlist {playlist_id} ({playlist_name}) processing")
                     break
             
             playlist_api_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
@@ -1889,40 +1907,40 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
                         # Rate limited - implement backoff
                         retry_after = int(response.headers.get('Retry-After', 2 ** attempt))
                         delay = retry_after + random.uniform(0, 1)
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Rate limited for playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Rate limited for playlist {playlist_id} ({playlist_name}). Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                         time.sleep(delay)
                         continue
                     elif response.status_code in {400, 401, 403, 404, 422}:
                         # Non-retryable error
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} for playlist {playlist_id}")
+                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} for playlist {playlist_id} ({playlist_name})")
                         return tracks
                     else:
                         # Other errors - implement exponential backoff
                         if attempt < max_retries - 1:
                             delay = 2 ** attempt + random.uniform(0, 1)
-                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Error {response.status_code} for playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Error {response.status_code} for playlist {playlist_id} ({playlist_name}). Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                             time.sleep(delay)
                             continue
                         else:
-                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id} after {max_retries} attempts. Status: {response.status_code}")
+                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id} ({playlist_name}) after {max_retries} attempts. Status: {response.status_code}")
                             return tracks
                             
                 except requests.exceptions.RequestException as e:
                     if attempt < max_retries - 1:
                         delay = 2 ** attempt + random.uniform(0, 1)
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception for playlist {playlist_id}: {e}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception for playlist {playlist_id} ({playlist_name}): {e}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                         time.sleep(delay)
                         continue
                     else:
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request failed for playlist {playlist_id} after {max_retries} attempts: {e}")
+                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request failed for playlist {playlist_id} ({playlist_name}) after {max_retries} attempts: {e}")
                         return tracks
             else:
                 # All retries exhausted
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"All retries exhausted for playlist {playlist_id}")
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"All retries exhausted for playlist {playlist_id} ({playlist_name})")
                 return tracks
             
             if response.status_code != 200:
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id}. Status: {response.status_code}, Response: {response.text}")
+                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id} ({playlist_name}). Status: {response.status_code}, Response: {response.text}")
                 return tracks
             
             playlist_data = response.json()
@@ -1956,7 +1974,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
                     batch_tracks = batch_tracks[:remaining_slots]
                     tracks.extend(batch_tracks)
                     track_counter['count'] += len(batch_tracks)
-                    _log_to_file(GENERAL_LOG_FILE, f"Reached 1000 track limit while processing playlist {playlist_id}")
+                    _log_to_file(GENERAL_LOG_FILE, f"Reached 1000 track limit while processing playlist {playlist_id} ({playlist_name})")
                     break
                 else:
                     tracks.extend(batch_tracks)
@@ -1969,7 +1987,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, spotify_ge
             if offset >= total_tracks:
                 break
         
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully processed playlist {playlist_id} with {len(tracks)} tracks")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully processed playlist {playlist_id} ({playlist_name}) with {len(tracks)} tracks")
         return tracks
         
     except Exception as e:
