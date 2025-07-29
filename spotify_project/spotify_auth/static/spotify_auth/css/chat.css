@@ -204,12 +204,12 @@ h2, h3, h4, h5, h6 {
     font-size: 14px;
 }
 
-.tooltip-container-disconnect {
+.tooltip-container-reset {
     position: relative;
     display: inline-block;
 }
 
-.custom-tooltip-disconnect {
+.custom-tooltip-reset {
     visibility: hidden;
     position: fixed;
     z-index: 1;
@@ -226,7 +226,7 @@ h2, h3, h4, h5, h6 {
     pointer-events: none;
 }
 
-.tooltip-container-disconnect:hover .custom-tooltip-disconnect {
+.tooltip-container-reset:hover .custom-tooltip-reset {
     visibility: visible;
     opacity: 1;
 }

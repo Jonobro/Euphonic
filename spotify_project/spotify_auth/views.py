@@ -506,7 +506,7 @@ def index(request):
     _ensure_euphonic_intelligence_user_id(request)
     return redirect(reverse('new_song_chat'))
 
-def disconnect_view(request):
+def reset_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     user_id = request.session.get('euphonic_intelligence_user_id')
     if user_id:

@@ -416,13 +416,13 @@ I've talked too much – let's get started! What can I do for you?`;
         }
     }
 
-    const tooltipDisconnect = document.querySelector('.custom-tooltip-disconnect');
-    const tooltipContainerDisconnect = document.querySelector('.tooltip-container-disconnect');
+    const tooltipReset = document.querySelector('.custom-tooltip-reset');
+    const tooltipContainerReset = document.querySelector('.tooltip-container-reset');
 
-    if (tooltipDisconnect && tooltipContainerDisconnect) {
-        tooltipContainerDisconnect.addEventListener('mousemove', (e) => {
-            tooltipDisconnect.style.left = (e.clientX + 10) + 'px';
-            tooltipDisconnect.style.top = (e.clientY + 10) + 'px';
+    if (tooltipReset && tooltipContainerReset) {
+        tooltipContainerReset.addEventListener('mousemove', (e) => {
+            tooltipReset.style.left = (e.clientX + 10) + 'px';
+            tooltipReset.style.top = (e.clientY + 10) + 'px';
         });
     }
 
