@@ -19,7 +19,6 @@ import time
 from django.core.cache import cache
 from django.contrib.sessions.models import Session
 import random
-from playlist_viewer import view_playlists
 
 REDIS_CLIENT = settings.REDIS_CLIENT
 ANALYSIS_EVENT_CHANNEL_PREFIX = 'analysis_completion:'
@@ -548,15 +547,15 @@ def _generate_musical_analysis(session_data):
     try:
         cache_key_tracks = f'spotify_user_tracks_{user_id}'
         
-        simplified_tracks_list = cache.get(cache_key_tracks)
+        tracks_list = cache.get(cache_key_tracks)
 
-        if simplified_tracks_list is None:
+        if tracks_list is None:
             _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: library not found in cache.")
             return
 
         full_library_string = "User library is empty or could not be retrieved."
-        if simplified_tracks_list:
-            song_strings = [f"{t['name']} by {t['artists']}" for t in simplified_tracks_list]
+        if tracks_list:
+            song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
             max_prompt_length = 90000
             full_library_string = "\n".join(song_strings)
             if len(full_library_string) > max_prompt_length:
@@ -799,68 +798,6 @@ def _get_spotify_track_url(request, song_title, artist_name):
         _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [UNEXPECTED_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {e_unexp}. Request URL: {log_url}, Headers: {log_headers}, Response (if available): {response_text_on_unexp}")
         return 'error', None, response
 
-def _fetch_all_spotify_tracks(request):
-    user_id = request.session.get('euphonic_intelligence_user_id')
-
-    if not get_spotify_access_token():
-        _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token in _fetch_all_spotify_tracks for session {request.session.session_key}")
-        return None, False
-
-    cache_key_tracks = f'spotify_user_tracks_{user_id}'
-    
-    cached_tracks = cache.get(cache_key_tracks)
-    if cached_tracks is not None:
-        return cached_tracks, True
-    
-    access_token = get_spotify_access_token()
-    if not access_token:
-        _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist fetch in session {request.session.session_key}")
-        return None, False
-
-    playlist_url = "https://api.spotify.com/v1/playlists/3iSeOatSVAk9Z7KCUfZpZb/tracks?fields=items(track(id,name,artists(name)))"
-    headers = {'Authorization': f'Bearer {access_token}'}
-    
-    try:
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_url}")
-        response = requests.get(playlist_url, headers=headers, timeout=10)
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_url} | Status: {response.status_code}")
-        
-        if response.status_code != 200:
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist tracks. Status: {response.status_code}, Response: {response.text}")
-            return None, False
-        
-        data = response.json()
-        tracks = []
-        
-        for item in data.get('items', []):
-            track = item.get('track')
-            if track and track.get('id') and track.get('name'):
-                artists = track.get('artists', [])
-                artist_names = [artist.get('name', '') for artist in artists if artist.get('name')]
-                
-                if artist_names:
-                    tracks.append({
-                        'id': track['id'],
-                        'name': track['name'],
-                        'artists': ', '.join(artist_names)
-                    })
-        
-        if not tracks:
-            _log_to_file(GENERAL_LOG_FILE, f"No valid tracks found in playlist response for session {request.session.session_key}")
-            return None, False
-        
-        cache.set(cache_key_tracks, tracks, timeout=3600)
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully fetched {len(tracks)} tracks from playlist for session {request.session.session_key}")
-        
-        return tracks, True
-        
-    except requests.exceptions.RequestException as e:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception when fetching playlist tracks: {e}")
-        return None, False
-    except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in _fetch_all_spotify_tracks: {e}")
-        return None, False
-
 @csrf_protect
 @require_http_methods(["GET"])
 @never_cache
@@ -959,25 +896,6 @@ def initialize_chat_data_view(request):
             _log_to_file(GENERAL_LOG_FILE, f"Error in initialize_chat_data_view: user_id missing from session")
             return JsonResponse({'error': 'Session error. Please refresh the page.'}, status=500)
 
-        user_id = request.session.get('euphonic_intelligence_user_id')
-        cache_key_tracks = f'spotify_user_tracks_{user_id}'
-        
-        simplified_tracks_list = cache.get(cache_key_tracks)
-        fetch_success = True
-        if simplified_tracks_list is None:
-            simplified_tracks_list, fetch_success = _fetch_all_spotify_tracks(request)
-
-        if not fetch_success:
-            return JsonResponse({'error': 'Could not retrieve Spotify library. Please try logging out and back in.'}, status=500)
-
-        full_library_string = "User library is empty or could not be retrieved."
-        if simplified_tracks_list:
-            song_strings = [f"{t['name']} by {t['artists']}" for t in simplified_tracks_list]
-            max_prompt_length = 90000
-            full_library_string = "\n".join(song_strings)
-            if len(full_library_string) > max_prompt_length:
-                full_library_string = full_library_string[:max_prompt_length] + "\n... (library truncated)"
-
         initial_prompt = ""
         
         # If statement for analysis mode
@@ -1007,6 +925,18 @@ def initialize_chat_data_view(request):
         
         # If statement for saved songs mode
         if chat_mode == 'saved_songs':
+            user_id = request.session.get('euphonic_intelligence_user_id')
+            cache_key_tracks = f'spotify_user_tracks_{user_id}'
+            tracks_list = cache.get(cache_key_tracks)
+
+            full_library_string = "User library is empty or could not be retrieved."
+            if tracks_list:
+                song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
+                max_prompt_length = 90000
+                full_library_string = "\n".join(song_strings)
+                if len(full_library_string) > max_prompt_length:
+                    full_library_string = full_library_string[:max_prompt_length] + "\n... (library truncated)"
+
             initial_prompt = f"""Here is a list of all the tracks in my Spotify library for you to use:
 
 {full_library_string}
@@ -1109,8 +1039,8 @@ def reset_chat_history_api(request):
         full_library_string = ""
         if user_id:
             cache_key_tracks = f'spotify_user_tracks_{user_id}'
-            simplified_tracks_list = cache.get(cache_key_tracks, [])
-            song_strings = [f"{t['name']} by {t['artists']}" for t in simplified_tracks_list]
+            tracks_list = cache.get(cache_key_tracks, [])
+            song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
             max_prompt_length = 90000
             full_library_string = "\n".join(song_strings)
             if len(full_library_string) > max_prompt_length:
@@ -1913,8 +1843,8 @@ def import_playlists_api(request):
         if not playlist_urls or not isinstance(playlist_urls, list):
             return JsonResponse({'error': 'No playlist URLs provided'}, status=400)
         
-        if len(playlist_urls) > 5:
-            return JsonResponse({'error': 'Maximum of 5 playlists allowed'}, status=400)
+        if len(playlist_urls) > 10:
+            return JsonResponse({'error': 'Maximum of 10 playlists allowed'}, status=400)
         
         # Validate URLs and extract playlist IDs
         valid_urls = []
@@ -1926,7 +1856,7 @@ def import_playlists_api(request):
                 continue
             
             # Basic Spotify playlist URL validation
-            if 'open.spotify.com/playlist/' not in url and 'spotify.com/playlist/' not in url:
+            if 'https://open.spotify.com/playlist/' not in url:
                 return JsonResponse({'error': f'Invalid Spotify playlist URL: {url}'}, status=400)
             
             valid_urls.append(url)
@@ -1959,11 +1889,7 @@ def import_playlists_api(request):
                     return
                 
                 # Set up headers for Spotify API requests
-                spotify_get_playlist_items_headers = {
-                    'Authorization': f'Bearer {access_token}',
-                    'Content-Type': 'application/json'
-                }
-
+                spotify_get_playlist_items_headers = {'Authorization': f'Bearer {access_token}'}
                 spotify_get_playlist_URL_headers = settings.SPOTIFY_HEADERS
                 
                 all_tracks = []
@@ -1973,8 +1899,6 @@ def import_playlists_api(request):
                         # Extract playlist ID from URL
                         if 'open.spotify.com/playlist/' in url:
                             playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
-                        elif 'spotify.com/playlist/' in url:
-                            playlist_id = url.split('spotify.com/playlist/')[1].split('?')[0]
                         else:
                             _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
                             continue
