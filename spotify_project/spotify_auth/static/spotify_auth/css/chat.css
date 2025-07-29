@@ -593,7 +593,6 @@ h2, h3, h4, h5, h6 {
     min-width: 100px;
 }
 
-/* Import loading indicator */
 .import-loading-indicator {
     background: linear-gradient(90deg, transparent, rgb(30, 200, 90), transparent);
     height: 4px;
@@ -601,6 +600,7 @@ h2, h3, h4, h5, h6 {
     animation: pulse 2s ease-in-out infinite;
     margin: 10px 0;
     width: 100%;
+    min-width: 150px;
 }
 
 /* Mode toggle styles */
