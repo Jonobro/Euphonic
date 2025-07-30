@@ -595,6 +595,10 @@ h2, h3, h4, h5, h6 {
     min-width: 100px;
 }
 
+.cancel-button {
+    background-color: #181818;
+}
+
 .import-loading-indicator {
     background-image: url('../images/eclipse-half-green-slower-rounded.svg');
     background-repeat: no-repeat;
@@ -659,21 +663,6 @@ h2, h3, h4, h5, h6 {
 
 .mode-toggle.saved-songs .mode-toggle-slider {
     transform: translateX(100%);
-}
-
-.playlist-summary {
-    margin: 1rem 0;
-    padding: 0.75rem;
-    background-color: #2a2a2a;
-    border-radius: 8px;
-    border-left: 4px solid rgb(30, 200, 90);
-}
-
-.playlist-summary p {
-    color: rgb(30, 200, 90);
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin: 0;
 }
 
 .playlist-input-group {
