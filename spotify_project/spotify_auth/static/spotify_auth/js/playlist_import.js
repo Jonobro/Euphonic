@@ -185,7 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="playlist-success-content">
                                 <span class="icon">🎵</span>
                                 <div class="playlist-success-info">
-                                    <div class="playlist-name">${playlist.name} · </div>
+                                    <div class="playlist-name">${playlist.name}</div>
+                                    <div class="playlist-name">·</div>
                                     <div class="playlist-track-count">${playlist.trackCount} tracks</div>
                                 </div>
                             </div>

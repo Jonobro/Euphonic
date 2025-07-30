@@ -758,6 +758,8 @@ h2, h3, h4, h5, h6 {
 .playlist-success-state .icon {
     filter: hue-rotate(240deg) brightness(1.2) contrast(1.2) saturate(1.65);
     font-size: 15.5px;
+    margin-left: 11px;
+    margin-right: 1px;
 }
 
 .playlist-name {
@@ -780,11 +782,12 @@ h2, h3, h4, h5, h6 {
     cursor: pointer;
     padding: 0.25rem;
     border-radius: 50%;
-    margin-left: 0.5rem;
     transition: background-color 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-left: -5px;
+    margin-right: 3px;
 }
 
 .playlist-remove-btn:hover {
