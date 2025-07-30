@@ -2093,7 +2093,6 @@ def import_playlists_api(request):
 @require_http_methods(["POST"])
 @never_cache
 def validate_playlist_api(request):
-    """Validate a single playlist URL and return its details"""
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     
     try:
