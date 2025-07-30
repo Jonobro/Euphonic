@@ -10,9 +10,29 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let isImporting = false;
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    
+    // Debouncing timers for each playlist input
+    const inputTimers = {};
+
+    function parseSpotifyUrl(url) {
+        const baseUrlPattern = /https:\/\/open\.spotify\.com\/playlist\/([a-zA-Z0-9]{22})/;
+        const ptPattern = /pt=([a-zA-Z0-9]{32})/;
+        
+        const baseMatch = url.match(baseUrlPattern);
+        if (!baseMatch) return null;
+        
+        const playlistId = baseMatch[1];
+        const ptMatch = url.match(ptPattern);
+        
+        if (ptMatch) {
+            return `https://open.spotify.com/playlist/${playlistId}?pt=${ptMatch[1]}`;
+        } else {
+            return `https://open.spotify.com/playlist/${playlistId}`;
+        }
+    }
 
     function isValidSpotifyUrl(url) {
-        return url.includes('open.spotify.com/playlist/') && url.length > 30;
+        return parseSpotifyUrl(url) !== null;
     }
 
     async function validatePlaylist(url) {
@@ -33,6 +53,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return await response.json();
     }
 
+    async function handlePlaylistInput(id, inputValue) {
+        if (!inputValue.trim()) return;
+        
+        const parsedUrl = parseSpotifyUrl(inputValue);
+        if (!parsedUrl) return; // Invalid format, wait for blur to show error
+        
+        // Update the input field with the cleaned URL
+        const inputElement = document.querySelector(`input[data-playlist-id="${id}"]`);
+        if (inputElement && inputElement.value !== parsedUrl) {
+            inputElement.value = parsedUrl;
+        }
+        
+        // Update state with parsed URL
+        handlePlaylistChange(id, parsedUrl);
+        
+        // Start validation
+        updatePlaylistStatus(id, 'loading', '', parsedUrl, 0, '');
+
+        try {
+            const playlistInfo = await validatePlaylist(parsedUrl);
+            updatePlaylistStatus(id, 'success', playlistInfo.name, parsedUrl, playlistInfo.track_count, playlistInfo.playlist_id);
+        } catch (error) {
+            updatePlaylistStatus(id, 'error', '', parsedUrl, 0, '');
+            setTimeout(() => {
+                updatePlaylistStatus(id, 'idle', '', '', 0, '');
+            }, 3000);
+        }
+    }
+
     async function handlePlaylistBlur(id, url) {
         if (!url.trim()) return;
         
@@ -42,18 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 updatePlaylistStatus(id, 'idle', '', '', 0, '');
             }, 3000);
             return;
-        }
-
-        updatePlaylistStatus(id, 'loading', '', url, 0, '');
-
-        try {
-            const playlistInfo = await validatePlaylist(url);
-            updatePlaylistStatus(id, 'success', playlistInfo.name, url, playlistInfo.track_count, playlistInfo.playlist_id);
-        } catch (error) {
-            updatePlaylistStatus(id, 'error', '', url, 0, '');
-            setTimeout(() => {
-                updatePlaylistStatus(id, 'idle', '', '', 0, '');
-            }, 3000);
         }
     }
 
@@ -71,9 +108,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playlistIndex !== -1) {
             playlistStates[playlistIndex].url = newUrl;
         }
+        
+        // Clear existing timer
+        if (inputTimers[id]) {
+            clearTimeout(inputTimers[id]);
+        }
+        
+        // Set new timer for debounced validation
+        inputTimers[id] = setTimeout(() => {
+            handlePlaylistInput(id, newUrl);
+        }, 300); // 300ms delay to avoid excessive API calls
     }
 
     function handleRemovePlaylist(id) {
+        // Clear any pending timer
+        if (inputTimers[id]) {
+            clearTimeout(inputTimers[id]);
+            delete inputTimers[id];
+        }
         updatePlaylistStatus(id, 'idle', '', '', 0, '');
     }
 
@@ -134,6 +186,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleCancel() {
+        // Clear all timers
+        Object.keys(inputTimers).forEach(id => {
+            clearTimeout(inputTimers[id]);
+            delete inputTimers[id];
+        });
+        
         playlistStates = playlistStates.map(playlist => ({ 
             ...playlist, 
             status: 'idle', 
@@ -212,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             class="playlist-input-field" 
                             value="${playlist.url}" 
                             placeholder="https://open.spotify.com/playlist/..."
+                            data-playlist-id="${playlist.id}"
                             onblur="window.playlistImport.handlePlaylistBlur(${playlist.id}, this.value)"
                             oninput="window.playlistImport.handlePlaylistChange(${playlist.id}, this.value)"
                         />
