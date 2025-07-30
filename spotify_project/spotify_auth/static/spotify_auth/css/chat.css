@@ -596,11 +596,11 @@ h2, h3, h4, h5, h6 {
 }
 
 .cancel-button {
-    background-color: #202020;
+    background-color: #242424;
 }
 
 .cancel-button:hover {
-    background-color: #181818;
+    background-color:  #202020;
 }
 
 .import-loading-indicator {
@@ -730,15 +730,15 @@ h2, h3, h4, h5, h6 {
 .playlist-success-state {
     background: rgba(42, 42, 42, 0.6);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(30, 200, 90, 0.2);
+    border: 1px solid rgba(30, 200, 90, 0.9);
     border-radius: 25px;
-    padding: 8px 16px;
+    padding: 5.75px 5px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     font-size: 14px;
     color: #e5e5e5;
-    margin: 0.25rem 10px 10px 0;
+    margin: 0px 0px 0px 5px;
     width: fit-content;
 }
 
@@ -753,6 +753,11 @@ h2, h3, h4, h5, h6 {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.playlist-success-state .icon {
+    filter: hue-rotate(240deg) brightness(1.2) contrast(1.2) saturate(1.65);
+    font-size: 15.5px;
 }
 
 .playlist-name {
