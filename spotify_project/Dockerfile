@@ -3,7 +3,9 @@ FROM python:3.13-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+# Commenting out Playwright as it is not currently used
+# ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Set work directory
 WORKDIR /app
@@ -12,8 +14,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browser and dependencies
-RUN playwright install --with-deps chromium
+# Commenting out Playwright as it is not currently used
+# RUN playwright install --with-deps chromium
 
 # Copy project
 COPY . .

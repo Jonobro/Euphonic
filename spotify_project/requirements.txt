@@ -5,7 +5,9 @@ requests==2.32.3
 google-genai==1.19.0
 markdown==3.8
 django-redis==5.4.0
-playwright==1.54.0
 beautifulsoup4==4.13.4
+
+# Commenting out Playwright as it is not currently used
+# playwright==1.54.0
 
 # Note: Redis server is required on the server for this application.

@@ -2103,13 +2103,10 @@ def validate_playlist_api(request):
         if not playlist_url:
             return JsonResponse({'error': 'No playlist URL provided'}, status=400)
         
-        if 'https://open.spotify.com/playlist/' not in playlist_url:
-            return JsonResponse({'error': 'Invalid Spotify playlist URL'}, status=400)
-        
-        try:
-            playlist_id = playlist_url.split('open.spotify.com/playlist/')[1].split('?')[0]
-        except (IndexError, AttributeError):
+        if not re.match(r'^https://open\.spotify\.com/playlist/[a-zA-Z0-9]{22}(\?pt=[a-zA-Z0-9]{32})?$', playlist_url):
             return JsonResponse({'error': 'Invalid Spotify playlist URL format'}, status=400)
+        
+        playlist_id = playlist_url.split('playlist/')[1].split('?')[0]
         
         access_token = get_spotify_access_token()
         if not access_token:
@@ -2128,7 +2125,7 @@ def validate_playlist_api(request):
                 meta_tag = soup.find('meta', {'name': 'description'})
                 if meta_tag and meta_tag.get('content'):
                     description = meta_tag.get('content')
-                    if 'Playlist ·' in description and '· items ·' in description:
+                    if 'Playlist ·' in description and ' items' in description:
                         parts = description.split(' · ')
                         if len(parts) >= 3:
                             playlist_name = parts[1].strip()
@@ -2144,15 +2141,15 @@ def validate_playlist_api(request):
                                 track_count = 0
                         else:
                             _log_to_file(SPOTIFY_API_LOG_FILE, f"Unexpected description format: {description}")
-                            playlist_name = 'Unknown Playlist'
+                            playlist_name = 'Mystery Playlist 🎧'
                             track_count = 0
                     else:
                         _log_to_file(SPOTIFY_API_LOG_FILE, f"Description does not match expected format: {description}")
-                        playlist_name = 'Unknown Playlist'
+                        playlist_name = 'Mystery Playlist 🎧'
                         track_count = 0
                 else:
                     _log_to_file(SPOTIFY_API_LOG_FILE, f"Could not find meta description tag for playlist {playlist_id}")
-                    playlist_name = 'Unknown Playlist'
+                    playlist_name = 'Mystery Playlist 🎧'
                     track_count = 0
                 
                 user_id = request.session.get('euphonic_intelligence_user_id')
