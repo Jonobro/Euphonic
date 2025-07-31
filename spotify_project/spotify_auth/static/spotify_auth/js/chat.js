@@ -1,3 +1,35 @@
+// Page loading state management
+window.addEventListener('load', function() {
+    const container = document.querySelector('.container');
+    const betaNotice = document.querySelector('.beta-notice');
+    const spotifyFooter = document.querySelector('.spotify-footer');
+    
+    setTimeout(() => {
+        if (container) container.classList.add('loaded');
+        if (betaNotice) betaNotice.classList.add('loaded');
+        if (spotifyFooter) spotifyFooter.classList.add('loaded');
+    }, 100);
+});
+
+// Fallback in case window.load doesn't execute
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        const container = document.querySelector('.container');
+        const betaNotice = document.querySelector('.beta-notice');
+        const spotifyFooter = document.querySelector('.spotify-footer');
+        
+        if (container && !container.classList.contains('loaded')) {
+            container.classList.add('loaded');
+        }
+        if (betaNotice && !betaNotice.classList.contains('loaded')) {
+            betaNotice.classList.add('loaded');
+        }
+        if (spotifyFooter && !spotifyFooter.classList.contains('loaded')) {
+            spotifyFooter.classList.add('loaded');
+        }
+    }, 3000);
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const chatMode = document.body.dataset.chatMode;
     const sendButton = document.getElementById('send-button');
