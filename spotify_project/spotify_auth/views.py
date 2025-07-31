@@ -20,6 +20,7 @@ from django.core.cache import cache
 from django.contrib.sessions.models import Session
 import random
 from bs4 import BeautifulSoup
+import httpx
 
 REDIS_CLIENT = settings.REDIS_CLIENT
 ANALYSIS_EVENT_CHANNEL_PREFIX = 'analysis_completion:'
@@ -2117,7 +2118,29 @@ def validate_playlist_api(request):
         
         try:
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_url}")
-            response = requests.get(playlist_url, headers=spotify_get_playlist_URL_headers, timeout=10)
+            with httpx.Client(http2=False, follow_redirects=False) as client:
+                current_url = playlist_url
+                current_headers = spotify_get_playlist_URL_headers.copy()
+                response = client.get(current_url, headers=current_headers, timeout=10)
+                
+                while response.is_redirect:
+                    current_headers['cookie'] += f"; Referer={current_url}"
+                    if 'set-cookie' in response.headers:
+                        sp_landing_cookie = None
+                        for set_cookie_str in response.headers.get_list('set-cookie'):
+                            if set_cookie_str.strip().startswith('sp_landing='):
+                                sp_landing_cookie = set_cookie_str.strip().split(';')[0]
+                                break
+                        
+                        if sp_landing_cookie:
+                            if 'cookie' in current_headers:
+                                current_headers['cookie'] += f"; {sp_landing_cookie}"
+                            else:
+                                current_headers['cookie'] = sp_landing_cookie
+                    
+                    redirect_url = response.headers['location']
+                    current_url = redirect_url
+                    response = client.get(current_url, headers=current_headers, timeout=10)
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_url} | Status: {response.status_code}")
             
             if response.status_code == 200:
