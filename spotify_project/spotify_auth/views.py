@@ -27,7 +27,7 @@ ANALYSIS_EVENT_CHANNEL_PREFIX = 'analysis_completion:'
 ANALYSIS_EVENT_TIMEOUT = 300
 
 GEMINI_CLIENT = None
-MODEL_NAME = "gemini-2.5-flash-preview-05-20"
+MODEL_NAME = "gemini-2.5-flash"
 
 CACHE_KEY_GROUNDED_TIMESTAMPS = 'grounded_api_call_timestamps'
 GROUNDING_API_LIMIT = 1495
