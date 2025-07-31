@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Debouncing timers for each playlist input
     const inputTimers = {};
 
+    // Add a flag to prevent multiple validations
+    const validating = {};
+
     function parseSpotifyUrl(url) {
         const baseUrlPattern = /https:\/\/open\.spotify\.com\/playlist\/([a-zA-Z0-9]{22})/;
         const ptPattern = /pt=([a-zA-Z0-9]{32})/;
@@ -53,22 +56,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return await response.json();
     }
 
+    // Modify handlePlaylistInput to prevent loops and trigger fetch immediately if valid
     async function handlePlaylistInput(id, inputValue) {
-        if (!inputValue.trim()) return;
+        if (!inputValue.trim() || validating[id]) return;
         
         const parsedUrl = parseSpotifyUrl(inputValue);
-        if (!parsedUrl) return; // Invalid format, wait for blur to show error
+        if (!parsedUrl) return; // Invalid, wait for blur
         
-        // Update the input field with the cleaned URL
+        // Prevent re-entry
+        validating[id] = true;
+        
+        // Update input only if changed (avoids triggering oninput loop)
         const inputElement = document.querySelector(`input[data-playlist-id="${id}"]`);
         if (inputElement && inputElement.value !== parsedUrl) {
+            const cursorPosition = inputElement.selectionStart; // Preserve cursor
             inputElement.value = parsedUrl;
+            inputElement.setSelectionRange(cursorPosition, cursorPosition); // Restore cursor
         }
         
-        // Update state with parsed URL
-        handlePlaylistChange(id, parsedUrl);
+        // Update state
+        playlistStates.find(p => p.id === id).url = parsedUrl;
         
-        // Start validation
+        // Start validation immediately
         updatePlaylistStatus(id, 'loading', '', parsedUrl, 0, '');
 
         try {
@@ -79,6 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 updatePlaylistStatus(id, 'idle', '', '', 0, '');
             }, 3000);
+        } finally {
+            validating[id] = false;
         }
     }
 
@@ -103,21 +114,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Modify handlePlaylistChange to process immediately without debounce
     function handlePlaylistChange(id, newUrl) {
         const playlistIndex = playlistStates.findIndex(p => p.id === id);
         if (playlistIndex !== -1) {
             playlistStates[playlistIndex].url = newUrl;
         }
         
-        // Clear existing timer
+        // Clear any existing timer (if somehow present)
         if (inputTimers[id]) {
             clearTimeout(inputTimers[id]);
+            delete inputTimers[id];
         }
         
-        // Set new timer for debounced validation
-        inputTimers[id] = setTimeout(() => {
-            handlePlaylistInput(id, newUrl);
-        }, 300); // 300ms delay to avoid excessive API calls
+        // Process immediately
+        handlePlaylistInput(id, newUrl);
     }
 
     function handleRemovePlaylist(id) {
