@@ -384,7 +384,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .save-playlist-button {
-    font-weight: 500;
+    font-weight: 600;
     box-shadow: 0 0 9px rgba(30, 200, 90, 0.4);
     font-size: 13.5px;
     margin-top: 6px;

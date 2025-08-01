@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (disabled) {
                 chatInput.placeholder = 'Please select an option above to continue...';
             } else {
-                chatInput.placeholder = '';
+                chatInput.placeholder = 'Reply to Aria...';
             }
         }
         
