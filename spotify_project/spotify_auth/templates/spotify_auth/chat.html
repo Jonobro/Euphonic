@@ -30,7 +30,7 @@
                 {% if chat_mode == 'new_songs' %}
                 <div class="tooltip-container-import">
                     <button class="button" onclick="openImportModal()">Import My Music</button>
-                    <span class="custom-tooltip-import">Import your Spotify playlists to generate personalized playlists and get insights into your music</span>
+                    <span class="custom-tooltip-import">Import your Spotify music collection to generate personalized playlists and get insights into your music</span>
                 </div>
                 <div id="modeToggleContainer" class="mode-toggle-container" style="display: none;">
                     <div class="mode-toggle" id="modeToggle">
@@ -98,8 +98,8 @@
                 </div>
                 
                 <div class="import-buttons">
-                    <button type="button" class="button secondary-button cancel-button" onclick="closeImportModal()">Cancel</button>
-                    <button type="button" class="button secondary-button" id="importPlaylistsBtn" disabled>Import Playlists</button>
+                    <button type="button" class="button secondary-button import-playlist-buttons" onclick="closeImportModal()">Cancel</button>
+                    <button type="button" class="button secondary-button import-playlist-buttons" id="importPlaylistsBtn" disabled>Import Playlists</button>
                 </div>
             </div>
         </div>
