@@ -168,6 +168,10 @@ h2, h3, h4, h5, h6 {
     margin-top: 22px;
 }
 
+.ai-message:first-child {
+    margin-top: 0;
+}
+
 .ai-message.has-playlist-button {
     padding-bottom: 22px;
     border-bottom-left-radius: 15px;
@@ -213,34 +217,14 @@ h2, h3, h4, h5, h6 {
     margin-right: 17.5px;
     padding-left: 15px;
     padding-right: 15px;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding-top: 8px;
+    padding-bottom: 9px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 #chat-input-area textarea::-webkit-scrollbar {
-    width: 11px;
-}
-
-#chat-input-area textarea::-webkit-scrollbar-track {
-    background: #232323;
-    border-radius: 10px;
-}
-
-#chat-input-area textarea::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, rgb(40, 220, 100), rgb(20, 180, 80));
-    border-radius: 10px;
-}
-
-#chat-input-area textarea::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, rgb(45, 230, 110), rgb(25, 190, 90));
-}
-
-/* Scrollbar fallback */
-@supports not selector(::-webkit-scrollbar) {
-    #chat-input-area textarea {
-        scrollbar-width: auto;
-        scrollbar-color: rgb(30, 200, 90) #1D1D1D;
-    }
+    display: none;
 }
 
 .tooltip-container-reset {
