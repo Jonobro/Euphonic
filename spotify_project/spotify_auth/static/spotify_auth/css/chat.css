@@ -43,7 +43,7 @@ h2, h3, h4, h5, h6 {
     font-weight: 400;
     color: #e0e0e0;
     text-align: center;
-    margin: 15px auto 19px auto;
+    margin: 15px auto 21px auto;
     border: 2px solid rgb(30, 200, 90);
     border-radius: 15px;
     box-shadow: 0 0 18px rgba(30, 200, 90, 0.3);
@@ -183,6 +183,10 @@ h2, h3, h4, h5, h6 {
     margin-left: auto;
     margin-right: auto;
     margin-top: 25px;
+}
+
+.ai-message.has-playlist-button.previous-conversation {
+    padding-bottom: 6px; /* 22px - 16px = 6px */
 }
 
 .ai-message.error-message {
@@ -371,12 +375,13 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 .additional-buttons-container {
     display: flex;
     justify-content: center;
-    gap: 10px;
+    gap: 20px;
     transform: translateX(10px);
 }
 
 .save-playlist-success {
     text-align: center;
+    transform: translateX(10px);
 }
 
 .save-playlist-error {
@@ -388,6 +393,8 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     box-shadow: 0 0 9px rgba(30, 200, 90, 0.4);
     font-size: 13.5px;
     margin-top: 6px;
+    margin-bottom: 5px;
+    padding: 9px 17px;
     transform: translateX(10px);
 }
 
