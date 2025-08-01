@@ -192,11 +192,22 @@ document.addEventListener('DOMContentLoaded', () => {
         userInput.value = '';
         userInput.disabled = sendButton.disabled = true;
         
-        const thinkingMsgElement = addMessage('Thinking.', 'ai'); 
-        let dotCount = 1;
+        // Create thinking message with spinner and animated dots
+        const thinkingMsgElement = addMessage('', 'ai');
+        thinkingMsgElement.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <img src="/static/spotify_auth/images/spinner-double-green.svg" alt="Loading" style="width: 20px; height: 20px;">
+                <span class="thinking-text">Aria's Thinking...</span>
+            </div>
+        `;
+        
+        let dotCount = 3;
         const thinkingInterval = setInterval(() => {
             dotCount = (dotCount % 3) + 1;
-            thinkingMsgElement.textContent = 'Thinking' + '.'.repeat(dotCount);
+            const thinkingTextSpan = thinkingMsgElement.querySelector('.thinking-text');
+            if (thinkingTextSpan) {
+                thinkingTextSpan.textContent = "Aria's Thinking" + '.'.repeat(dotCount);
+            }
         }, 400);
 
         try {
