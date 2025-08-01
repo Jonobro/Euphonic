@@ -194,9 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Create thinking message with spinner and static text
         const thinkingMsgElement = addMessage('', 'ai');
         thinkingMsgElement.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
                 <img src="/static/spotify_auth/images/spinner-double-green.svg" alt="Loading" style="width: 40px; height: 40px;">
-                <span> Aria's Thinking...</span>
+                <span>Aria's Thinking...</span>
             </div>
         `;
 
