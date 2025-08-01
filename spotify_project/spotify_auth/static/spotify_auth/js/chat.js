@@ -89,14 +89,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // Special styling for second AI message on analysis page
         if (chatMode === 'analysis' && sender === 'ai') {
             const aiMessages = messageList.querySelectorAll('.ai-message');
-            if (aiMessages.length === 2) {
+            if (aiMessages.length === 1) {
+                msg.classList.add('analysis-first-message');
+            } else if (aiMessages.length === 2 && !messageList.querySelector('.analysis-divider-before')) {
                 const dividerBefore = document.createElement('div');
-                dividerBefore.className = 'conversation-divider';
+                dividerBefore.className = 'conversation-divider analysis-divider-before';
                 messageList.insertBefore(dividerBefore, msg);
-                msg.classList.add('second-message');
+                msg.classList.add('second-message', 'analysis-second-message');
                 const dividerAfter = document.createElement('div');
-                dividerAfter.className = 'conversation-divider';
+                dividerAfter.className = 'conversation-divider analysis-divider-after';
                 messageList.appendChild(dividerAfter);
+            } else if (aiMessages.length === 3) {
+                msg.classList.add('analysis-third-message');
             }
         }
         
@@ -430,14 +434,18 @@ I've talked too much – let's get started! What can I do for you?`;
                             // Special styling for second AI message on analysis page
                             if (chatMode === 'analysis' && sender === 'ai') {
                                 const aiMessages = messageList.querySelectorAll('.ai-message');
-                                if (aiMessages.length === 2 && !messageList.querySelector('.conversation-divider')) {
+                                if (aiMessages.length === 1) {
+                                    messageElement.classList.add('analysis-first-message');
+                                } else if (aiMessages.length === 2 && !messageList.querySelector('.analysis-divider-before')) {
                                     const dividerBefore = document.createElement('div');
-                                    dividerBefore.className = 'conversation-divider';
+                                    dividerBefore.className = 'conversation-divider analysis-divider-before';
                                     messageList.insertBefore(dividerBefore, messageElement);
-                                    messageElement.classList.add('second-message');
+                                    messageElement.classList.add('second-message', 'analysis-second-message');
                                     const dividerAfter = document.createElement('div');
-                                    dividerAfter.className = 'conversation-divider';
+                                    dividerAfter.className = 'conversation-divider analysis-divider-after';
                                     messageElement.parentNode.insertBefore(dividerAfter, messageElement.nextSibling);
+                                } else if (aiMessages.length === 3) {
+                                    messageElement.classList.add('analysis-third-message');
                                 }
                             }
                         }

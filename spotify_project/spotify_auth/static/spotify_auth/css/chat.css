@@ -861,3 +861,27 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
         transform: rotate(360deg);
     }
 }
+
+/* Special spacing for analysis page AI messages */
+body[data-chat-mode="analysis"] .ai-message.analysis-first-message {
+    margin-bottom: 8px;
+}
+
+body[data-chat-mode="analysis"] .ai-message.analysis-second-message {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
+    margin-top: 8px;
+}
+
+.conversation-divider.analysis-divider-before {
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
+.conversation-divider.analysis-divider-after {
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
