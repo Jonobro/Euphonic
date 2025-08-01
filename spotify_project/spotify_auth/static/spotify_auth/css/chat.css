@@ -877,11 +877,11 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 }
 
 .conversation-divider.analysis-divider-before {
-    margin-top: 30px;
-    margin-bottom: 30px;
+    margin-top: 15px;
+    margin-bottom: 10px;
 }
 
 .conversation-divider.analysis-divider-after {
-    margin-top: 30px;
-    margin-bottom: 30px;
+    margin-top: 15px;
+    margin-bottom: 15px;
 }
