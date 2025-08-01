@@ -85,6 +85,21 @@ document.addEventListener('DOMContentLoaded', () => {
         } else { msg.textContent = text; }
 
         messageList.append(msg);
+        
+        // Special styling for second AI message on analysis page
+        if (chatMode === 'analysis' && sender === 'ai') {
+            const aiMessages = messageList.querySelectorAll('.ai-message');
+            if (aiMessages.length === 2) {
+                const dividerBefore = document.createElement('div');
+                dividerBefore.className = 'conversation-divider';
+                messageList.insertBefore(dividerBefore, msg);
+                msg.classList.add('second-message');
+                const dividerAfter = document.createElement('div');
+                dividerAfter.className = 'conversation-divider';
+                messageList.appendChild(dividerAfter);
+            }
+        }
+        
         if (shouldScroll) {
             scrollToBottom();
         }
@@ -410,6 +425,20 @@ I've talked too much – let's get started! What can I do for you?`;
 
                             if (lastDividerIndex !== -1 && index < lastDividerIndex) {
                                 messageElement.classList.add('previous-conversation');
+                            }
+                            
+                            // Special styling for second AI message on analysis page
+                            if (chatMode === 'analysis' && sender === 'ai') {
+                                const aiMessages = messageList.querySelectorAll('.ai-message');
+                                if (aiMessages.length === 2 && !messageList.querySelector('.conversation-divider')) {
+                                    const dividerBefore = document.createElement('div');
+                                    dividerBefore.className = 'conversation-divider';
+                                    messageList.insertBefore(dividerBefore, messageElement);
+                                    messageElement.classList.add('second-message');
+                                    const dividerAfter = document.createElement('div');
+                                    dividerAfter.className = 'conversation-divider';
+                                    messageElement.parentNode.insertBefore(dividerAfter, messageElement.nextSibling);
+                                }
                             }
                         }
                     });
