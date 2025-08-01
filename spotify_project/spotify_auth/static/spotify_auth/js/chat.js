@@ -116,11 +116,10 @@ document.addEventListener('DOMContentLoaded', () => {
         newMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
     
-    const listenForResponse = (taskId, thinkingMsgElement, userMessageElement, thinkingInterval) => {
+    const listenForResponse = (taskId, thinkingMsgElement, userMessageElement) => {
         const eventSource = new EventSource(`/stream_chat_response/${taskId}/`);
 
         const cleanup = () => {
-            clearInterval(thinkingInterval);
             eventSource.close();
             if (thinkingMsgElement) thinkingMsgElement.remove();
             userInput.disabled = sendButton.disabled = false;
@@ -192,23 +191,14 @@ document.addEventListener('DOMContentLoaded', () => {
         userInput.value = '';
         userInput.disabled = sendButton.disabled = true;
         
-        // Create thinking message with spinner and animated dots
+        // Create thinking message with spinner and static text
         const thinkingMsgElement = addMessage('', 'ai');
         thinkingMsgElement.innerHTML = `
             <div style="display: flex; align-items: center; gap: 8px;">
-                <img src="/static/spotify_auth/images/spinner-double-green.svg" alt="Loading" style="width: 20px; height: 20px;">
-                <span class="thinking-text">Aria's Thinking...</span>
+                <img src="/static/spotify_auth/images/spinner-double-green.svg" alt="Loading" style="width: 40px; height: 40px;">
+                <span>Aria's Thinking...</span>
             </div>
         `;
-        
-        let dotCount = 3;
-        const thinkingInterval = setInterval(() => {
-            dotCount = (dotCount % 3) + 1;
-            const thinkingTextSpan = thinkingMsgElement.querySelector('.thinking-text');
-            if (thinkingTextSpan) {
-                thinkingTextSpan.textContent = "Aria's Thinking" + '.'.repeat(dotCount);
-            }
-        }, 400);
 
         try {
             const res = await fetch('/chat_message_api/', {
@@ -223,10 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const { task_id } = await res.json();
-            listenForResponse(task_id, thinkingMsgElement, userMessageElement, thinkingInterval);
+            listenForResponse(task_id, thinkingMsgElement, userMessageElement);
 
         } catch (e) {
-            clearInterval(thinkingInterval);
             if (thinkingMsgElement) thinkingMsgElement.remove(); 
             addMessage(`Sorry, ${e.message}`, 'ai');
             userInput.disabled = sendButton.disabled = false;
