@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="80"
+   height="80"
+   viewBox="0 0 21.166666 21.166667"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   sodipodi:docname="ThinkingIndicatorFinal.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="px"
+     inkscape:zoom="8"
+     inkscape:cx="11.625"
+     inkscape:cy="49.1875"
+     inkscape:window-width="2560"
+     inkscape:window-height="1351"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect5"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect3"
+       is_visible="true"
+       lpeversion="1" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     style="fill:none">
+    <g
+       id="g12">
+      <g
+         id="g9">
+        <circle
+           style="fill:#1ec85a;fill-opacity:1;stroke:#000000;stroke-width:0"
+           id="path2"
+           cx="18.520834"
+           cy="10.583333"
+           r="1" />
+        <path
+           id="path5"
+           style="fill:#1ec85a;fill-opacity:1;stroke:#000000;stroke-width:0"
+           d="m 17.520894,10.584367 c 7e-6,0.0056 7e-6,0.0114 0,0.01705 -0.0023,1.94717 -0.80585,3.881325 -2.184363,5.256527 -1.378514,1.375203 -3.315041,2.17426 -5.262211,2.17196 -1.9471713,-0.0023 -3.8813241,-0.806365 -5.2565263,-2.184879 -1.3298364,-1.333039 -2.1212526,-3.187282 -2.1698933,-5.068942 0.051001,2.143834 0.9523844,4.257928 2.4690999,5.774842 1.562146,1.562349 3.7577254,2.472056 5.9670777,2.4722 2.209352,1.44e-4 4.405245,-0.909538 5.967594,-2.471684 1.56235,-1.562146 2.472057,-3.757725 2.472201,-5.967077 z" />
+      </g>
+      <g
+         id="g10">
+        <circle
+           style="fill:#1ec85a;fill-opacity:1;stroke:#000000;stroke-width:0"
+           id="path2-3"
+           cx="-5.0281396"
+           cy="10.582609"
+           r="0.7000035"
+           transform="scale(-1,1)" />
+        <path
+           id="path5-4"
+           style="fill:#1ec85a;fill-opacity:1;stroke:#000000;stroke-width:0"
+           d="m 5.7281009,10.583333 c -4.9e-6,0.0039 -4.9e-6,0.008 0,0.01194 0.00161,1.363025 0.5640978,2.716941 1.5290617,3.679587 0.9649646,0.962647 2.3205403,1.521989 3.6835664,1.520379 1.363026,-0.0016 2.71694,-0.564458 3.679587,-1.529423 0.93089,-0.933132 1.484884,-2.231108 1.518932,-3.548277 -0.0357,1.500692 -0.666672,2.980565 -1.728378,4.04241 -1.093508,1.09365 -2.630421,1.730448 -4.176975,1.730549 -1.5465545,10e-5 -3.0836873,-0.63668 -4.1773371,-1.730188 C 4.9629075,13.666798 4.3261094,12.129885 4.3260086,10.583331 Z" />
+      </g>
+      <g
+         id="g11">
+        <circle
+           style="fill:#1ec85a;fill-opacity:1;stroke:#000000;stroke-width:0"
+           id="path2-3-7"
+           cx="14.286813"
+           cy="10.58285"
+           r="0.46667132" />
+        <path
+           id="path5-4-7"
+           style="fill:#1ec85a;fill-opacity:1;stroke:#000000;stroke-width:0"
+           d="m 13.82017,10.583333 c 3e-6,0.0026 3e-6,0.0053 0,0.008 -0.0011,0.908688 -0.376067,1.811303 -1.01938,2.45307 -0.643313,0.641768 -1.547034,1.014665 -2.455723,1.013592 -0.9086888,-0.0011 -1.8113025,-0.376308 -2.4530699,-1.019621 -0.6205965,-0.622091 -0.9899278,-1.487413 -1.012627,-2.365529 0.023801,1.000465 0.4444505,1.987053 1.1522581,2.694953 0.7290088,0.729103 1.7536227,1.153637 2.7846638,1.153705 1.031042,6.7e-5 2.055802,-0.424456 2.784905,-1.153464 0.729104,-0.729009 1.153638,-1.753623 1.153706,-2.784664 z" />
+      </g>
+    </g>
+  </g>
+</svg>
