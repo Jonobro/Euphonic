@@ -8,7 +8,7 @@ body {
     background-color: #101010;
     background-image: url('../images/EuphonicIntelligenceBackground.png');
     background-repeat: no-repeat;
-    background-position: center center;
+    background-position: calc(50%) calc(50% - 60px);
     background-size: 100% auto;
     background-attachment: fixed;
 }
@@ -16,7 +16,7 @@ body {
     background-color: #161616;
     border-radius: 15px;
     padding: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    box-shadow: 1px 4px 8px rgba(0, 0, 0, 0.4);
     padding-right: 17.5px;
     visibility: hidden;
     opacity: 0;
@@ -632,10 +632,10 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     text-align: center;
     margin-bottom: 15px;
     margin-top: -5px;
-    /* Add loading state styles */
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
+    box-shadow: 1px 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 .beta-notice.loaded {
