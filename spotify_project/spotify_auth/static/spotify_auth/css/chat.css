@@ -396,7 +396,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     padding: 10px 20px;
     transform: translateX(11px);
     color: black;
-    background: #1ed760;
+    background: rgb(30, 200, 90);
     border: none;
     border-radius: 25px;
     cursor: pointer;
@@ -407,6 +407,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .save-playlist-button:hover {
+    background: rgb(30, 200, 90);
     transform: translateX(11px);
     padding: 11px 22px;
     opacity: 1.0;
