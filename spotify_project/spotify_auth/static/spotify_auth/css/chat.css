@@ -824,10 +824,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
-.playlist-success-state.slide-left {
-    transform: translateX(calc(-100% + 0px)); /* Slides to left edge of container */
-}
-
 .playlist-success-content {
     display: flex;
     align-items: center;
