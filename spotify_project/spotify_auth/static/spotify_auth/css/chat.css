@@ -951,3 +951,10 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     transform: scale(1);
     text-shadow: 0 0 15px rgba(30, 200, 90, 0.2);
 }
+
+/* Mobile Optimizations */
+@media (max-width: 600px) {
+    body {
+        background-attachment: scroll;
+    }
+}
