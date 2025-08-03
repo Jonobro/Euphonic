@@ -230,10 +230,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const playlistDiv = document.createElement('div');
             playlistDiv.className = 'playlist-input-group';
             
-            const label = document.createElement('label');
-            label.className = 'playlist-input-label';
-            label.textContent = `Playlist ${index + 1}:`;
-            
             const inputContainer = document.createElement('div');
             inputContainer.className = 'playlist-input-container';
             
@@ -280,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             type="text" 
                             class="playlist-input-field" 
                             value="${playlist.url}" 
-                            placeholder="https://open.spotify.com/playlist/..."
+                            placeholder="${index === 0 ? 'https://open.spotify.com/playlist/...' : ''}"
                             data-playlist-id="${playlist.id}"
                             onblur="window.playlistImport.handlePlaylistBlur(${playlist.id}, this.value)"
                             oninput="window.playlistImport.handlePlaylistChange(${playlist.id}, this.value)"
@@ -290,7 +286,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             inputContainer.innerHTML = content;
-            playlistDiv.appendChild(label);
             playlistDiv.appendChild(inputContainer);
             container.appendChild(playlistDiv);
         });
