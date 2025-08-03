@@ -339,7 +339,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .header-buttons {
     display: flex;
-    gap: 10px;
+    gap: 16px;
     align-items: center;
 }
 
@@ -765,6 +765,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     border-radius: 10px;
     transition: all 0.2s;
     background-color: #161616;
+    overflow: hidden;
 }
 
 .playlist-input-container:focus-within {
@@ -956,9 +957,10 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 2px;
-    height: 2px;
+    width: 1px;
+    height: 1px;
     pointer-events: none;
+    z-index: 10;
 }
 
 .burst-multilayer::before,
@@ -979,19 +981,8 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     background: rgba(30, 200, 90, 0.2);
 }
 
-.burst-multilayer::after {
-    width: 14px;
-    height: 14px;
-    border: 1px solid rgba(30, 200, 90, 0.6);
-    animation-delay: 0.2s;
-}
-
 .burst-multilayer.animate::before {
     animation: multiLayerBurst1 1.2s ease-out;
-}
-
-.burst-multilayer.animate::after {
-    animation: multiLayerBurst2 1.6s ease-out 0.2s;
 }
 
 .burst-multilayer.animate {
@@ -1000,35 +991,15 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 @keyframes multiLayerBurst1 {
     0% {
-        width: 10px;
-        height: 10px;
         opacity: 0.9;
         transform: translate(-50%, -50%) scale(1);
     }
     50% {
         opacity: 0.6;
-        transform: translate(-50%, -50%) scale(6);
     }
     100% {
-        width: 140px;
-        height: 140px;
         opacity: 0;
-        transform: translate(-50%, -50%) scale(1);
-    }
-}
-
-@keyframes multiLayerBurst2 {
-    0% {
-        width: 14px;
-        height: 14px;
-        opacity: 0.6;
-        transform: translate(-50%, -50%) scale(1);
-    }
-    100% {
-        width: 220px;
-        height: 220px;
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(1);
+        transform: translate(-50%, -50%) scale(var(--burst-scale, 140));
     }
 }
 

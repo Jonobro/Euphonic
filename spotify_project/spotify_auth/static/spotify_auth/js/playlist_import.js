@@ -222,6 +222,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return playlistStates.filter(p => p.status === 'success').length;
     }
 
+    function triggerBurstAnimation(successElement) {
+        const burstContainer = document.getElementById('burst-container');
+        if (!burstContainer || !successElement) return;
+    
+        // Create burst element
+        const burst = document.createElement('div');
+        burst.className = 'burst-multilayer';
+        
+        // Calculate position relative to the container
+        const containerRect = burstContainer.getBoundingClientRect();
+        const successRect = successElement.getBoundingClientRect();
+        const top = (successRect.top - containerRect.top) + (successRect.height / 2);
+        burst.style.top = `${top}px`;
+    
+        burstContainer.appendChild(burst);
+    
+        // Calculate scale based on the success element's width
+        const inputWidth = successElement.offsetWidth;
+        const targetWidth = inputWidth * 1.2;
+        // The initial size of the burst element's ::before is 10px (from CSS).
+        const scale = targetWidth / 10; 
+        burst.style.setProperty('--burst-scale', scale);
+    
+        // Add animation class and remove after animation
+        burst.classList.add('animate');
+        setTimeout(() => {
+            burst.remove();
+        }, 1200); // Corresponds to animation duration in CSS
+    }
+
     function renderPlaylistInputs() {
         const container = document.getElementById('playlistInputsContainer');
         if (!container) return;
@@ -291,20 +321,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             inputContainer.innerHTML = content;
             
-            if (playlist.status === 'success') {
-                const successState = inputContainer.querySelector('.playlist-success-state');
-                if (successState) {
-                    const burst = document.createElement('div');
-                    burst.className = 'burst-multilayer';
-                    successState.appendChild(burst);
-                    
-                    if (playlist.justSucceeded) {
-                        requestAnimationFrame(() => {
-                            burst.classList.remove('animate');
-                            burst.offsetHeight; // Force reflow
-                            burst.classList.add('animate');
-                        });
-                    }
+            if (playlist.status === 'success' && playlist.justSucceeded) {
+                const successElement = inputContainer.querySelector('.playlist-success-state');
+                if (successElement) {
+                    // Use requestAnimationFrame to ensure the element is in the DOM before animating
+                    requestAnimationFrame(() => {
+                        triggerBurstAnimation(successElement);
+                    });
                 }
             }
             
