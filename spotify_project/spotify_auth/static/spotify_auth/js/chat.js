@@ -117,14 +117,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         messageList.append(msg);
         
-        // Trigger blur-fade animation for first AI message
+        // Trigger blur-fade animation for first AI message only after container is loaded
         if (isFirstAiMessage) {
-            setTimeout(() => {
+            const triggerAnimation = () => {
                 const overlay = msg.querySelector('.background-overlay');
                 const content = msg.querySelector('.blur-fade-combo');
                 if (overlay) overlay.classList.add('fade-out');
                 if (content) content.classList.add('focused');
-            }, 100);
+            };
+
+            const container = document.querySelector('.container');
+            if (container && container.classList.contains('loaded')) {
+                // Container is already loaded, start animation after short delay
+                setTimeout(triggerAnimation, 100);
+            } else {
+                // Listen for the container load event
+                const handleContainerLoad = () => {
+                    setTimeout(triggerAnimation, 100);
+                    container.removeEventListener('transitionend', handleContainerLoad);
+                };
+                
+                if (container) {
+                    container.addEventListener('transitionend', handleContainerLoad);
+                }
+            }
         }
         
         // Special styling for second AI message on analysis page
