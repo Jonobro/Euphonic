@@ -8,7 +8,6 @@ window.addEventListener('load', function() {
         if (container) container.classList.add('loaded');
         if (betaNotice) betaNotice.classList.add('loaded');
         if (spotifyFooter) spotifyFooter.classList.add('loaded');
-    // }, 100);
     }, 1000);
 });
 
