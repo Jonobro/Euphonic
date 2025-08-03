@@ -107,27 +107,38 @@ h2, h3, h4, h5, h6 {
     padding-right: 17.5px;
 }
 
-#message-list::-webkit-scrollbar {
+/* Consolidated Scrollbar Styles */
+#message-list::-webkit-scrollbar,
+.import-modal-content::-webkit-scrollbar,
+.legal-modal-content::-webkit-scrollbar {
     width: 11px;
 }
 
-#message-list::-webkit-scrollbar-track {
+#message-list::-webkit-scrollbar-track,
+.import-modal-content::-webkit-scrollbar-track,
+.legal-modal-content::-webkit-scrollbar-track {
     background: #232323;
     border-radius: 10px;
 }
 
-#message-list::-webkit-scrollbar-thumb {
+#message-list::-webkit-scrollbar-thumb,
+.import-modal-content::-webkit-scrollbar-thumb,
+.legal-modal-content::-webkit-scrollbar-thumb {
     background: linear-gradient(to bottom, rgb(40, 220, 100), rgb(20, 180, 80));
     border-radius: 10px;
 }
 
-#message-list::-webkit-scrollbar-thumb:hover {
+#message-list::-webkit-scrollbar-thumb:hover,
+.import-modal-content::-webkit-scrollbar-thumb:hover,
+.legal-modal-content::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(to bottom, rgb(45, 230, 110), rgb(25, 190, 90));
 }
 
 /* Scrollbar fallback */
 @supports not selector(::-webkit-scrollbar) {
-    #message-list {
+    #message-list,
+    .import-modal-content,
+    .legal-modal-content {
         scrollbar-width: auto;
         scrollbar-color: rgb(30, 200, 90) #1D1D1D;
     }
@@ -531,58 +542,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -66.6%);
-}
-
-.import-modal-content::-webkit-scrollbar {
-    width: 11px;
-}
-
-.import-modal-content::-webkit-scrollbar-track {
-    background: #232323;
-    border-radius: 10px;
-}
-
-.import-modal-content::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, rgb(40, 220, 100), rgb(20, 180, 80));
-    border-radius: 10px;
-}
-
-.import-modal-content::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, rgb(45, 230, 110), rgb(25, 190, 90));
-}
-
-/* Scrollbar fallback for import modal */
-@supports not selector(::-webkit-scrollbar) {
-    .import-modal-content {
-        scrollbar-width: auto;
-        scrollbar-color: rgb(30, 200, 90) #1D1D1D;
-    }
-}
-
-.legal-modal-content::-webkit-scrollbar {
-    width: 11px;
-}
-
-.legal-modal-content::-webkit-scrollbar-track {
-    background: #232323;
-    border-radius: 10px;
-}
-
-.legal-modal-content::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, rgb(40, 220, 100), rgb(20, 180, 80));
-    border-radius: 10px;
-}
-
-.legal-modal-content::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, rgb(45, 230, 110), rgb(25, 190, 90));
-}
-
-/* Scrollbar fallback */
-@supports not selector(::-webkit-scrollbar) {
-    .modal-content {
-        scrollbar-width: auto;
-        scrollbar-color: rgb(30, 200, 90) #1D1D1D;
-    }
 }
 
 .modal-header {
