@@ -242,8 +242,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
         // Add animation class and remove after animation
         burst.classList.add('animate');
+        
+        // After burst animation completes, trigger slide animation
         setTimeout(() => {
             burst.remove();
+            
+            // Find the success state element and trigger slide animation
+            const successElement = targetContainer.querySelector('.playlist-success-state');
+            if (successElement) {
+                successElement.classList.add('slide-left');
+            }
         }, 1200); // Corresponds to animation duration in CSS
     }
 
