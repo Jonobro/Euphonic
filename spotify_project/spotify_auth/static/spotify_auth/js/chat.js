@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const thinkingMsgElement = addMessage('', 'ai');
         thinkingMsgElement.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px;">
-                <img src="/static/spotify_auth/images/spinner-double-green.svg" alt="Loading" style="width: 40px; height: 40px;">
+                <img src="/static/spotify_auth/images/FinalThinkingIndicator.svg" alt="Loading" style="width: 40px; height: 40px;">
                 <span>Aria's Thinking...</span>
             </div>
         `;

@@ -690,7 +690,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .import-loading-indicator {
-    background-image: url('../images/eclipse-half-green-slower-rounded.svg');
+    background-image: url('../images/LoadingIndicatorFinal.svg');
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
