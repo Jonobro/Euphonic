@@ -753,30 +753,32 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .playlist-input-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .playlist-input-container {
     min-height: 48px;
     display: flex;
     align-items: center;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
     transition: all 0.2s;
+    background-color: #161616;
+}
+
+.playlist-input-container:focus-within {
+    box-shadow: 0 0 10px rgba(30, 200, 90, 0.3);
 }
 
 .playlist-input-field {
     width: 100%;
-    border: 1px solid #e0e0e0;
     outline: none;
+    border: none;
     color: #e0e0e0;
     padding: 0.75rem;
     font-family: 'Poppins', sans-serif, Arial;
     font-size: 14px;
-    background-color: #161616;
-    border-radius: 10px;
-}
-
-.playlist-input-field:focus-within {
-    box-shadow: 0 0 10px rgba(30, 200, 90, 0.3);
+    background: none;
 }
 
 .playlist-input-field::placeholder {
@@ -850,7 +852,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 .playlist-remove-btn {
     background: none;
     border: none;
-    color: #181818;
+    color: rgba(224,224,224,0.7);
     cursor: pointer;
     padding: 0.25rem;
     border-radius: 50%;
@@ -867,12 +869,12 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .spinner-small {
-    width: 1rem;
-    height: 1rem;
-    border: 2px solid transparent;
-    border-top: 2px solid currentColor;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+    width: 1.5rem;
+    height: 1.5rem;
+    background-image: url('../images/LoadingIndicatorFinal.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
 }
 
 @keyframes spin {
