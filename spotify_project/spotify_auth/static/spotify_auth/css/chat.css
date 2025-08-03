@@ -760,6 +760,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     min-height: 48px;
     display: flex;
     align-items: center;
+    justify-content: center;
     border: 1px solid #e0e0e0;
     border-radius: 10px;
     transition: all 0.2s;
@@ -806,7 +807,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     backdrop-filter: blur(10px);
     border: 1px solid rgba(30, 200, 90, 0.9);
     border-radius: 25px;
-    padding: 5.75px 5px;
+    padding: 5px 5px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -814,6 +815,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     color: #e5e5e5;
     margin: 0px 0px 0px 5px;
     width: fit-content;
+    transform: translateX(-5px);
 }
 
 .playlist-success-content {

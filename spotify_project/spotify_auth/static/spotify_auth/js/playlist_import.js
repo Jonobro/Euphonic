@@ -275,6 +275,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input 
                             type="text" 
                             class="playlist-input-field" 
+                            id="playlist-input-${playlist.id}"
+                            name="playlist-url-${playlist.id}"
                             value="${playlist.url}" 
                             placeholder="${index === 0 ? 'https://open.spotify.com/playlist/...' : ''}"
                             data-playlist-id="${playlist.id}"
