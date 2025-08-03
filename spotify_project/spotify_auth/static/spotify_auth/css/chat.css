@@ -757,6 +757,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .playlist-input-container {
+    position: relative;
     min-height: 48px;
     display: flex;
     align-items: center;
@@ -764,8 +765,9 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     border: 1px solid #e0e0e0;
     border-radius: 10px;
     transition: all 0.2s;
-    background-color: #161616;
+    background-color: transparent;
     overflow: hidden;
+    z-index: 1;
 }
 
 .playlist-input-container:focus-within {
@@ -818,6 +820,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     margin: 0px 0px 0px 5px;
     width: fit-content;
     transform: translateX(-5px);
+    z-index: 2;
 }
 
 .playlist-success-content {
@@ -960,7 +963,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     width: 1px;
     height: 1px;
     pointer-events: none;
-    z-index: 10;
+    z-index: 1;
 }
 
 .burst-multilayer::before,

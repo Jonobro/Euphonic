@@ -222,24 +222,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return playlistStates.filter(p => p.status === 'success').length;
     }
 
-    function triggerBurstAnimation(successElement) {
-        const burstContainer = document.getElementById('burst-container');
-        if (!burstContainer || !successElement) return;
+    function triggerBurstAnimation(targetContainer) {
+        if (!targetContainer) return;
     
         // Create burst element
         const burst = document.createElement('div');
         burst.className = 'burst-multilayer';
         
-        // Calculate position relative to the container
-        const containerRect = burstContainer.getBoundingClientRect();
-        const successRect = successElement.getBoundingClientRect();
-        const top = (successRect.top - containerRect.top) + (successRect.height / 2);
-        burst.style.top = `${top}px`;
+        // The burst is positioned absolutely and centered via CSS.
+        // We just need to append it to the correct container.
+        targetContainer.appendChild(burst);
     
-        burstContainer.appendChild(burst);
-    
-        // Calculate scale based on the success element's width
-        const inputWidth = successElement.offsetWidth;
+        // Calculate scale based on the container's width
+        const inputWidth = targetContainer.offsetWidth;
         const targetWidth = inputWidth * 1.2;
         // The initial size of the burst element's ::before is 10px (from CSS).
         const scale = targetWidth / 10; 
@@ -326,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (successElement) {
                     // Use requestAnimationFrame to ensure the element is in the DOM before animating
                     requestAnimationFrame(() => {
-                        triggerBurstAnimation(successElement);
+                        triggerBurstAnimation(inputContainer);
                     });
                 }
             }
