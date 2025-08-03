@@ -955,6 +955,6 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 /* Mobile Optimizations */
 @media (max-width: 600px) {
     body {
-        background-attachment: scroll;
+        background-image: none;
     }
 }
