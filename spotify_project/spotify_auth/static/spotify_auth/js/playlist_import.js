@@ -1,11 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     // State management for playlist import
     let playlistStates = [
-        { id: 1, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '' },
-        { id: 2, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '' },
-        { id: 3, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '' },
-        { id: 4, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '' },
-        { id: 5, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '' }
+        { id: 1, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false },
+        { id: 2, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false },
+        { id: 3, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false },
+        { id: 4, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false },
+        { id: 5, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false }
     ];
     
     let isImporting = false;
@@ -108,7 +108,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function updatePlaylistStatus(id, status, name = '', url = '', trackCount = 0, playlistId = '') {
         const playlistIndex = playlistStates.findIndex(p => p.id === id);
         if (playlistIndex !== -1) {
-            playlistStates[playlistIndex] = { id, status, name, url, trackCount, playlistId };
+            const current = playlistStates[playlistIndex];
+            const justSucceeded = (status === 'success' && current.status !== 'success');
+            playlistStates[playlistIndex] = { id, status, name, url, trackCount, playlistId, justSucceeded };
             renderPlaylistInputs();
             updateImportButton();
         }
@@ -288,9 +290,30 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             inputContainer.innerHTML = content;
+            
+            if (playlist.status === 'success') {
+                const successState = inputContainer.querySelector('.playlist-success-state');
+                if (successState) {
+                    const burst = document.createElement('div');
+                    burst.className = 'burst-multilayer';
+                    successState.appendChild(burst);
+                    
+                    if (playlist.justSucceeded) {
+                        requestAnimationFrame(() => {
+                            burst.classList.remove('animate');
+                            burst.offsetHeight; // Force reflow
+                            burst.classList.add('animate');
+                        });
+                    }
+                }
+            }
+            
             playlistDiv.appendChild(inputContainer);
             container.appendChild(playlistDiv);
         });
+        
+        // Reset justSucceeded flags
+        playlistStates = playlistStates.map(p => ({ ...p, justSucceeded: false }));
     }
 
     function updateImportButton() {

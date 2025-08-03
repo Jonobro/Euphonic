@@ -803,6 +803,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .playlist-success-state {
+    position: relative;
     background: rgba(42, 42, 42, 0.6);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(30, 200, 90, 0.9);
@@ -946,5 +947,99 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 @media (max-width: 600px) {
     body {
         background-image: none;
+    }
+}
+
+/* Burst effect styles */
+.burst-multilayer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 2px;
+    pointer-events: none;
+}
+
+.burst-multilayer::before,
+.burst-multilayer::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    opacity: 0;
+}
+
+.burst-multilayer::before {
+    width: 10px;
+    height: 10px;
+    border: 2px solid rgba(30, 200, 90, 0.9);
+    background: rgba(30, 200, 90, 0.2);
+}
+
+.burst-multilayer::after {
+    width: 14px;
+    height: 14px;
+    border: 1px solid rgba(30, 200, 90, 0.6);
+    animation-delay: 0.2s;
+}
+
+.burst-multilayer.animate::before {
+    animation: multiLayerBurst1 1.2s ease-out;
+}
+
+.burst-multilayer.animate::after {
+    animation: multiLayerBurst2 1.6s ease-out 0.2s;
+}
+
+.burst-multilayer.animate {
+    animation: multiLayerCore 0.6s ease-out;
+}
+
+@keyframes multiLayerBurst1 {
+    0% {
+        width: 10px;
+        height: 10px;
+        opacity: 0.9;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(6);
+    }
+    100% {
+        width: 140px;
+        height: 140px;
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes multiLayerBurst2 {
+    0% {
+        width: 14px;
+        height: 14px;
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        width: 220px;
+        height: 220px;
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes multiLayerCore {
+    0% {
+        filter: brightness(1);
+    }
+    20% {
+        filter: brightness(1.5) drop-shadow(0 0 8px rgba(30, 200, 90, 0.8));
+    }
+    100% {
+        filter: brightness(1);
     }
 }
