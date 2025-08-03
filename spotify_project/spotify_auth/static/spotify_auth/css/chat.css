@@ -795,6 +795,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     color: #e0e0e0;
     padding: 0.75rem;
     font-size: 0.875rem;
+    transform: translateX(-10px);
 }
 
 .playlist-error-state {
@@ -819,7 +820,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     color: #e5e5e5;
     margin: 0px 0px 0px 5px;
     width: fit-content;
-    transform: translateX(-5px);
     z-index: 2;
 }
 
@@ -1003,6 +1003,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     100% {
         opacity: 0;
         transform: translate(-50%, -50%) scale(var(--burst-scale, 140));
+        border-width: 0px;
     }
 }
 

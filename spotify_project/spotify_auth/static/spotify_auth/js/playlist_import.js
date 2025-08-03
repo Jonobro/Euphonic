@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     content = `
                         <div class="playlist-loading-state">
                             <div class="spinner-small"></div>
-                            <span style="margin-left: 0.5rem;">Fetching playlist...</span>
+                            <span style="margin-left: 0.5rem; font-weight: 500;">Fetching playlist...</span>
                         </div>
                     `;
                     break;
