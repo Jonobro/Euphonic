@@ -129,11 +129,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const container = document.querySelector('.container');
             if (container && container.classList.contains('loaded')) {
                 // Container is already loaded, start animation after short delay
-                setTimeout(triggerAnimation, 100);
+                setTimeout(triggerAnimation, 2000);
             } else {
                 // Listen for the container load event
                 const handleContainerLoad = () => {
-                    setTimeout(triggerAnimation, 100);
+                    setTimeout(triggerAnimation, 2000);
                     container.removeEventListener('transitionend', handleContainerLoad);
                 };
                 

@@ -931,7 +931,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     bottom: 0;
     background: #161616;
     z-index: 2;
-    transition: opacity 1.5s ease-out;
+    transition: opacity 0.75s ease-out;
 }
 
 .background-overlay.fade-out {
@@ -943,7 +943,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     filter: blur(8px);
     transform: scale(0.95);
     z-index: 1;
-    transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: all 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .blur-fade-combo.focused {
