@@ -70,21 +70,62 @@ document.addEventListener('DOMContentLoaded', () => {
             msg.classList.add('error-message');
         }
         
-        if (window.marked && window.DOMPurify) {
-            try {
-                const dirtyHtml = marked.parse(text || '');
-                // Enhanced DOMPurify configuration for better security
-                msg.innerHTML = DOMPurify.sanitize(dirtyHtml, { 
-                    ADD_ATTR: ['target'],
-                    FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input'],
-                    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
-                    ALLOW_DATA_ATTR: false
-                });
+        // Apply blur-fade effect to first AI message
+        const aiMessageCount = messageList.querySelectorAll('.ai-message').length;
+        const isFirstAiMessage = sender === 'ai' && aiMessageCount === 0;
+        
+        if (isFirstAiMessage) {
+            msg.classList.add('blur-fade-container');
+            const backgroundOverlay = document.createElement('div');
+            backgroundOverlay.className = 'background-overlay';
+            msg.appendChild(backgroundOverlay);
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'blur-fade-combo';
+            msg.appendChild(contentDiv);
+            
+            if (window.marked && window.DOMPurify) {
+                try {
+                    const dirtyHtml = marked.parse(text || '');
+                    contentDiv.innerHTML = DOMPurify.sanitize(dirtyHtml, { 
+                        ADD_ATTR: ['target'],
+                        FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input'],
+                        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
+                        ALLOW_DATA_ATTR: false
+                    });
+                }
+                catch { contentDiv.textContent = text; }
+            } else { 
+                contentDiv.textContent = text; 
             }
-            catch { msg.textContent = text; }
-        } else { msg.textContent = text; }
+        } else {
+            if (window.marked && window.DOMPurify) {
+                try {
+                    const dirtyHtml = marked.parse(text || '');
+                    msg.innerHTML = DOMPurify.sanitize(dirtyHtml, { 
+                        ADD_ATTR: ['target'],
+                        FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input'],
+                        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
+                        ALLOW_DATA_ATTR: false
+                    });
+                }
+                catch { msg.textContent = text; }
+            } else { 
+                msg.textContent = text; 
+            }
+        }
 
         messageList.append(msg);
+        
+        // Trigger blur-fade animation for first AI message
+        if (isFirstAiMessage) {
+            setTimeout(() => {
+                const overlay = msg.querySelector('.background-overlay');
+                const content = msg.querySelector('.blur-fade-combo');
+                if (overlay) overlay.classList.add('fade-out');
+                if (content) content.classList.add('focused');
+            }, 100);
+        }
         
         // Special styling for second AI message on analysis page
         if (chatMode === 'analysis' && sender === 'ai') {

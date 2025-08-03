@@ -918,3 +918,36 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     margin-top: 15px;
     margin-bottom: 15px;
 }
+
+.blur-fade-container {
+    position: relative;
+}
+
+.background-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #161616;
+    z-index: 2;
+    transition: opacity 1.5s ease-out;
+}
+
+.background-overlay.fade-out {
+    opacity: 0;
+}
+
+.blur-fade-combo {
+    opacity: 1;
+    filter: blur(8px);
+    transform: scale(0.95);
+    z-index: 1;
+    transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.blur-fade-combo.focused {
+    filter: blur(0px);
+    transform: scale(1);
+    text-shadow: 0 0 15px rgba(30, 200, 90, 0.2);
+}
