@@ -333,12 +333,20 @@ document.addEventListener('DOMContentLoaded', () => {
             
             inputContainer.innerHTML = content;
             
-            if (playlist.status === 'success' && playlist.justSucceeded) {
+            if (playlist.status === 'success') {
                 const successElement = inputContainer.querySelector('.playlist-success-state');
                 if (successElement) {
-                    // Use requestAnimationFrame to ensure the element is in the DOM before animating
                     requestAnimationFrame(() => {
-                        triggerBurstAnimation(inputContainer);
+                        if (playlist.justSucceeded) {
+                            triggerBurstAnimation(inputContainer);
+                        } else {
+                            // For existing success states, apply transform directly without animation
+                            const containerRect = inputContainer.getBoundingClientRect();
+                            const elementRect = successElement.getBoundingClientRect();
+                            const distanceToLeft = elementRect.left - containerRect.left - 5.5;
+                            successElement.style.transition = 'none';
+                            successElement.style.transform = `translateX(-${distanceToLeft}px)`;
+                        }
                     });
                 }
             }
