@@ -70,11 +70,15 @@ document.addEventListener('DOMContentLoaded', () => {
             msg.classList.add('error-message');
         }
         
-        // Apply blur-fade effect to first AI message
         const aiMessageCount = messageList.querySelectorAll('.ai-message').length;
         const isFirstAiMessage = sender === 'ai' && aiMessageCount === 0;
+        const sessionKey = `blur_fade_shown_${chatMode}`;
+        const hasShownBlurFade = sessionStorage.getItem(sessionKey);
+        const shouldShowBlurFade = isFirstAiMessage && !hasShownBlurFade;
         
-        if (isFirstAiMessage) {
+        if (shouldShowBlurFade) {
+            sessionStorage.setItem(sessionKey, 'true');
+            
             msg.classList.add('blur-fade-container');
             const backgroundOverlay = document.createElement('div');
             backgroundOverlay.className = 'background-overlay';
@@ -118,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         messageList.append(msg);
         
         // Trigger blur-fade animation for first AI message only after container is loaded
-        if (isFirstAiMessage) {
+        if (shouldShowBlurFade) {
             const triggerAnimation = () => {
                 const overlay = msg.querySelector('.background-overlay');
                 const content = msg.querySelector('.blur-fade-combo');
