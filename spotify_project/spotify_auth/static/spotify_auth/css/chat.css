@@ -202,8 +202,17 @@ h2, h3, h4, h5, h6 {
     margin-top: -18px;
 }
 
+.message.ai-message.has-playlist-button ul {
+    width: fit-content;
+    margin: 0 auto;
+}
+
+.message.ai-message.has-playlist-button ul li {
+    padding: 1.25px 0px;
+}
+
 .ai-message.has-playlist-button.previous-conversation {
-    padding-bottom: 6px; /* 22px - 16px = 6px */
+    padding-bottom: 6px;
 }
 
 .ai-message.error-message {
@@ -219,7 +228,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .user-message {
     background-color:rgb(30, 200, 90);
-    color: black;
+    color: #0C0C0C;
     align-self: flex-end;
     margin-left: auto;
     border-bottom-right-radius: 5px;
@@ -227,7 +236,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     /* Poppins Medium */
     font-weight: 500;
     box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.35);
-    text-shadow: 0.75px 0.75px 1.6px rgba(27, 112, 57, 0.6);
+    text-shadow: 0.75px 0.75px 1.6px rgba(27, 112, 57, 0.4);
 }
 
 #chat-input-area {
