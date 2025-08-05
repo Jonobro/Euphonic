@@ -428,14 +428,13 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     border: none;
     border-radius: 25px;
     cursor: pointer;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 3px 4px 5px rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 1.5px 2px 5px rgba(0, 0, 0, 0.35);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     opacity: 0.9;
 }
 
 .save-playlist-button:hover {
-    background: rgb(30, 200, 90);
     transform: translateX(11px);
     padding: 11px 22px;
     opacity: 1.0;
@@ -453,11 +452,17 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     background-color: #121212;
     color: rgba(224,224,224,0.85);
     padding: 10px 20px;
-    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5), 4px 4px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5), 2.5px 3.33px 5px rgba(0, 0, 0, 0.2);
+    text-shadow: none;
 }
 
 .secondary-button:hover {
     background-color: #161616;
+}
+
+.secondary-button:disabled {
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 .previous-conversation {
@@ -659,23 +664,33 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .import-buttons {
     display: flex;
-    gap: 18px;
+    gap: 0px;
     justify-content: flex-end;
     margin-top: 30px;
     padding-top: 17.5px;
     border-top: 1px solid #444;
 }
 
-.import-buttons .button {
-    min-width: 100px;
+.import-cancel-button {
+    min-width: 0px;
 }
 
-.import-playlist-buttons {
-    background-color: #242424;
+.import-playlist-button {
+    margin-right: calc(50% - 174px);
+    color: #0C0C0C;
+    background: rgb(30, 200, 90);
+    font-weight: 600;
+    min-width: 175px;
+    text-shadow: 1px 1px 2px rgba(27, 112, 57, 0.35);
+    padding: 0 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.import-playlist-buttons:hover {
-    background-color: #202020;
+.import-playlist-button:hover {
+    opacity: 1.0;
+    box-shadow: inset 0 0 0px rgba(0, 0, 0, 0.0), 0px 0px 0px rgba(0, 0, 0, 0.0), 0 0 15px rgba(30, 200, 90, 0.4);
 }
 
 .import-loading-indicator {

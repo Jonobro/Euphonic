@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // State management for playlist import
     let playlistStates = [
         { id: 1, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false },
         { id: 2, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false },
@@ -11,10 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isImporting = false;
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     
-    // Debouncing timers for each playlist input
-    const inputTimers = {};
-
-    // Add a flag to prevent multiple validations
+    // Flag to prevent multiple validations
     const validating = {};
 
     function parseSpotifyUrl(url) {
@@ -45,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({ playlist_url: url })
+            body: JSON.stringify({playlist_url: url})
         });
         
         if (!response.ok) {
@@ -56,12 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return await response.json();
     }
 
-    // Modify handlePlaylistInput to prevent loops and trigger fetch immediately if valid
     async function handlePlaylistInput(id, inputValue) {
         if (!inputValue.trim() || validating[id]) return;
         
         const parsedUrl = parseSpotifyUrl(inputValue);
-        if (!parsedUrl) return; // Invalid, wait for blur
+        if (!parsedUrl) return;
         
         // Prevent re-entry
         validating[id] = true;
@@ -69,15 +64,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update input only if changed (avoids triggering oninput loop)
         const inputElement = document.querySelector(`input[data-playlist-id="${id}"]`);
         if (inputElement && inputElement.value !== parsedUrl) {
-            const cursorPosition = inputElement.selectionStart; // Preserve cursor
+            const cursorPosition = inputElement.selectionStart;
             inputElement.value = parsedUrl;
-            inputElement.setSelectionRange(cursorPosition, cursorPosition); // Restore cursor
+            inputElement.setSelectionRange(cursorPosition, cursorPosition);
         }
         
-        // Update state
         playlistStates.find(p => p.id === id).url = parsedUrl;
-        
-        // Start validation immediately
         updatePlaylistStatus(id, 'loading', '', parsedUrl, 0, '');
 
         try {
@@ -116,29 +108,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Modify handlePlaylistChange to process immediately without debounce
     function handlePlaylistChange(id, newUrl) {
         const playlistIndex = playlistStates.findIndex(p => p.id === id);
         if (playlistIndex !== -1) {
             playlistStates[playlistIndex].url = newUrl;
         }
-        
-        // Clear any existing timer (if somehow present)
-        if (inputTimers[id]) {
-            clearTimeout(inputTimers[id]);
-            delete inputTimers[id];
-        }
-        
-        // Process immediately
         handlePlaylistInput(id, newUrl);
     }
 
     function handleRemovePlaylist(id) {
-        // Clear any pending timer
-        if (inputTimers[id]) {
-            clearTimeout(inputTimers[id]);
-            delete inputTimers[id];
-        }
         updatePlaylistStatus(id, 'idle', '', '', 0, '');
     }
 
@@ -199,12 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleCancel() {
-        // Clear all timers
-        Object.keys(inputTimers).forEach(id => {
-            clearTimeout(inputTimers[id]);
-            delete inputTimers[id];
-        });
-        
         playlistStates = playlistStates.map(playlist => ({ 
             ...playlist, 
             status: 'idle', 
@@ -220,6 +192,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getValidPlaylistCount() {
         return playlistStates.filter(p => p.status === 'success').length;
+    }
+
+    function updateImportButton() {
+        const btn = document.getElementById('importPlaylistsBtn');
+        if (!btn) return;
+        
+        const validCount = getValidPlaylistCount();
+        
+        if (isImporting) return;
+        
+        // Check if any playlist success states are visible and have completed transforms
+        const successStates = document.querySelectorAll('.playlist-success-state');
+        let hasCompletedSuccessState = false;
+        
+        successStates.forEach(state => {
+            const computedStyle = window.getComputedStyle(state);
+            const transform = computedStyle.transform;
+            
+            // Check if the element is visible and has a transform applied (meaning animation completed)
+            if (state.offsetParent !== null && transform !== 'none' && transform !== 'matrix(1, 0, 0, 1, 0, 0)') {
+                hasCompletedSuccessState = true;
+            }
+        });
+        
+        // Show/hide button based on success state visibility and completion
+        if (hasCompletedSuccessState && validCount > 0) {
+            btn.style.opacity = '0.9';
+            btn.style.pointerEvents = 'auto';
+            btn.disabled = false;
+            btn.textContent = `Import ${validCount} Playlist${validCount !== 1 ? 's' : ''}`;
+        } else {
+            btn.style.opacity = '0';
+            btn.style.pointerEvents = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Import Playlists';
+        }
     }
 
     function triggerBurstAnimation(targetContainer) {
@@ -260,6 +268,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Apply the calculated transform
                 successElement.style.transform = `translateX(-${distanceToLeft}px)`;
                 successElement.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
+                
+                // Update button visibility after transform completes
+                setTimeout(() => {
+                    updateImportButton();
+                }, 800); // Match the transition duration
             }
         }, 1200); // Corresponds to animation duration in CSS
     }
@@ -357,20 +370,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Reset justSucceeded flags
         playlistStates = playlistStates.map(p => ({ ...p, justSucceeded: false }));
-    }
-
-    function updateImportButton() {
-        const btn = document.getElementById('importPlaylistsBtn');
-        if (!btn) return;
-        
-        const validCount = getValidPlaylistCount();
-        
-        if (isImporting) return;
-        
-        btn.disabled = validCount === 0;
-        btn.textContent = validCount > 0 
-            ? `Import ${validCount} Playlist${validCount !== 1 ? 's' : ''}` 
-            : 'Import Playlists';
     }
 
     // Initialize
