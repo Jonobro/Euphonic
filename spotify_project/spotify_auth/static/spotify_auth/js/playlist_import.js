@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         importBtn.disabled = true;
         importBtn.innerHTML = `
-            <div class="spinner-small" style="margin-right: 0.5rem;"></div>
+            <div class="spinner-small"></div>
             Importing...
         `;
 
@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     content = `
                         <div class="playlist-loading-state">
                             <div class="spinner-small"></div>
-                            <span style="margin-left: 0.5rem; font-weight: 500;">Fetching playlist...</span>
+                            <span style="font-weight: 500;">Fetching playlist...</span>
                         </div>
                     `;
                     break;
