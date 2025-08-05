@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         importBtn.disabled = true;
         importBtn.innerHTML = `
-            <div class="spinner-small"></div>
+            <div class="spinner-small-black"></div>
             Importing...
         `;
 

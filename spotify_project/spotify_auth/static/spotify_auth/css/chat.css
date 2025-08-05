@@ -807,7 +807,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     color: #e0e0e0;
     padding: 0.75rem;
     font-size: 0.875rem;
-    transform: translateX(-26px);
+    transform: translateX(-18px);
 }
 
 .playlist-error-state {
@@ -897,6 +897,16 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     height: 1.5rem;
     margin-right: 0.5rem;
     background-image: url('../images/LoadingIndicatorFinal.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.spinner-small-black {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-right: 0.5rem;
+    background-image: url('../images/LoadingIndicatorFinalBlack.svg');
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
