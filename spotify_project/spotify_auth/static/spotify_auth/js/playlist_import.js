@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.style.opacity = '0';
             btn.style.pointerEvents = 'none';
             btn.disabled = true;
-            btn.textContent = 'Import Playlists';
+            btn.textContent = '';
         }
     }
 

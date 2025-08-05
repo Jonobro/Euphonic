@@ -436,6 +436,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .save-playlist-button:hover {
     transform: translateX(11px);
+    background: rgb(30, 200, 90);
     padding: 11px 22px;
     opacity: 1.0;
     box-shadow: inset 0 0 0px rgba(0, 0, 0, 0.0), 0px 0px 0px rgba(0, 0, 0, 0.0), 0 0 15px rgba(30, 200, 90, 0.4);
@@ -689,6 +690,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .import-playlist-button:hover {
+    background: rgb(30, 200, 90);
     opacity: 1.0;
     box-shadow: inset 0 0 0px rgba(0, 0, 0, 0.0), 0px 0px 0px rgba(0, 0, 0, 0.0), 0 0 15px rgba(30, 200, 90, 0.4);
 }
