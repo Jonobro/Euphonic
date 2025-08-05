@@ -143,10 +143,10 @@ function processMessageForPlaylist(messageElement) {
                 playlistActionsContainer.className = 'save-playlist-container';
                 
                 const secondaryActionsContainer = createSecondaryActionsContainer();
-
+                
                 const successMessage = document.createElement('p');
                 successMessage.className = 'save-playlist-success';
-                successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
+                successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" created in Spotify! Press (+) in Spotify to add it to your library.`;
                 
                 playlistActionsContainer.appendChild(successMessage);
                 playlistActionsContainer.appendChild(secondaryActionsContainer);
@@ -157,7 +157,7 @@ function processMessageForPlaylist(messageElement) {
 
             const successMessage = document.createElement('p');
             successMessage.className = 'save-playlist-success';
-            successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
+            successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" created in Spotify! Press (+) in Spotify to add it to your library.`;
             
             const playlistActionsContainer = document.createElement('div');
             playlistActionsContainer.className = 'save-playlist-container';
@@ -188,10 +188,10 @@ function processMessageForPlaylist(messageElement) {
             const playlistActionsContainer = document.createElement('div');
             playlistActionsContainer.className = 'save-playlist-container';
             
-            const saveButton = document.createElement('button');
-            saveButton.className = 'button save-playlist-button';
-            saveButton.textContent = `Save Playlist "${playlistName}" to Spotify`;
-            playlistActionsContainer.appendChild(saveButton);
+            const openButton = document.createElement('button');
+            openButton.className = 'button save-playlist-button';
+            openButton.textContent = `Open Playlist in Spotify`;
+            playlistActionsContainer.appendChild(openButton);
 
             if (!isBeforeLastDivider) {
                 const secondaryActionsContainer = createSecondaryActionsContainer();
@@ -200,9 +200,8 @@ function processMessageForPlaylist(messageElement) {
 
             content.appendChild(playlistActionsContainer);
 
-            saveButton.addEventListener('click', async () => {
-                saveButton.disabled = true;
-                saveButton.textContent = 'Saving...';
+            openButton.addEventListener('click', async () => {
+                openButton.disabled = true;
 
                 const trackUris = trackLinks.map(link => {
                     const url = new URL(link.href);
@@ -226,10 +225,13 @@ function processMessageForPlaylist(messageElement) {
 
                     if (response.ok) {
                         const result = await response.json();
+                        window.open(result.playlist_url, '_blank', 'noopener, noreferrer');
+                        openButton.remove();
+
                         const successMessage = document.createElement('p');
                         successMessage.className = 'save-playlist-success';
-                        successMessage.innerHTML = `Playlist "<a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" saved to your Spotify!`;
-                        saveButton.replaceWith(successMessage);
+                        successMessage.innerHTML = `Playlist "<a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" created in Spotify! Press (+) in Spotify to add it to your library.`;
+                        playlistActionsContainer.insertBefore(successMessage, playlistActionsContainer.firstChild);
 
                         const savedPlaylists = JSON.parse(sessionStorage.getItem('savedPlaylists') || '{}');
                         savedPlaylists[playlistIdentifier] = result.playlist_url;
@@ -245,13 +247,13 @@ function processMessageForPlaylist(messageElement) {
                         throw new Error(errorText);
                     }
                 } catch (error) {
-                    saveButton.textContent = `Save Playlist "${playlistName}" to Spotify`;
-                    saveButton.disabled = false;
-                    console.error("Error saving playlist:", error);
+                    openButton.textContent = `Open Playlist in Spotify`;
+                    openButton.disabled = false;
+                    console.error("Error opening playlist:", error);
                     if (window.addMessageAndScroll) {
-                        window.addMessageAndScroll("Sorry, there was an error saving your playlist. Please try again.", 'ai');
+                        window.addMessageAndScroll("Sorry, there was an error opening the playlist. Please try again.", 'ai');
                     } else {
-                        alert("Sorry, there was an error saving your playlist. Please try again.");
+                        alert("Sorry, there was an error opening the playlist. Please try again.");
                     }
                 }
             });
