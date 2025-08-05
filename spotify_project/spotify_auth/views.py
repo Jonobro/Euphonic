@@ -625,12 +625,20 @@ DEVELOPER MESSAGE: ANALYZE THE ABOVE LIBRARY AND PROVIDE YOUR INSIGHTS PER THE R
             config=chat_config
         )
 
-        _log_to_file(GEMINI_API_LOG_FILE, f"Gemini API Call (_generate_musical_analysis for user {user_id})")
+        log_message_prompt_analysis = (
+            f"Gemini API Call (_generate_musical_analysis for user {user_id}):\n"
+            f"  Initial Prompt: {initial_prompt[:500]}{'...' if len(initial_prompt) > 500 else ''}\n"
+            f"  Config: {{'tools': {current_tools}}}\n"
+        )
+        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_analysis}\n******************************\n")
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) (_generate_musical_analysis for user {user_id})")
         response = chat.send_message(initial_prompt)
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (_generate_musical_analysis for user {user_id})")
+        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (_generate_musical_analysis for user {user_id}):\n{response}\n******************************\n")
         
         initial_text_from_gemini = response.text or ""
 
-        introductory_message_start = "Hi there! I'm Aria, your personal music curator. I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!"
+        introductory_message_start = "I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!"
         introductory_message_body_display = f"""<p class="musical-analysis-title"><strong>Your Musical Analysis</strong></p>\n\n{initial_text_from_gemini}"""
         introductory_message_body_history = f"Your Musical Analysis\n\n{initial_text_from_gemini}"
         introductory_message_end = """That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask.
@@ -965,7 +973,7 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 
 Here are some examples of what I can do:
 * Give me a playlist of all of my songs from the 90s
-* I am on a road trip with my grandma – give me a playlist of my songs that she might like
+* I'm on a road trip with my grandma – make a playlist of my songs that she might like
 * Create a playlist of all of the dream pop songs in my Spotify collection
 * Make a playlist of all my songs that are sung in Spanish
 * I'm feeling discouraged today – give me a playlist of my most uplifting songs
@@ -996,7 +1004,7 @@ Tell me a bit about what you are looking for. You can mention things like:
 * Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
 * Favorite artists (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
 * A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
-* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven by Led Zeppelin)
+* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven)
 
 What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
 * Create a playlist of Katy Perry's worst songs
@@ -1101,7 +1109,7 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 
 Here are some examples of what I can do:
 * Give me a playlist of all of my songs from the 90s
-* I am on a road trip with my grandma – give me a playlist of my songs that she might like
+* I'm on a road trip with my grandma – make a playlist of my songs that she might like
 * Create a playlist of all of the dream pop songs in my Spotify collection
 * Make a playlist of all my songs that are sung in Spanish
 * I'm feeling discouraged today – give me a playlist of my most uplifting songs
@@ -1118,7 +1126,7 @@ Tell me a bit about what you are looking for. You can mention things like:
 * Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
 * Favorite artists (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
 * A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
-* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven by Led Zeppelin)
+* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven)
 
 What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
 * Create a playlist of Katy Perry's worst songs

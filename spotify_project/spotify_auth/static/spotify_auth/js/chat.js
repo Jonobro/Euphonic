@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isFirstAiMessage = sender === 'ai' && aiMessageCount === 0;
         const sessionKey = `blur_fade_shown_${chatMode}`;
         const hasShownBlurFade = sessionStorage.getItem(sessionKey);
-        const shouldShowBlurFade = isFirstAiMessage && !hasShownBlurFade;
+        const shouldShowBlurFade = isFirstAiMessage && !hasShownBlurFade && (chatMode === 'saved_songs' || chatMode === 'new_songs');
         
         if (shouldShowBlurFade) {
             msg.classList.add('blur-fade-container');
@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 Here are some examples of what I can do:
 * Give me a playlist of all of my songs from the 90s
-* I am on a road trip with my grandma – give me a playlist of my songs that she might like
+* I'm on a road trip with my grandma – make a playlist of my songs that she might like
 * Create a playlist of all of the dream pop songs in my Spotify collection
 * Make a playlist of all my songs that are sung in Spanish
 * I'm feeling discouraged today – give me a playlist of my most uplifting songs
@@ -335,7 +335,7 @@ Tell me a bit about what you are looking for. You can mention things like:
 * Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
 * Favorite artists (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
 * A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
-* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven by Led Zeppelin)
+* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven)
 
 What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
 * Create a playlist of Katy Perry's worst songs
