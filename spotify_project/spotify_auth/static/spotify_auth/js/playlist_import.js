@@ -202,22 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (isImporting) return;
         
-        // Check if any playlist success states are visible and have completed transforms
-        const successStates = document.querySelectorAll('.playlist-success-state');
-        let hasCompletedSuccessState = false;
-        
-        successStates.forEach(state => {
-            const computedStyle = window.getComputedStyle(state);
-            const transform = computedStyle.transform;
-            
-            // Check if the element is visible and has a transform applied (meaning animation completed)
-            if (state.offsetParent !== null && transform !== 'none' && transform !== 'matrix(1, 0, 0, 1, 0, 0)') {
-                hasCompletedSuccessState = true;
-            }
-        });
-        
-        // Show/hide button based on success state visibility and completion
-        if (hasCompletedSuccessState && validCount > 0) {
+        // Show/hide button based on valid playlist count
+        if (validCount > 0) {
             btn.style.opacity = '0.9';
             btn.style.pointerEvents = 'auto';
             btn.disabled = false;
