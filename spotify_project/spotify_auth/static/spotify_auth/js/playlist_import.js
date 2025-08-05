@@ -131,8 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const originalText = importBtn.textContent;
         
         importBtn.disabled = true;
+        importBtn.style.pointerEvents = 'none';
+        importBtn.style.opacity = '1.0';
         importBtn.innerHTML = `
-            <div class="spinner-small-black"></div>
+            <div class="spinner-small"></div>
             Importing...
         `;
 
@@ -202,7 +204,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (isImporting) return;
         
-        // Show/hide button based on valid playlist count
         if (validCount > 0) {
             btn.style.opacity = '0.9';
             btn.style.pointerEvents = 'auto';

@@ -358,7 +358,7 @@ Playlist Formatting:
 * Each track should be on a new line.
 * Remove any mention of the specific number of songs in the playlist.
 * If each track includes a public-facing description, display it as an indented bullet point directly below the track name.
-* Each message should only include one playlist. If more than one playlist is included, simply respond with the exact phrase "Sorry, I had a problem with your request. Please resend your message."
+* Each message should only include one playlist. If more than one playlist is included, simply respond with the exact phrase "Sorry, I had a problem with your request. Please resend your message." The only exception to this is when two identical playlists are provided, in which case you should choose/process the one that more closely aligns with your instructions and ignore the other one completely.
 * If there is any text before or after the playlist (i.e. before the +++++Playlist Name+++++ line or after the last track), remove it entirely. The final output must contain only the playlist itself, with no additional text before or after it.
 
 Style Formatting Instructions:
