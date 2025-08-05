@@ -131,8 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const originalText = importBtn.textContent;
         
         importBtn.disabled = true;
-        importBtn.style.pointerEvents = 'none';
-        importBtn.style.opacity = '1.0';
         importBtn.innerHTML = `
             <div class="spinner-small"></div>
             Importing...

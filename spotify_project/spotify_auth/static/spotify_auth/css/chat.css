@@ -699,7 +699,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     box-shadow: inset 0 0 0px rgba(0, 0, 0, 0.0), 0px 0px 0px rgba(0, 0, 0, 0.0), 0 0 15px rgba(30, 200, 90, 0.4);
 }
 
-.import-playlist-button:disabled:hover {
+.import-playlist-button:disabled {
     background-color: transparent;
     opacity: 1.0;
     text-shadow: none;
@@ -819,7 +819,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     color: #e0e0e0;
     padding: 0.75rem;
     font-size: 0.875rem;
-    transform: translateX(-13.5px);
+    transform: translateX(-18px);
 }
 
 .playlist-error-state {
