@@ -77,8 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const shouldShowBlurFade = isFirstAiMessage && !hasShownBlurFade;
         
         if (shouldShowBlurFade) {
-            sessionStorage.setItem(sessionKey, 'true');
-            
             msg.classList.add('blur-fade-container');
             const backgroundOverlay = document.createElement('div');
             backgroundOverlay.className = 'background-overlay';
@@ -124,6 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Trigger blur-fade animation for first AI message only after container is loaded
         if (shouldShowBlurFade) {
             const triggerAnimation = () => {
+                sessionStorage.setItem(sessionKey, 'true');
+                
                 const overlay = msg.querySelector('.background-overlay');
                 const content = msg.querySelector('.blur-fade-combo');
                 if (overlay) overlay.classList.add('fade-out');
