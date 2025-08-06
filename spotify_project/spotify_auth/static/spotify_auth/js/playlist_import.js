@@ -369,15 +369,14 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(playlistDiv);
         }
 
-        // Add the "Add Another Playlist" button if there are more playlists to show
         if (visibleCount < playlistStates.length) {
             const addButtonDiv = document.createElement('div');
             addButtonDiv.className = 'playlist-add-button-container';
             
             addButtonDiv.innerHTML = `
                 <button class="playlist-add-btn" onclick="window.playlistImport.handleAddPlaylist()">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
                     Add Another Playlist
                 </button>

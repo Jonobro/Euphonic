@@ -1095,3 +1095,28 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
         filter: brightness(1);
     }
 }
+
+.playlist-add-btn {
+    background: none;
+    border: none;
+    color: #b3b3b3;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'Poppins', sans-serif, Arial;
+    font-weight: 400;
+    transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.playlist-add-btn:hover {
+    color: #ffffff;
+}
+
+.playlist-add-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+}
