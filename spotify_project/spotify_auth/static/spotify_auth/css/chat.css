@@ -594,6 +594,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     align-items: center;
     border-bottom: 1px solid #444;
     padding-bottom: 11px;
+    margin-bottom: 16px;
 }
 
 .modal-header h2 {
@@ -1127,7 +1128,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     stroke: #ffffff;
 }
 
-.import-instructions {
+.modal-body p.import-instructions {
     font-size: 0.825rem;
     margin-bottom: 12px;
 }
