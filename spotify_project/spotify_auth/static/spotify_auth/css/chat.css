@@ -1145,3 +1145,59 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     margin-bottom: 20px;
     max-width: 358px;
 }
+
+.segmented-control-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    margin-top: -5px;
+}
+
+.segmented-control {
+    display: flex;
+    gap: 0.5rem;
+    background-color: #282828;
+    padding: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid #404040;
+}
+
+.segment-button {
+    padding: 0.5rem 1.25rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif, Arial;
+    background-color: transparent;
+    color: #B3B3B3;
+    white-space: nowrap;
+    min-width: fit-content;
+    font-weight: 500;
+    position: relative;
+}
+
+.segment-button:hover {
+    background-color: #404040;
+    color: #e0e0e0;
+}
+
+.segment-button.active {
+    background-color: rgb(30, 200, 90);
+    color: #0C0C0C;
+    text-shadow: 0.5px 0.5px 1px rgba(27, 112, 57, 0.3);
+}
+
+.segment-button:focus {
+    outline: none;
+}
+
+@media (min-width: 640px) {
+    .segment-button {
+        padding: 0.5rem 1.5rem;
+        font-size: 0.9rem;
+        line-height: 1.4rem;
+    }
+}

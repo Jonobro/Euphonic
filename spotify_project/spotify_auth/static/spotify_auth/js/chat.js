@@ -705,4 +705,45 @@ I've talked too much – let's get started! What can I do for you?`;
             modeToggleContainer.style.display = 'flex';
         }
     }
+
+    const segmentButtons = document.querySelectorAll('.segment-button');
+    segmentButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const newMode = this.dataset.mode;
+            switchChatMode(newMode);
+        });
+    });
+
+    function switchChatMode(newMode) {
+        const currentMode = document.body.dataset.chatMode;
+        
+        if (currentMode === newMode) {
+            return;
+        }
+        
+        const buttons = document.querySelectorAll('.segment-button');
+        buttons.forEach(button => {
+            button.classList.remove('active');
+            if (button.dataset.mode === newMode) {
+                button.classList.add('active');
+            }
+        });
+        
+        let targetUrl;
+        switch (newMode) {
+            case 'saved_songs':
+                targetUrl = '/chat/saved/';
+                break;
+            case 'new_songs':
+                targetUrl = '/chat/new/';
+                break;
+            case 'analysis':
+                targetUrl = '/chat/analyze/';
+                break;
+            default:
+                targetUrl = '/chat/new/';
+        }
+        
+        window.location.href = targetUrl;
+    }
 });

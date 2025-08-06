@@ -48,6 +48,23 @@
                 </div>
             </div>
         </div>
+
+        <div class="segmented-control-container">
+            <div class="segmented-control">
+                <button class="segment-button {% if chat_mode == 'new_songs' %}active{% endif %}" 
+                        data-mode="new_songs">
+                    Use New Songs
+                </button>
+                <button class="segment-button {% if chat_mode == 'saved_songs' %}active{% endif %}" 
+                        data-mode="saved_songs">
+                    Use My Songs
+                </button>
+                <button class="segment-button {% if chat_mode == 'analysis' %}active{% endif %}" 
+                        data-mode="analysis">
+                    Analyze My Music
+                </button>
+            </div>
+        </div>
         
         <div id="chat-container">
             <div id="message-list" 
