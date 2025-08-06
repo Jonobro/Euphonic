@@ -1173,7 +1173,7 @@ def create_playlist_api(request):
         data = json.loads(request.body)
         playlist_name = data.get('name')
         track_uris = data.get('track_uris')
-        description = data.get('description', f'Playlist created by Euphonic Intelligence.')
+        description = data.get('description', f'Playlist created by Aria.')
 
         if not playlist_name or not track_uris:
             _log_to_file(GENERAL_LOG_FILE, f"Missing required fields in create_playlist_api. Session: {request.session.session_key}, has_name: {bool(playlist_name)}, has_track_uris: {bool(track_uris)}")

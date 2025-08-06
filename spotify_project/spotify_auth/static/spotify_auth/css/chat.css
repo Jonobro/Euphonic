@@ -411,6 +411,10 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 .save-playlist-success {
     text-align: center;
     transform: translateX(10px);
+    max-width: 60%;
+    border: 1px solid #464646;
+    border-radius: 10px;
+    padding: 5px 5px 8px 5px;
 }
 
 .save-playlist-error {
