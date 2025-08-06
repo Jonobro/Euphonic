@@ -174,7 +174,7 @@ function processMessageForPlaylist(messageElement) {
             
             const instructionMessage = document.createElement('p');
             instructionMessage.className = 'create-playlist-instructions';
-            instructionMessage.innerHTML = `Press <img src="/static/spotify_auth/images/saveicon.svg" alt="Save to library icon" class="spotify-save-icon"> in Spotify to add it to your library.`;
+            instructionMessage.innerHTML = `Press <img src="/static/spotify_auth/images/SaveIcon.svg" alt="Save to library icon" class="spotify-save-icon"> in Spotify to add it to your library.`;
 
             messageContainer.appendChild(successMessage);
             messageContainer.appendChild(instructionMessage);
