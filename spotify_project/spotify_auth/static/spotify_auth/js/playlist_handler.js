@@ -149,11 +149,11 @@ function processMessageForPlaylist(messageElement) {
                 
                 const successMessage = document.createElement('p');
                 successMessage.className = 'create-playlist-success';
-                successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" created in Spotify!`;
+                successMessage.innerHTML = `Playlist <a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a> created in Spotify!`;
                 
                 const instructionMessage = document.createElement('p');
                 instructionMessage.className = 'create-playlist-instructions';
-                instructionMessage.innerHTML = `Press <img src="/static/spotify_auth/img/saveicon.svg" alt="Save to library icon" class="spotify-save-icon"> in Spotify to add it to your library.`;
+                instructionMessage.innerHTML = `Press <img src="/static/spotify_auth/images/SaveIcon.svg" alt="Save to library icon" class="spotify-save-icon"> in Spotify to add it to your library.`;
 
                 messageContainer.appendChild(successMessage);
                 messageContainer.appendChild(instructionMessage);
@@ -170,7 +170,7 @@ function processMessageForPlaylist(messageElement) {
 
             const successMessage = document.createElement('p');
             successMessage.className = 'create-playlist-success';
-            successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" created in Spotify!`;
+            successMessage.innerHTML = `Playlist <a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a> created in Spotify!`;
             
             const instructionMessage = document.createElement('p');
             instructionMessage.className = 'create-playlist-instructions';
@@ -258,7 +258,7 @@ function processMessageForPlaylist(messageElement) {
 
                         const successMessage = document.createElement('p');
                         successMessage.className = 'create-playlist-success';
-                        successMessage.innerHTML = `Playlist "<a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" created in Spotify!`;
+                        successMessage.innerHTML = `Playlist <a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a> created in Spotify!`;
 
                         const instructionMessage = document.createElement('p');
                         instructionMessage.className = 'create-playlist-instructions';

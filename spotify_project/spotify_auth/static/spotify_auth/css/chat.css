@@ -473,6 +473,8 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     color: #e0e0e0;
     font-weight: 500;
     font-size: 13.5px;
+    display: flex;
+    align-items: center;
 }
 
 .secondary-button {
