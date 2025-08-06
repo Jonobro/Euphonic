@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     
     let isImporting = false;
+    let visibleCount = 3; // Number of visible playlist inputs
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     
     // Flag to prevent multiple validations
@@ -125,6 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePlaylistStatus(id, 'idle', '', '', 0, '');
     }
 
+    function handleAddPlaylist() {
+        if (visibleCount < playlistStates.length) {
+            visibleCount++;
+            renderPlaylistInputs();
+        }
+    }
+
     async function handleImportAll() {
         if (isImporting) return;
         
@@ -191,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
             playlistId: ''
         }));
         isImporting = false;
+        visibleCount = 3; // Reset to initial visible count
         renderPlaylistInputs();
         updateImportButton();
     }
@@ -273,7 +282,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         container.innerHTML = '';
 
-        playlistStates.forEach((playlist, index) => {
+        // Render visible playlist inputs
+        for (let i = 0; i < visibleCount; i++) {
+            const playlist = playlistStates[i];
             const playlistDiv = document.createElement('div');
             playlistDiv.className = 'playlist-input-group';
             
@@ -325,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             id="playlist-input-${playlist.id}"
                             name="playlist-url-${playlist.id}"
                             value="${playlist.url}" 
-                            placeholder="${index === 0 ? 'https://open.spotify.com/playlist/...' : ''}"
+                            placeholder="${i === 0 ? 'https://open.spotify.com/playlist/...' : ''}"
                             data-playlist-id="${playlist.id}"
                             onblur="window.playlistImport.handlePlaylistBlur(${playlist.id}, this.value)"
                             oninput="window.playlistImport.handlePlaylistChange(${playlist.id}, this.value)"
@@ -356,7 +367,24 @@ document.addEventListener('DOMContentLoaded', () => {
             
             playlistDiv.appendChild(inputContainer);
             container.appendChild(playlistDiv);
-        });
+        }
+
+        // Add the "Add Another Playlist" button if there are more playlists to show
+        if (visibleCount < playlistStates.length) {
+            const addButtonDiv = document.createElement('div');
+            addButtonDiv.className = 'playlist-add-button-container';
+            
+            addButtonDiv.innerHTML = `
+                <button class="playlist-add-btn" onclick="window.playlistImport.handleAddPlaylist()">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Add Another Playlist
+                </button>
+            `;
+            
+            container.appendChild(addButtonDiv);
+        }
         
         // Reset justSucceeded flags
         playlistStates = playlistStates.map(p => ({ ...p, justSucceeded: false }));
@@ -364,6 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize
     function initialize() {
+        visibleCount = 3; // Reset to initial visible count
         renderPlaylistInputs();
         updateImportButton();
         
@@ -379,6 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         handlePlaylistBlur,
         handlePlaylistChange,
         handleRemovePlaylist,
+        handleAddPlaylist,
         handleCancel,
         initialize
     };
