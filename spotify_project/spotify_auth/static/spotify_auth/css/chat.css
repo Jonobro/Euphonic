@@ -401,20 +401,35 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     margin-top: 10px;
 }
 
+.message-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    border: 1px solid #464646;
+    border-radius: 10px;
+}
+
+.create-playlist-success {
+    text-align: center;
+    transform: translateX(10px);
+    max-width: 60%;
+    padding: 5px 5px 8px 5px;
+}
+
+.create-playlist-instructions {
+    text-align: center;
+    transform: translateX(10px);
+    max-width: 60%;
+    padding: 5px 5px 8px 5px;
+}
+
 .additional-buttons-container {
     display: flex;
     justify-content: center;
     gap: 22px;
     transform: translateX(10px);
-}
-
-.save-playlist-success {
-    text-align: center;
-    transform: translateX(10px);
-    max-width: 60%;
-    border: 1px solid #464646;
-    border-radius: 10px;
-    padding: 5px 5px 8px 5px;
 }
 
 .save-playlist-error {
@@ -447,6 +462,17 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     box-shadow: inset 0 0 0px rgba(0, 0, 0, 0.0), 0px 0px 0px rgba(0, 0, 0, 0.0), 0 0 15px rgba(30, 200, 90, 0.4);
     margin-top: 9px;
     margin-bottom: 4px;
+}
+
+.save-playlist-button:disabled {
+    background-color: transparent;
+    opacity: 1.0;
+    text-shadow: none;
+    box-shadow: none;
+    pointer-events: none;
+    color: #e0e0e0;
+    font-weight: 500;
+    font-size: 13.5px;
 }
 
 .secondary-button {
