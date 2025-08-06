@@ -408,26 +408,24 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     border-radius: 10px;
     margin-bottom: 5px;
     margin-top: 5px;
-    width: 75%;
+    width: fit-content; /* 327px if you choose a fixed width */
+}
+
+.message-container p + p {
+    margin-top: 0em;
 }
 
 .create-playlist-success {
     text-align: center;
-    max-width: 60%;
-    padding: 5px 5px 8px 5px;
+    padding: 6px 13px 0px 13px;
 }
 
 .create-playlist-instructions {
     text-align: center;
-    max-width: 60%;
     padding: 5px 5px 8px 5px;
 }
 
-.create-playlist-instructions p + p {
-    margin-top: 0.5em;
-}
-
-spotify-save-icon{
+.spotify-save-icon{
     width: 21px;
     padding-left: 2.5px;
     padding-right: 2.5px;
@@ -458,8 +456,11 @@ spotify-save-icon{
     border: none;
     border-radius: 25px;
     cursor: pointer;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 1.5px 2px 5px rgba(0, 0, 0, 0.35);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 1.5px 2px 3px rgba(0, 0, 0, 0.2);
+    transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     opacity: 0.9;
 }
@@ -725,8 +726,10 @@ spotify-save-icon{
     color: #0C0C0C;
     background: rgb(30, 200, 90);
     font-weight: 600;
+    font-size: 13.5px;
     min-width: 175px;
     text-shadow: 1px 1px 2px rgba(27, 112, 57, 0.35);
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5), 1.5px 2px 3px rgba(0, 0, 0, 0.2);
     padding: 0 20px;
     opacity: 0;
     pointer-events: none;
