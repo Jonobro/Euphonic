@@ -1218,6 +1218,12 @@ def create_playlist_api(request):
                 _log_to_file(SPOTIFY_API_LOG_FILE, f"Error adding tracks to playlist {playlist_id}: {add_tracks_response.status_code} - {add_tracks_response.text}")
                 return JsonResponse({'error': f'Playlist created, but failed to add some tracks.', 'playlist_url': playlist_url}, status=207)
 
+        threading.Thread(
+            target=_unfollow_playlist_async,
+            args=(playlist_id, access_token, request.session.session_key),
+            daemon=True
+        ).start()
+
         return JsonResponse({'playlist_url': playlist_url})
 
     except json.JSONDecodeError:
@@ -2217,3 +2223,57 @@ def validate_playlist_api(request):
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in validate_playlist_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
+def _unfollow_playlist_async(playlist_id, access_token, session_key):
+    try:
+        # Wait 1 second before unfollowing to ensure Spotify propagation
+        time.sleep(1)
+        
+        unfollow_url = f'https://api.spotify.com/v1/playlists/{playlist_id}/followers'
+        headers = {'Authorization': f'Bearer {access_token}'}
+        
+        max_retries = 10
+        NON_RETRYABLE_CODES = {400, 401, 403, 404, 422}
+        
+        for attempt in range(max_retries):
+            try:
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> DELETE {unfollow_url} (attempt {attempt + 1}/{max_retries})")
+                response = requests.delete(unfollow_url, headers=headers, timeout=10)
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {unfollow_url} | Status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully unfollowed playlist {playlist_id} for session {session_key}")
+                    return
+                elif response.status_code in NON_RETRYABLE_CODES:
+                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} when unfollowing playlist {playlist_id} for session {session_key}. Response: {response.text}")
+                    return
+                elif response.status_code == 429:
+                    retry_after = int(response.headers.get('Retry-After', 2 ** attempt))
+                    delay = retry_after + random.uniform(0, 1)
+                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Rate limited when unfollowing playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(delay)
+                    continue
+                else:
+                    if attempt < max_retries - 1:
+                        delay = 2 ** attempt + random.uniform(0, 1)
+                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Error {response.status_code} when unfollowing playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to unfollow playlist {playlist_id} after {max_retries} attempts. Final status: {response.status_code}, Response: {response.text}")
+                        return
+                        
+            except requests.exceptions.RequestException as e:
+                if attempt < max_retries - 1:
+                    delay = 2 ** attempt + random.uniform(0, 1)
+                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception when unfollowing playlist {playlist_id}: {e}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(delay)
+                    continue
+                else:
+                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Request failed when unfollowing playlist {playlist_id} after {max_retries} attempts: {e}")
+                    return
+        
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"All retries exhausted when unfollowing playlist {playlist_id} for session {session_key}")
+        
+    except Exception as e:
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Unexpected error in _unfollow_playlist_async for playlist {playlist_id}: {e}")

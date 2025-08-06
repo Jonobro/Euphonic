@@ -409,10 +409,11 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     margin-bottom: 5px;
     margin-top: 5px;
     width: fit-content; /* 327px if you choose a fixed width */
+    transform: translateX(10px);
 }
 
 .message-container p + p {
-    margin-top: 0em;
+    margin-top: 0.35em;
 }
 
 .create-playlist-success {
@@ -422,7 +423,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .create-playlist-instructions {
     text-align: center;
-    padding: 5px 5px 8px 5px;
+    padding: 5px 13px 8px 13px;
 }
 
 .spotify-save-icon{
