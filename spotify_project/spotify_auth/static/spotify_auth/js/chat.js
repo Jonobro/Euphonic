@@ -576,7 +576,7 @@ I've talked too much – let's get started! What can I do for you?`;
             const playlistUrls = [];
             
             // Collect non-empty URLs
-            for (let i = 1; i <= 5; i++) {
+            for (let i = 1; i <= 10; i++) {
                 const url = formData.get(`playlist${i}`);
                 if (url && url.trim()) {
                     playlistUrls.push(url.trim());
