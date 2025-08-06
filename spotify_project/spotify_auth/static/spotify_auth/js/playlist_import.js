@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     
     let isImporting = false;
-    let visibleCount = 3; // Number of visible playlist inputs
+    let visibleCount = 3;
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     
     // Flag to prevent multiple validations
@@ -418,13 +418,31 @@ document.addEventListener('DOMContentLoaded', () => {
         initialize
     };
 
+    let isModalOpen = false;
+
     // Initialize when import modal is opened
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                 const importModal = document.getElementById('importModal');
-                if (importModal && importModal.style.display === 'block') {
-                    setTimeout(initialize, 100); // Small delay to ensure DOM is ready
+                if (importModal) {
+                    if (importModal.style.display === 'block' && !isModalOpen) {
+                        isModalOpen = true;
+                        setTimeout(initialize, 100); // Small delay to ensure DOM is ready
+                    } else if (importModal.style.display !== 'block' && isModalOpen) {
+                        isModalOpen = false;
+                        playlistStates = playlistStates.map(playlist => ({ 
+                            ...playlist, 
+                            status: 'idle', 
+                            name: '', 
+                            url: '', 
+                            trackCount: 0,
+                            playlistId: '',
+                            justSucceeded: false
+                        }));
+                        isImporting = false;
+                        visibleCount = 3;
+                    }
                 }
             }
         });
