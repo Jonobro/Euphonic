@@ -2248,14 +2248,14 @@ def _unfollow_playlist_async(playlist_id, access_token, session_key):
                     _log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} when unfollowing playlist {playlist_id} for session {session_key}. Response: {response.text}")
                     return
                 elif response.status_code == 429:
-                    retry_after = int(response.headers.get('Retry-After', 2 ** attempt))
+                    retry_after = int(response.headers.get('Retry-After', (2 ** attempt) * 10))
                     delay = retry_after + random.uniform(0, 1)
                     _log_to_file(SPOTIFY_API_LOG_FILE, f"Rate limited when unfollowing playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                     time.sleep(delay)
                     continue
                 else:
                     if attempt < max_retries - 1:
-                        delay = 2 ** attempt + random.uniform(0, 1)
+                        delay = (2 ** attempt) * 10 + random.uniform(0, 1)
                         _log_to_file(SPOTIFY_API_LOG_FILE, f"Error {response.status_code} when unfollowing playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                         time.sleep(delay)
                         continue
@@ -2265,7 +2265,7 @@ def _unfollow_playlist_async(playlist_id, access_token, session_key):
                         
             except requests.exceptions.RequestException as e:
                 if attempt < max_retries - 1:
-                    delay = 2 ** attempt + random.uniform(0, 1)
+                    delay = (2 ** attempt) * 10 + random.uniform(0, 1)
                     _log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception when unfollowing playlist {playlist_id}: {e}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                     time.sleep(delay)
                     continue

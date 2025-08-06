@@ -249,7 +249,7 @@ function processMessageForPlaylist(messageElement) {
 
                     if (response.ok) {
                         const result = await response.json();
-                        await new Promise(resolve => setTimeout(resolve, 3000)); /* Simulated delay for improved UX and to allow for Spotify propagation */
+                        await new Promise(resolve => setTimeout(resolve, 500)); /* Simulated delay for improved UX and to allow for Spotify propagation */
                         window.open(result.playlist_url, '_blank', 'noopener, noreferrer');
                         openButton.remove();
                         
