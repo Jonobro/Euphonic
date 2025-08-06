@@ -404,25 +404,35 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    width: 100%;
     border: 1px solid #464646;
     border-radius: 10px;
     margin-bottom: 5px;
+    margin-top: 5px;
+    width: 75%;
 }
 
 .create-playlist-success {
     text-align: center;
-    transform: translateX(10px);
     max-width: 60%;
     padding: 5px 5px 8px 5px;
 }
 
 .create-playlist-instructions {
     text-align: center;
-    transform: translateX(10px);
     max-width: 60%;
     padding: 5px 5px 8px 5px;
+}
+
+.create-playlist-instructions p + p {
+    margin-top: 0.5em;
+}
+
+spotify-save-icon{
+    width: 21px;
+    padding-left: 2.5px;
+    padding-right: 2.5px;
+    vertical-align: middle;
+    transform: translateY(-1.1px);
 }
 
 .additional-buttons-container {
