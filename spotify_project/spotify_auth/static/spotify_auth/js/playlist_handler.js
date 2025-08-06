@@ -152,7 +152,7 @@ function processMessageForPlaylist(messageElement) {
                 successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" created in Spotify!`;
                 
                 const instructionMessage = document.createElement('p');
-                instructionMessage.className = '.create-playlist-instructions';
+                instructionMessage.className = 'create-playlist-instructions';
                 instructionMessage.innerHTML = `Press <img src="/static/spotify_auth/img/saveicon.svg" alt="Save to library icon" class="spotify-save-icon"> in Spotify to add it to your library.`;
 
                 messageContainer.appendChild(successMessage);
@@ -173,7 +173,7 @@ function processMessageForPlaylist(messageElement) {
             successMessage.innerHTML = `Playlist "<a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" created in Spotify!`;
             
             const instructionMessage = document.createElement('p');
-            instructionMessage.className = '.create-playlist-instructions';
+            instructionMessage.className = 'create-playlist-instructions';
             instructionMessage.innerHTML = `Press <img src="/static/spotify_auth/img/saveicon.svg" alt="Save to library icon" class="spotify-save-icon"> in Spotify to add it to your library.`;
 
             messageContainer.appendChild(successMessage);
@@ -249,6 +249,7 @@ function processMessageForPlaylist(messageElement) {
 
                     if (response.ok) {
                         const result = await response.json();
+                        await new Promise(resolve => setTimeout(resolve, 100));
                         window.open(result.playlist_url, '_blank', 'noopener, noreferrer');
                         openButton.remove();
                         
@@ -260,8 +261,8 @@ function processMessageForPlaylist(messageElement) {
                         successMessage.innerHTML = `Playlist "<a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a>" created in Spotify!`;
 
                         const instructionMessage = document.createElement('p');
-                        instructionMessage.className = '.create-playlist-instructions';
-                        instructionMessage.innerHTML = `Press <img src="/static/spotify_auth/img/saveicon.svg" alt="Save to library icon" class="spotify-save-icon"> in Spotify to add it to your library.`;
+                        instructionMessage.className = 'create-playlist-instructions';
+                        instructionMessage.innerHTML = `Press <img src="/static/spotify_auth/images/saveicon.svg" alt="Save to library icon" class="spotify-save-icon"> in Spotify to add it to your library.`;
 
                         messageContainer.appendChild(successMessage);
                         messageContainer.appendChild(instructionMessage);
