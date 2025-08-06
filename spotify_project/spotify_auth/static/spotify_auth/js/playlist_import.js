@@ -208,6 +208,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return playlistStates.filter(p => p.status === 'success').length;
     }
 
+    function getTotalTrackCount() {
+        return playlistStates
+            .filter(p => p.status === 'success')
+            .reduce((total, p) => total + p.trackCount, 0);
+    }
+
     function updateImportButton() {
         const btn = document.getElementById('importPlaylistsBtn');
         if (!btn) return;
@@ -357,18 +363,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (visibleCount < playlistStates.length) {
+            const totalTracks = getTotalTrackCount();
             const addButtonDiv = document.createElement('div');
-            addButtonDiv.className = 'playlist-add-button-container';
             
-            addButtonDiv.innerHTML = `
-                <button class="playlist-add-btn" onclick="window.playlistImport.handleAddPlaylist()">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.8V12m0 0v4.2m0-4.2h4.2M12 12H7.8" stroke-width="1.7" />
-                        <path d="M21.217 12A9.217 9.217 0 0 1 12 21.217 9.217 9.217 0 0 1 2.783 12 9.217 9.217 0 0 1 12 2.783 9.217 9.217 0 0 1 21.217 12Z" stroke-width="1.565" />
-                    </svg>
-                    Add Another Playlist
-                </button>
-            `;
+            if (totalTracks > 1000) {
+                // Track limit reached - show disabled message
+                addButtonDiv.className = 'playlist-add-button-container';
+                addButtonDiv.innerHTML = `
+                    <div class="playlist-limit-message">
+                        You've reached the 1000-track limit. We will use the first 1000 tracks from the playlists you have included so far.
+                    </div>
+                `;
+            } else {
+                // Normal add button
+                addButtonDiv.className = 'playlist-add-button-container';
+                addButtonDiv.innerHTML = `
+                    <button class="playlist-add-btn" onclick="window.playlistImport.handleAddPlaylist()">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.8V12m0 0v4.2m0-4.2h4.2M12 12H7.8" stroke-width="1.7" />
+                            <path d="M21.217 12A9.217 9.217 0 0 1 12 21.217 9.217 9.217 0 0 1 2.783 12 9.217 9.217 0 0 1 12 2.783 9.217 9.217 0 0 1 21.217 12Z" stroke-width="1.565" />
+                        </svg>
+                        Add Another Playlist
+                    </button>
+                `;
+            }
             
             container.appendChild(addButtonDiv);
         }

@@ -1003,7 +1003,7 @@ Tell me a bit about what you are looking for. You can mention things like:
 * Mood (e.g., chill, focused, elated, exhausted)
 * Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
 * Favorite artists (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
-* A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
+* A certain activity (e.g., music for studying history, road trip anthems, techno for bullet chess)
 * A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven)
 
 What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
@@ -1125,7 +1125,7 @@ Tell me a bit about what you are looking for. You can mention things like:
 * Mood (e.g., chill, focused, elated, exhausted)
 * Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
 * Favorite artists (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
-* A certain activity (e.g., music for studying history, road trip anthems, techno for online chess)
+* A certain activity (e.g., music for studying history, road trip anthems, techno for bullet chess)
 * A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven)
 
 What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
