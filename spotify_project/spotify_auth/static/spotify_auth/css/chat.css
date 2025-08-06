@@ -1099,9 +1099,9 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .playlist-add-btn {
     background: none;
     border: none;
-    color: #b3b3b3;
+    color: #D2D2D2;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13.5px;
     font-family: 'Poppins', sans-serif, Arial;
     font-weight: 400;
     transition: color 0.2s ease;
@@ -1118,5 +1118,10 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .playlist-add-btn svg {
     width: 16px;
     height: 16px;
-    stroke: currentColor;
+    stroke: #D2D2D2;
+    transition: stroke 0.2s ease;
+}
+
+.playlist-add-btn:hover svg {
+    stroke: #ffffff;
 }

@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             addButtonDiv.innerHTML = `
                 <button class="playlist-add-btn" onclick="window.playlistImport.handleAddPlaylist()">
-                    <img src="/static/spotify_auth/images/AddAnotherPlaylistIcon.svg" alt="Add playlist" style="width: 24px; height: 24px;">
+                    <img src="/static/spotify_auth/images/AddAnotherPlaylistIcon.svg" alt="Add playlist" style="width: 16px; height: 16px;">
                     Add Another Playlist
                 </button>
             `;
