@@ -576,7 +576,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .import-modal-content {
     background-color: #161616;
-    padding: 20px 30px 23px 30px;
+    padding: 18px 30px 21px 30px;
     border-radius: 10px;
     width: 90%;
     max-width: 600px;
@@ -714,7 +714,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     gap: 0px;
     justify-content: flex-end;
     margin-top: 14px;
-    padding-top: 17.5px;
+    padding-top: 15.5px;
     border-top: 1px solid #444;
 }
 
@@ -1134,13 +1134,14 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 }
 
 .playlist-limit-message {
-    padding: 12px 16px;
-    background-color: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    color: #666;
-    font-size: 14px;
+    padding: 12px 16px 13px 16px;
+    border: 1px solid #989898;
+    border-radius: 20px;
+    color: #989898;
+    font-size: 13px;
     line-height: 1.4;
-    text-align: center;
-    font-weight: 500;
+    font-weight: 400;
+    opacity: 0.9;
+    margin-bottom: 20px;
+    max-width: 358px;
 }
