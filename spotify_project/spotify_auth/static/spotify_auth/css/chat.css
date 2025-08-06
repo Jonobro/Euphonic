@@ -475,6 +475,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     font-size: 13.5px;
     display: flex;
     align-items: center;
+    transform: translateX(6px);
 }
 
 .secondary-button {
