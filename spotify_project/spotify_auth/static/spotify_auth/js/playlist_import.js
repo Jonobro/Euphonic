@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
             playlistId: ''
         }));
         isImporting = false;
-        visibleCount = 3; // Reset to initial visible count
+        visibleCount = 3;
         renderPlaylistInputs();
         updateImportButton();
     }
@@ -232,48 +232,36 @@ document.addEventListener('DOMContentLoaded', () => {
     function triggerBurstAnimation(targetContainer) {
         if (!targetContainer) return;
 
-        // Create burst element
         const burst = document.createElement('div');
         burst.className = 'burst-multilayer';
         
-        // The burst is positioned absolutely and centered via CSS.
-        // We just need to append it to the correct container.
         targetContainer.appendChild(burst);
 
-        // Calculate scale based on the container's width
         const inputWidth = targetContainer.offsetWidth;
         const targetWidth = inputWidth * 1.2;
-        // The initial size of the burst element's ::before is 10px (from CSS).
         const scale = targetWidth / 10; 
         burst.style.setProperty('--burst-scale', scale);
 
-        // Add animation class and remove after animation
         burst.classList.add('animate');
         
-        // After burst animation completes, trigger slide animation
         setTimeout(() => {
-            burst.remove();
-            
-            // Find the success state element and trigger slide animation
             const successElement = targetContainer.querySelector('.playlist-success-state');
             if (successElement) {
-                // Calculate the distance to move to the left edge
                 const containerRect = targetContainer.getBoundingClientRect();
                 const elementRect = successElement.getBoundingClientRect();
-                
-                // Distance from current position to left edge of container
                 const distanceToLeft = elementRect.left - containerRect.left - 5.5;
-                
-                // Apply the calculated transform
                 successElement.style.transform = `translateX(-${distanceToLeft}px)`;
                 successElement.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
                 
-                // Update button visibility after transform completes
                 setTimeout(() => {
                     updateImportButton();
-                }, 800); // Match the transition duration
+                }, 800);
             }
-        }, 1200); // Corresponds to animation duration in CSS
+        }, 750);
+        
+        setTimeout(() => {
+            burst.remove();
+        }, 1200);
     }
 
     function renderPlaylistInputs() {
@@ -282,7 +270,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         container.innerHTML = '';
 
-        // Render visible playlist inputs
         for (let i = 0; i < visibleCount; i++) {
             const playlist = playlistStates[i];
             const playlistDiv = document.createElement('div');
