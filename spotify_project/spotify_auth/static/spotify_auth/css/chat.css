@@ -1095,8 +1095,12 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .segmented-control-container {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
-    margin-top: -5px;
+    margin-bottom: 15px;
+    margin-top: 0px;
+    padding-top: 15px;
+    padding-bottom: 5px;
+    background-color: #161616;
+    border-radius: 5px 5px 0 0;
 }
 
 .segmented-control {
