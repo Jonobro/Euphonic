@@ -619,9 +619,7 @@ I've talked too much – let's get started! What can I do for you?`;
                 const result = await response.json();
                 
                 if (response.ok) {
-                    // Close modal and show mode toggle
                     closeImportModal();
-                    showModeToggle();
                     
                     // Update the import button in header
                     const tooltipContainer = document.querySelector('.tooltip-container-import');
@@ -639,71 +637,6 @@ I've talked too much – let's get started! What can I do for you?`;
                 alert(`Error: ${error.message}`);
             }
         });
-    }
-
-    // Initialize mode toggle if it exists
-    const modeToggle = document.getElementById('modeToggle');
-    if (modeToggle) {
-        modeToggle.addEventListener('click', function() {
-            const currentMode = document.body.dataset.chatMode;
-            const newMode = currentMode === 'new_songs' ? 'saved_songs' : 'new_songs';
-            
-            // Update toggle appearance
-            if (newMode === 'saved_songs') {
-                modeToggle.classList.add('saved-songs');
-                modeToggle.querySelector('[data-mode="saved_songs"]').classList.add('active');
-                modeToggle.querySelector('[data-mode="new_songs"]').classList.remove('active');
-            } else {
-                modeToggle.classList.remove('saved-songs');
-                modeToggle.querySelector('[data-mode="new_songs"]').classList.add('active');
-                modeToggle.querySelector('[data-mode="saved_songs"]').classList.remove('active');
-            }
-            
-            // Navigate to the appropriate view
-            const targetUrl = newMode === 'saved_songs' ? '/saved_songs_chat/' : '/new_song_chat/';
-            window.location.href = targetUrl;
-        });
-    }
-
-    function pollForImportCompletion() {
-        const checkCompletion = async () => {
-            try {
-                const response = await fetch('/check_import_status/', {
-                    method: 'GET',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-                    }
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.completed) {
-                        showModeToggle();
-                        return;
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking import status:', error);
-            }
-            
-            // Poll again in 2 seconds
-            setTimeout(checkCompletion, 2000);
-        };
-        
-        checkCompletion();
-    }
-
-    function showModeToggle() {
-        const tooltipContainer = document.querySelector('.tooltip-container-import');
-        const modeToggleContainer = document.getElementById('modeToggleContainer');
-        
-        if (tooltipContainer) {
-            tooltipContainer.style.display = 'none';
-        }
-        
-        if (modeToggleContainer) {
-            modeToggleContainer.style.display = 'flex';
-        }
     }
 
     const segmentButtons = document.querySelectorAll('.segment-button');

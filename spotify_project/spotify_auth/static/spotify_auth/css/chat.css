@@ -769,60 +769,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     min-width: 150px;
 }
 
-/* Mode toggle styles */
-.mode-toggle-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0;
-}
-
-.mode-toggle {
-    position: relative;
-    display: inline-flex;
-    background-color: #3a3a3a;
-    border: 2px solid rgb(30, 200, 90);
-    border-radius: 25px;
-    padding: 2px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.mode-toggle-option {
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    position: relative;
-    z-index: 2;
-}
-
-.mode-toggle-option.active {
-    background-color: rgb(30, 200, 90);
-    color: #181818;
-}
-
-.mode-toggle-option:not(.active) {
-    color: #e0e0e0;
-}
-
-.mode-toggle-slider {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: calc(50% - 2px);
-    height: calc(100% - 4px);
-    background-color: rgb(30, 200, 90);
-    border-radius: 20px;
-    transition: transform 0.3s ease;
-    z-index: 1;
-}
-
-.mode-toggle.saved-songs .mode-toggle-slider {
-    transform: translateX(100%);
-}
-
 .playlist-input-group {
     margin-bottom: 1.25rem;
 }

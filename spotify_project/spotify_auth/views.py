@@ -476,7 +476,6 @@ def _ensure_euphonic_intelligence_user_id(request):
 @require_http_methods(["GET"])
 @never_cache
 def check_import_status(request):
-    """Check if playlist import has completed by verifying if user tracks are cached"""
     user_id = request.session.get('euphonic_intelligence_user_id')
     if not user_id:
         return JsonResponse({'completed': False})

@@ -167,11 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Close modal and show success
                 window.closeImportModal();
                 
-                // Show mode toggle or update UI as needed
-                if (window.showModeToggle) {
-                    window.showModeToggle();
-                }
-                
                 // Update the import button in header
                 const tooltipContainer = document.querySelector('.tooltip-container-import');
                 if (tooltipContainer) {
