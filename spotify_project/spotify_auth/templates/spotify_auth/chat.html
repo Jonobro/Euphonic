@@ -22,22 +22,31 @@
     
     <div class="container">
         <div class="header-row">
-            <img src="{% static 'spotify_auth/images/EuphonicIntelligenceLogo.svg' %}" alt="Euphonic Intelligence Logo" class="header-logo">
+            <img src="{% static 'spotify_auth/images/EuphonicIntelligenceLogoNoText.svg' %}" alt="Euphonic Intelligence Logo" class="header-logo">
             <div class="header-buttons">
                 {% if chat_mode == 'saved_songs' or chat_mode == 'analysis' %}
                 <a href="{% url 'new_song_chat' %}" class="button">Back</a>
                 {% endif %}
 
-                {% if chat_mode == 'new_songs' %}
-                <div class="tooltip-container-import">
-                    <button class="button" onclick="openImportModal()">Import My Music</button>
-                    <span class="custom-tooltip-import">Import your Spotify music collection to generate personalized playlists and get insights into your music</span>
-                </div>
-                {% endif %}
-
-                <div class="tooltip-container-reset">
-                    <a href="{% url 'reset' %}" class="button">Reset</a>
-                    <span class="custom-tooltip-reset">Purges your data with Euphonic Intelligence</span>
+                <div class="hamburger-menu-container">
+                    <button id="hamburger-btn" class="hamburger-button">
+                        <svg class="hamburger-icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                        </svg>
+                    </button>
+                    <div id="hamburger-dropdown" class="dropdown-panel">
+                        {% if chat_mode == 'new_songs' %}
+                        <a href="#" class="dropdown-link" onclick="openImportModal(); return false;">
+                            <span class="dropdown-link-text">Import My Music</span>
+                            <span class="dropdown-tooltip">Import your Spotify music collection to generate personalized playlists and get insights into your music</span>
+                        </a>
+                        <div class="divider"></div>
+                        {% endif %}
+                        <a href="{% url 'reset' %}" class="dropdown-link reset-link">
+                            <span class="dropdown-link-text">Reset</span>
+                            <span class="dropdown-tooltip">Purges your data with Euphonic Intelligence</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -124,7 +133,27 @@
     <script src="{% static 'spotify_auth/js/playlist_handler.js' %}"></script>
     <script src="{% static 'spotify_auth/js/playlist_import.js' %}"></script>
     <script>
+        // Hamburger menu functionality
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const hamburgerDropdown = document.getElementById('hamburger-dropdown');
+
+        hamburgerBtn.addEventListener('click', (event) => {
+            event.stopPropagation(); 
+            hamburgerDropdown.classList.toggle('show');
+        });
+
+        window.addEventListener('click', (event) => {
+            if (hamburgerDropdown.classList.contains('show')) {
+                hamburgerDropdown.classList.remove('show');
+            }
+        });
+
         function openModal(type) {
+            // Close hamburger menu when opening modal
+            if (hamburgerDropdown.classList.contains('show')) {
+                hamburgerDropdown.classList.remove('show');
+            }
+            
             const modal = document.getElementById('legalModal');
             const title = document.getElementById('modalTitle');
             const body = document.getElementById('modalBody');
@@ -290,6 +319,11 @@
         }
         
         function openImportModal() {
+            // Close hamburger menu when opening import modal
+            if (hamburgerDropdown.classList.contains('show')) {
+                hamburgerDropdown.classList.remove('show');
+            }
+            
             document.getElementById('importModal').style.display = 'block';
             // Initialize playlist import functionality
             if (window.playlistImport) {
