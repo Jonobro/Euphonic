@@ -339,9 +339,9 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 .header-row {
     display: flex;
     align-items: center;
-    width: 95%;
+    width: 96%;
     margin-bottom: 17.5px;
-    gap: 17.5px;
+    gap: 19px;
 }
 
 .header-logo {
@@ -1094,7 +1094,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 .segmented-control {
     display: flex;
-    background-color: transparent;
+    background-color: #161616;
     border: 1px solid #535353;
     box-shadow: 0 0 6px rgba(30, 200, 90, 0.1), 0 0 12px rgba(30, 200, 90, 0.06), 0 0 24px rgba(30, 200, 90, 0.04);
     width: 100%;
@@ -1118,6 +1118,10 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     font-size: 14px;
     color: white;
     word-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
 }
 
 .segment-button:hover {
@@ -1147,9 +1151,10 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     outline: none;
     background-color: transparent;
     border: none;
-    padding: 4px 6.5px 4px 6.5px;
+    padding: 8px 8px 8px 8px;
     display: flex;
     align-items: center;
+    margin-right: 2px;
 }
 
 .hamburger-button:hover {
@@ -1165,15 +1170,14 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .dropdown-panel {
     display: none;
     position: absolute;
-    left: 0;
-    margin-top: 0.5rem;
     z-index: 1000;
-    width: 16rem;
+    width: 19rem;
     background-color: #1f1f1f;
-    border: 1px solid #404040;
+    border: 1px solid #535353;
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 15px rgba(30, 200, 90, 0.1);
-    padding: 0.5rem 0;
+    box-shadow: 0px 3px 7.5px rgba(0, 0, 0, 0.3), 0px 3px 15px rgba(0,0,0,0.15);
+    right: 0;
+    overflow: hidden;
 }
 
 .dropdown-panel.show {
@@ -1182,7 +1186,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 .dropdown-link {
     display: block;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem 0.6rem 0.75rem;
     font-size: 0.875rem;
     color: #e0e0e0;
     text-decoration: none;
@@ -1191,11 +1195,6 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     position: relative;
     font-family: 'Poppins', sans-serif, Arial;
     font-weight: 500;
-}
-
-.dropdown-link:hover {
-    background-color: rgba(30, 200, 90, 0.1);
-    color: rgb(30, 200, 90);
 }
 
 .dropdown-link-text {
@@ -1211,40 +1210,29 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     line-height: 1.3;
 }
 
-.dropdown-link:hover .dropdown-tooltip {
-    color: rgba(30, 200, 90, 0.8);
-}
-
 .divider {
-    border-top: 1px solid #404040;
-    margin: 0.5rem 0;
+    border-top: 1px solid #535353;
 }
 
-.reset-link {
-    color: #e0e0e0;
-}
-
-.reset-link:hover {
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-}
-
-.reset-link:hover .dropdown-tooltip {
-    color: rgba(239, 68, 68, 0.8);
+.dropdown-link:hover {
+    border-radius: 12px;
+    background-color: #1B1B1B;
 }
 
 .segment-icon {
-    height: auto;
-    margin-left: 6px;
-    vertical-align: -1px;
+    margin-left: 10px;
+    overflow: visible;
 }
 
 .segment-icon--new {
     width: 12px;
+    transform: translateY(0.5px);
+    margin-left: 8px;
 }
 
 .segment-icon--saved {
     width: 16px;
+    margin-left: 11px;
 }
 
 .segment-icon--analysis {
