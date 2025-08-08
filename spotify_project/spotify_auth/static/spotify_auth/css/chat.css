@@ -15,9 +15,8 @@ body {
 .container {
     background-color: #161616;
     border-radius: 15px;
-    padding: 20px;
+    padding: 22.5px 17.5px 20px 20px;
     box-shadow: 1px 4px 8px rgba(0, 0, 0, 0.4);
-    padding-right: 17.5px;
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
@@ -342,6 +341,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     align-items: center;
     width: 95%;
     margin-bottom: 17.5px;
+    gap: 17.5px;
 }
 
 .header-logo {
@@ -1086,9 +1086,10 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .segmented-control-container {
     display: flex;
     justify-content: flex-start;
-    width: 80%;
-    gap: 10px;
-    margin: 0 auto;
+    width: auto;
+    margin: 0;
+    flex: 1;
+    gap: 17.5px;
 }
 
 .segmented-control {
@@ -1096,7 +1097,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     background-color: transparent;
     border: 1px solid #535353;
     box-shadow: 0 0 6px rgba(30, 200, 90, 0.1), 0 0 12px rgba(30, 200, 90, 0.06), 0 0 24px rgba(30, 200, 90, 0.04);
-    width: 82.5%;
+    width: 100%;
     border-radius: 20px;
 }
 
@@ -1116,6 +1117,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     padding: 6px 0px;
     font-size: 14px;
     color: white;
+    word-spacing: 1px;
 }
 
 .segment-button:hover {
