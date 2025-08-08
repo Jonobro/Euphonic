@@ -1232,3 +1232,21 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .reset-link:hover .dropdown-tooltip {
     color: rgba(239, 68, 68, 0.8);
 }
+
+.segment-icon {
+    height: auto;
+    margin-left: 6px;
+    vertical-align: -1px;
+}
+
+.segment-icon--new {
+    width: 12px;
+}
+
+.segment-icon--saved {
+    width: 16px;
+}
+
+.segment-icon--analysis {
+    width: 12.5px;
+}
