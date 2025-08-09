@@ -31,7 +31,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    const chatMode = document.body.dataset.chatMode;
+    let chatMode = document.body.dataset.chatMode;
+
+    const path = location.pathname;
+    if (path.includes('/chat/saved')) chatMode = 'saved_songs';
+    else if (path.includes('/chat/new')) chatMode = 'new_songs';
+    else if (path.includes('/chat/analyze')) chatMode = 'analysis';
+
+    document.body.dataset.chatMode = chatMode;
+
     const sendButton = document.getElementById('send-button');
     const userInput  = document.getElementById('user-input');
     const messageList = document.getElementById('message-list');
@@ -639,6 +647,127 @@ I've talked too much – let's get started! What can I do for you?`;
         });
     }
 
+    const setActiveSegment = (mode) => {
+        const buttons = document.querySelectorAll('.segment-button');
+        buttons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+    };
+
+    async function initializeCurrentMode() {
+        document.body.dataset.chatMode = chatMode;
+        setActiveSegment(chatMode);
+
+        while (messageList.firstChild) messageList.removeChild(messageList.firstChild);
+        userInput.disabled = true;
+        sendButton.disabled = true;
+
+        let initialAnalysisTaskId = null;
+        if (chatMode === 'analysis' && window.crypto?.randomUUID) {
+            initialAnalysisTaskId = window.crypto.randomUUID();
+            messageList.dataset.initialAnalysisTaskId = initialAnalysisTaskId;
+            messageList.dataset.isLoadingInitial = 'true';
+        } else {
+            delete messageList.dataset.initialAnalysisTaskId;
+            delete messageList.dataset.isLoadingInitial;
+        }
+
+        let loadingIndicator = null;
+        let loadingInterval = null;
+        if (chatMode === 'analysis') {
+            const loadingIndicatorBaseText = "Welcome! I'm fetching your Spotify library and preparing your musical analysis. This might take a moment";
+            loadingIndicator = addMessage(loadingIndicatorBaseText + "...", 'ai');
+            let dotCount = 3;
+            loadingInterval = setInterval(() => {
+                dotCount = (dotCount % 3) + 1;
+                if (loadingIndicator) loadingIndicator.textContent = loadingIndicatorBaseText + '.'.repeat(dotCount);
+            }, 400);
+        }
+
+        try {
+            const res = await fetch('/initialize_chat_data/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    chat_mode: chatMode,
+                    initial_analysis_task_id: initialAnalysisTaskId
+                })
+            });
+
+            if (!res.ok) {
+                const err = (await res.json().catch(() => ({}))).error || `Initialization error: ${res.status}`;
+                throw new Error(err);
+            }
+            const data = await res.json();
+
+            // Handle per-mode bootstrap results (mirror existing on-load logic)
+            if (chatMode === 'analysis') {
+                if (data.already_initialized) {
+                    if (loadingInterval) clearInterval(loadingInterval);
+                    if (loadingIndicator) loadingIndicator.remove();
+                    const firstMsgs = data.first_ai_message || [];
+                    for (const msg of firstMsgs) addMessage(msg, 'ai', false);
+                } else if (data.analysis_started && initialAnalysisTaskId) {
+                    const es = new EventSource(`/stream_initial_analysis/${initialAnalysisTaskId}/`);
+                    es.onmessage = (e) => {
+                        if (loadingInterval) clearInterval(loadingInterval);
+                        if (loadingIndicator) loadingIndicator.remove();
+                        const payload = JSON.parse(e.data);
+                        const history = payload.response;
+                        if (Array.isArray(history)) {
+                            history.forEach(m => {
+                                if (m.role === 'model' && m.parts?.[0]?.text) {
+                                    addMessage(m.parts[0].text, 'ai', false);
+                                }
+                            });
+                        }
+                        es.close();
+                        userInput.disabled = sendButton.disabled = false;
+                        userInput.focus();
+                    };
+                    es.addEventListener('stream_error', e => {
+                        if (loadingInterval) clearInterval(loadingInterval);
+                        if (loadingIndicator) loadingIndicator.remove();
+                        const errData = JSON.parse(e.data);
+                        console.error("Stream error:", errData.message);
+                        addMessage('Sorry, an unexpected error occurred. Please try again.', 'ai');
+                        es.close();
+                        userInput.disabled = sendButton.disabled = false;
+                        userInput.focus();
+                    });
+                    es.onerror = () => {
+                        if (loadingInterval) clearInterval(loadingInterval);
+                        if (loadingIndicator) loadingIndicator.remove();
+                        addMessage('Sorry, a connection error occurred while fetching your analysis.', 'ai');
+                        es.close();
+                        userInput.disabled = sendButton.disabled = false;
+                        userInput.focus();
+                    };
+                    return;
+                }
+            } else {
+                const existingAiMessage = messageList.querySelector('.ai-message');
+                if (existingAiMessage) existingAiMessage.remove();
+                if (Array.isArray(data.first_ai_message)) {
+                    for (const msg of data.first_ai_message) addMessage(msg, 'ai', false);
+                }
+            }
+        } catch (err) {
+            if (loadingInterval) clearInterval(loadingInterval);
+            if (loadingIndicator) loadingIndicator.remove();
+            console.error("Initialization error:", err);
+            addMessage('Sorry, something went wrong while initializing. Please try again.', 'ai');
+        } finally {
+            if (chatMode !== 'analysis') {
+                userInput.disabled = sendButton.disabled = false;
+                userInput.focus();
+            }
+        }
+    }
+
     const segmentButtons = document.querySelectorAll('.segment-button');
     segmentButtons.forEach(button => {
         button.addEventListener('click', function() {
@@ -647,36 +776,9 @@ I've talked too much – let's get started! What can I do for you?`;
         });
     });
 
-    function switchChatMode(newMode) {
-        const currentMode = document.body.dataset.chatMode;
-        
-        if (currentMode === newMode) {
-            return;
-        }
-        
-        const buttons = document.querySelectorAll('.segment-button');
-        buttons.forEach(button => {
-            button.classList.remove('active');
-            if (button.dataset.mode === newMode) {
-                button.classList.add('active');
-            }
-        });
-        
-        let targetUrl;
-        switch (newMode) {
-            case 'saved_songs':
-                targetUrl = '/chat/saved/';
-                break;
-            case 'new_songs':
-                targetUrl = '/chat/new/';
-                break;
-            case 'analysis':
-                targetUrl = '/chat/analyze/';
-                break;
-            default:
-                targetUrl = '/chat/new/';
-        }
-        
-        window.location.href = targetUrl;
+    async function switchChatMode(newMode) {
+        if (chatMode === newMode) return;
+        chatMode = newMode;
+        await initializeCurrentMode();
     }
 });

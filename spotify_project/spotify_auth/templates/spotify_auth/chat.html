@@ -45,13 +45,13 @@
                             </svg>
                         </button>
                         <div id="hamburger-dropdown" class="dropdown-panel">
-                            {% if chat_mode == 'new_songs' %}
-                            <a href="#" class="dropdown-link" onclick="openImportModal(); return false;">
-                                <span class="dropdown-link-text">Import My Music</span>
-                                <span class="dropdown-tooltip">Import your Spotify music collection to create personalized playlists and gain insights into your music</span>
-                            </a>
-                            <div class="divider"></div>
-                            {% endif %}
+                            <div id="importMenuGroup">
+                                <a href="#" class="dropdown-link" onclick="openImportModal(); return false;">
+                                    <span class="dropdown-link-text">Import My Music</span>
+                                    <span class="dropdown-tooltip">Import your Spotify music collection to create personalized playlists and gain insights into your music</span>
+                                </a>
+                                <div class="divider"></div>
+                            </div>
                             <a href="{% url 'reset' %}" class="dropdown-link reset-link">
                                 <span class="dropdown-link-text">Reset</span>
                                 <span class="dropdown-tooltip">Purges your data with Euphonic Intelligence</span>
@@ -82,7 +82,6 @@
             <a href="mailto:jonathan@euphonicintelligence.com">Contact Us</a>
         </div>
         <div class="powered-by-container">
-            <span>Powered by </span>
             <img src="/static/spotify_auth/images/Full_Logo_Green_RGB.svg" alt="Spotify Logo" class="spotify-logo">
             <img src="{% static 'spotify_auth/images/EuphonicIntelligenceLogoWrapped.svg' %}" alt="Euphonic Intelligence Logo" class="ei-logo">
         </div>
