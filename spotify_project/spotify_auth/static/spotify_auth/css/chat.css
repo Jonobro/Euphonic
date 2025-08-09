@@ -390,6 +390,13 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     opacity: 1;
 }
 
+.ei-logo {
+    display: block;
+    height: 35px;
+    margin-left: 8px; /* space from Spotify logo */
+    opacity: 1;
+}
+
 .save-playlist-container {
     display: flex;
     flex-direction: column;
@@ -1226,7 +1233,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 .segment-icon--new {
     width: 12px;
-    transform: translateY(0.5px);
+    transform: translateY(0.25px);
     margin-left: 8px;
 }
 
