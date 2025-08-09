@@ -21,3 +21,11 @@
     font-style: normal;
     font-display: swap;
 }
+
+@font-face {
+    font-family: 'Saira';
+    src: url('../fonts/Saira-Medium-subset.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
