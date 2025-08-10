@@ -234,7 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         eventSource.addEventListener('stream_error', (event) => {
             const data = JSON.parse(event.data);
-            addMessage(`Sorry, an error occurred: ${data.message}`, 'ai');
+            addMessage('Sorry, an unexpected error occurred. Please try again.', 'ai');
+            console.error('Stream error:', data.message);
             cleanup();
         });
 
@@ -260,7 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
         userInput.value = '';
         userInput.disabled = sendButton.disabled = true;
         
-        // Create thinking message with spinner and static text
         const thinkingMsgElement = addMessage('', 'ai');
         thinkingMsgElement.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -281,12 +281,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(err);
             }
 
-            const { task_id } = await res.json();
+            const {task_id} = await res.json();
             listenForResponse(task_id, thinkingMsgElement, userMessageElement);
 
         } catch (e) {
-            if (thinkingMsgElement) thinkingMsgElement.remove(); 
-            addMessage(`Sorry, ${e.message}`, 'ai');
+            if (thinkingMsgElement) thinkingMsgElement.remove();
+            addMessage('Sorry, something went wrong. Please try again.', 'ai');
+            console.error('Chat send error:', e);
             userInput.disabled = sendButton.disabled = false;
             userInput.focus();
         }
@@ -552,99 +553,6 @@ I've talked too much – let's get started! What can I do for you?`;
                 addMessage("Sorry, there was an error loading your chat history.", 'ai');
             }
         }
-    }
-
-    const tooltipReset = document.querySelector('.custom-tooltip-reset');
-    const tooltipContainerReset = document.querySelector('.tooltip-container-reset');
-
-    if (tooltipReset && tooltipContainerReset) {
-        tooltipContainerReset.addEventListener('mousemove', (e) => {
-            tooltipReset.style.left = (e.clientX + 10) + 'px';
-            tooltipReset.style.top = (e.clientY + 10) + 'px';
-        });
-    }
-
-    const tooltipImport = document.querySelector('.custom-tooltip-import');
-    const tooltipContainerImport = document.querySelector('.tooltip-container-import');
-
-    if (tooltipImport && tooltipContainerImport) {
-        tooltipContainerImport.addEventListener('mousemove', (e) => {
-            tooltipImport.style.left = (e.clientX + 10) + 'px';
-            tooltipImport.style.top = (e.clientY + 10) + 'px';
-        });
-    }
-
-    // Handle form submission
-    const importForm = document.getElementById('importPlaylistForm');
-    if (importForm) {
-        importForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(importForm);
-            const playlistUrls = [];
-            
-            // Collect non-empty URLs
-            for (let i = 1; i <= 10; i++) {
-                const url = formData.get(`playlist${i}`);
-                if (url && url.trim()) {
-                    playlistUrls.push(url.trim());
-                }
-            }
-            
-            if (playlistUrls.length === 0) {
-                alert('Please enter at least one playlist URL.');
-                return;
-            }
-            
-            // Show loading indicator
-            const importButton = document.querySelector('#importPlaylistForm button[type="submit"]');
-            const originalButtonText = importButton.textContent;
-            importButton.disabled = true;
-            importButton.textContent = 'Importing...';
-            
-            // Add loading indicator to modal body
-            const modalBody = document.querySelector('#importModal .modal-body');
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'import-loading-modal';
-            loadingDiv.innerHTML = `
-                <div class="import-loading-indicator"></div>
-                <p style="text-align: center; margin-top: 10px; color: #e0e0e0;">
-                    Importing your playlists... This may take a moment.
-                </p>
-            `;
-            modalBody.appendChild(loadingDiv);
-
-            try {
-                const response = await fetch('/import_playlists/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify({ playlist_urls: playlistUrls })
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    closeImportModal();
-                    
-                    // Update the import button in header
-                    const tooltipContainer = document.querySelector('.tooltip-container-import');
-                    if (tooltipContainer) {
-                        tooltipContainer.style.display = 'none';
-                    }
-                } else {
-                    throw new Error(result.error || 'Failed to import playlists');
-                }
-            } catch (error) {
-                // Remove loading indicator and restore form
-                loadingDiv.remove();
-                importButton.disabled = false;
-                importButton.textContent = originalButtonText;
-                alert(`Error: ${error.message}`);
-            }
-        });
     }
 
     const setActiveSegment = (mode) => {

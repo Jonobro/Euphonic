@@ -281,61 +281,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     color: #989898;
 }
 
-.tooltip-container-reset {
-    position: relative;
-    display: inline-block;
-    height: fit-content;
-}
-
-.custom-tooltip-reset {
-    visibility: hidden;
-    position: fixed;
-    z-index: 3;
-    background-color: #e0e0e0;
-    color: black;
-    text-align: center;
-    border-radius: 6px;
-    padding: 8px 12px;
-    width: 142px;
-    opacity: 0;
-    transition: opacity 0.2s;
-    font-size: 13px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-    pointer-events: none;
-}
-
-.tooltip-container-reset:hover .custom-tooltip-reset {
-    visibility: visible;
-    opacity: 1;
-}
-
-.tooltip-container-import {
-    position: relative;
-    display: inline-block;
-}
-
-.custom-tooltip-import {
-    visibility: hidden;
-    position: fixed;
-    z-index: 3;
-    background-color: #e0e0e0;
-    color: black;
-    text-align: center;
-    border-radius: 6px;
-    padding: 8px 12px;
-    width: 233px;
-    opacity: 0;
-    transition: opacity 0.2s;
-    font-size: 13px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-    pointer-events: none;
-}
-
-.tooltip-container-import:hover .custom-tooltip-import {
-    visibility: visible;
-    opacity: 1;
-}
-
 .header-row {
     display: flex;
     align-items: center;
