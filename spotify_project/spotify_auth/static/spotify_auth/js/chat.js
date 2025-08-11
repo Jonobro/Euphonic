@@ -44,12 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
     (() => {
-        let chatMode = sessionStorage.getItem('chatMode');
-        if (chatMode && chatMode !== getChatMode()) {
-            switchChatMode(chatMode);
-        } else if (!chatMode) {
-            switchChatMode('new_songs');
-        }
+        const chatMode = sessionStorage.getItem('chatMode') || 'new_songs';
+        switchChatMode(chatMode);
     })();
 
     const renderer = new marked.Renderer();
