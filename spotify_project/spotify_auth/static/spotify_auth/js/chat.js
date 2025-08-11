@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 3000);
 });
 
+let isInitialPageLoad = true;
+
 function getChatMode() {
     const activeBtn = document.querySelector('.segment-button.active');
     if (activeBtn) return activeBtn.dataset.mode;
@@ -133,7 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         messageList.append(msg);
         
-        // Trigger blur-fade animation for first AI message only after container is loaded
         if (shouldShowBlurFade) {
             const triggerAnimation = () => {
                 sessionStorage.setItem(sessionKey, 'true');
@@ -142,14 +143,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (overlay) overlay.classList.add('fade-out');
                 if (content) content.classList.add('focused');
             };
+
+            const delay = isInitialPageLoad ? 2000 : 0;
+            isInitialPageLoad = false;
+            
             const container = document.querySelector('.container');
             if (container && container.classList.contains('loaded')) {
-                // Container is already loaded, start animation after short delay
-                setTimeout(triggerAnimation, 2000);
+                setTimeout(triggerAnimation, delay);
             } else {
-                // Listen for the container load event
                 const handleContainerLoad = () => {
-                    setTimeout(triggerAnimation, 2000);
+                    setTimeout(triggerAnimation, delay);
                     container.removeEventListener('transitionend', handleContainerLoad);
                 };
                 if (container) {
@@ -594,6 +597,8 @@ I've talked too much – let's get started! What can I do for you?`;
                         addMessage(messageText, 'ai', false);
                     }
                 }
+                userInput.disabled = sendButton.disabled = false;
+                userInput.focus();
             }
         })
         .catch((error) => {
