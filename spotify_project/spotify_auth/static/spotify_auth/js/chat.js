@@ -67,13 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const scrollToBottom = () => {
+    function scrollToBottom() {
         setTimeout(() => {
             messageList.scrollTo({ top: messageList.scrollHeight, behavior: 'smooth' });
         }, 10);
-    };
+    }
 
-    function addMessage(text, sender, shouldScroll = true) {
+    function addMessage(text, sender, shouldScroll = true, allowBlurFade = false) {
         const chatMode = getChatMode();
         const msg = document.createElement('div');
         msg.className = `message ${sender}-message`;
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const aiMessageCount = messageList.querySelectorAll('.ai-message').length;
         const isFirstAiMessage = sender === 'ai' && aiMessageCount === 0;
-        const shouldShowBlurFade = isFirstAiMessage && (chatMode === 'saved_songs' || chatMode === 'new_songs');
+        const shouldShowBlurFade = allowBlurFade && isFirstAiMessage && (chatMode === 'saved_songs' || chatMode === 'new_songs');
         
         if (shouldShowBlurFade) {
             msg.classList.add('blur-fade-container');
@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 return;
                             }
                             const sender = message.role === 'model' ? 'ai' : 'user';
-                            const messageElement = addMessage(message.parts[0].text, sender, false);
+                            const messageElement = addMessage(message.parts[0].text, sender, false, false);
 
                             if (lastDividerIndex !== -1 && index < lastDividerIndex) {
                                 messageElement.classList.add('previous-conversation');
@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 initialAnalysisTaskId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
             }
             const baseText = "Welcome! I'm fetching your Spotify library and preparing your musical analysis. This might take a moment";
-            loadingIndicator = addMessage(baseText + "...", 'ai');
+            loadingIndicator = addMessage(baseText + "...", 'ai', true, false);
             let dotCount = 3;
             loadingInterval = setInterval(() => {
                 dotCount = (dotCount % 3) + 1;
@@ -483,7 +483,7 @@ Here are some examples of what I can do:
 I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
-                if (existingMessages.length === 0) addMessage(initialMessage, 'ai', false);
+                if (existingMessages.length === 0) addMessage(initialMessage, 'ai', false, true);
             }, 100);
         } else if (mode === 'new_songs') {
             const initialMessage = `Hi there! I'm Aria, your personal music curator – here to help you discover new music and craft the perfect playlist.
@@ -505,7 +505,7 @@ What's special about me, though, is that I can generate custom playlists for you
 I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
-                if (existingMessages.length === 0) addMessage(initialMessage, 'ai', false);
+                if (existingMessages.length === 0) addMessage(initialMessage, 'ai', false, true);
             }, 100);
         }
 
@@ -534,7 +534,7 @@ I've talked too much – let's get started! What can I do for you?`;
                     if (loadingIndicator) loadingIndicator.remove();
                     if (loadingInterval) clearInterval(loadingInterval);
                     const firstMsgs = Array.isArray(data.first_ai_message) ? data.first_ai_message : [];
-                    for (const msg of firstMsgs) addMessage(msg, 'ai', false);
+                    for (const msg of firstMsgs) addMessage(msg, 'ai', false, false);
                     userInput.disabled = sendButton.disabled = false;
                     userInput.focus();
                 } else if (data.analysis_started && initialAnalysisTaskId) {
@@ -549,7 +549,7 @@ I've talked too much – let's get started! What can I do for you?`;
                         if (Array.isArray(history)) {
                             history.forEach(message => {
                                 if (message.role === 'model' && message.parts?.[0]?.text) {
-                                    addMessage(message.parts[0].text, 'ai', false);
+                                    addMessage(message.parts[0].text, 'ai', false, false);
                                 }
                             });
                         }
@@ -590,7 +590,7 @@ I've talked too much – let's get started! What can I do for you?`;
                     addMessage('Sorry, there was a problem initializing the chat. Please refresh the page and try again.', 'ai');
                 } else if (Array.isArray(data.first_ai_message)) {
                     for (const messageText of data.first_ai_message) {
-                        addMessage(messageText, 'ai', false);
+                        addMessage(messageText, 'ai', false, true);
                     }
                 }
                 userInput.disabled = sendButton.disabled = false;
