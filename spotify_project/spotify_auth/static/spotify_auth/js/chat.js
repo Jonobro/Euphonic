@@ -317,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function switchChatMode(newMode) {
         if (getChatMode() === newMode) return;
-        chatMode = newMode;
+        const chatMode = newMode;
         sessionStorage.setItem('chatMode', chatMode);
         setActiveSegment(chatMode);
         document.body.dataset.chatMode = chatMode;
@@ -326,13 +326,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             initializeChatMode(chatMode);
         }
-    };
+    }
 
-    const getChatMode = () => {
+    function getChatMode() {
         const activeBtn = document.querySelector('.segment-button.active');
         if (activeBtn) return activeBtn.dataset.mode;
         throw new Error('No active chat mode button found');
-    };
+    }
 
     function isChatModeInitialized(mode) {
         const el = document.getElementById('chat-history-data');
