@@ -7,7 +7,7 @@ window.addEventListener('load', function() {
         if (container) container.classList.add('loaded');
         if (betaNotice) betaNotice.classList.add('loaded');
         if (spotifyFooter) spotifyFooter.classList.add('loaded');
-    }, 100);
+    }, 300);
 });
 
 // Fallback in case window.load doesn't execute
@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (content) content.classList.add('focused');
             };
 
-            const delay = initialMessageDelayNeeded ? 1250 : 500;
+            const delay = initialMessageDelayNeeded ? 1250 : 375;
             initialMessageDelayNeeded = false;
             
             const container = document.querySelector('.container');
