@@ -705,13 +705,13 @@ Here are a few questions you might find interesting:
             except Exception as redis_error:
                 _log_to_file(GENERAL_LOG_FILE, f"Failed to publish analysis completion to Redis for session {session_key_from_data}: {redis_error}")
 
-def _get_spotify_track_url_with_backoff(request, song_title, artist_name, max_retries=5):
+def _get_spotify_track_url_with_backoff(request, song_title, artist_name, chat_mode, max_retries=5):
     worker_id = threading.get_ident()
     
     NON_RETRYABLE_CODES = {400, 401, 403, 404, 422}
     
     for attempt in range(max_retries):
-        status, url, response_obj = _get_spotify_track_url(request, song_title, artist_name)
+        status, url, response_obj = _get_spotify_track_url(request, song_title, artist_name, chat_mode)
         
         if status in ['success', 'not_found', 'auth_error']:
             return status, url
@@ -742,9 +742,8 @@ def _get_spotify_track_url_with_backoff(request, song_title, artist_name, max_re
     
     return status, url
 
-def _get_spotify_track_url(request, song_title, artist_name):
+def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
     worker_id = threading.get_ident()
-    chat_mode = request.session.get('chat_mode')
 
     if chat_mode == 'saved_songs':
         user_id = request.session.get('euphonic_intelligence_user_id')
@@ -852,7 +851,6 @@ def initialize_chat_data_view(request):
         chat_mode = data.get('chat_mode')
         if chat_mode not in ['analysis', 'saved_songs', 'new_songs']:
             return JsonResponse({'error': 'Invalid chat mode'}, status=400)
-        request.session['chat_mode'] = chat_mode
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
@@ -1098,7 +1096,7 @@ I've talked too much – let's get started! What can I do for you?"""
         request.session[final_history_key] = final_history_list
 
         request.session.save()
-        return JsonResponse({'success': True, 'initial_response': initial_response})
+        return JsonResponse({'success': True, 'initial_response': initial_response, 'chat_mode': chat_mode})
 
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in reset_chat_history_api: {e}")
@@ -1182,15 +1180,13 @@ def create_playlist_api(request):
         _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in create_playlist_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
 
-def _process_chat_message_thread(session_data, user_message, task_id):
+def _process_chat_message_thread(session_data, user_message, task_id, chat_mode):
     try:
         class MockRequest:
             def __init__(self, session_dict):
                 self.session = session_dict
 
         mock_request = MockRequest(session_data)
-        
-        chat_mode = mock_request.session.get('chat_mode')
 
         history_list = None
         if chat_mode == 'analysis':
@@ -1216,7 +1212,7 @@ def _process_chat_message_thread(session_data, user_message, task_id):
             if cache_key in track_url_cache:
                 return track_url_cache[cache_key]
             
-            status, track_url = _get_spotify_track_url_with_backoff(mock_request, song_title, artist_name)
+            status, track_url = _get_spotify_track_url_with_backoff(mock_request, song_title, artist_name, chat_mode)
 
             final_url = track_url if status == 'success' else None
             track_url_cache[cache_key] = final_url
@@ -1638,7 +1634,8 @@ def _process_chat_message_thread(session_data, user_message, task_id):
         
         result = {
             'response': response_data,
-            'session_data': mock_request.session
+            'session_data': mock_request.session,
+            'chat_mode': chat_mode
         }
         cache.set(task_id, result, timeout=600)
 
@@ -1653,9 +1650,14 @@ def chat_message_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     try:
         data = json.loads(request.body)
+
         user_message = data.get('message')
         if not user_message:
             return JsonResponse({'error': 'No message provided'}, status=400)
+
+        chat_mode = data.get('chat_mode')
+        if not chat_mode:
+            return JsonResponse({'error': 'No chat mode provided'}, status=400)
 
         if not isinstance(user_message, str):
             return JsonResponse({'error': 'Message must be a string'}, status=400)
@@ -1678,11 +1680,11 @@ def chat_message_api(request):
                 _log_to_file(GENERAL_LOG_FILE, f"Potentially malicious input detected from session {request.session.session_key}: {user_message[:100]}...")
                 return JsonResponse({'error': 'Invalid message content'}, status=400)
 
-        if request.session.get('chat_mode') == 'new_songs' and not request.session.get('new_songs_chat_history'):
+        if chat_mode == 'new_songs' and not request.session.get('new_songs_chat_history'):
             return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
-        if request.session.get('chat_mode') == 'saved_songs' and not request.session.get('saved_songs_chat_history'):
+        if chat_mode == 'saved_songs' and not request.session.get('saved_songs_chat_history'):
             return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
-        if request.session.get('chat_mode') == 'analysis' and not request.session.get('analysis_chat_history'):
+        if chat_mode == 'analysis' and not request.session.get('analysis_chat_history'):
             return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
 
         task_id = str(uuid.uuid4())
@@ -1690,7 +1692,7 @@ def chat_message_api(request):
         session_data = dict(request.session)
         thread = threading.Thread(
             target=_process_chat_message_thread,
-            args=(session_data, user_message, task_id)
+            args=(session_data, user_message, task_id, chat_mode)
         )
         thread.daemon = True
         thread.start()
@@ -1787,7 +1789,10 @@ def stream_chat_response(request, task_id):
                         request.session.update(result['session_data'])
                         request.session.save()
                         
-                        data = {'response': result['response']}
+                        data = {
+                            'response': result.get('response'),
+                            'chat_mode': result.get('chat_mode')
+                        }
                         yield f"data: {json.dumps(data)}\n\n"
                     
                     cache.delete(task_id)

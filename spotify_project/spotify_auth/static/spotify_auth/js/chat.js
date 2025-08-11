@@ -29,22 +29,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 3000);
 });
 
+function getChatMode() {
+    const activeBtn = document.querySelector('.segment-button.active');
+    if (activeBtn) return activeBtn.dataset.mode;
+    throw new Error('No active chat mode button found');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    const sendButton = document.getElementById('send-button');
+    const userInput  = document.getElementById('user-input');
+    const messageList = document.getElementById('message-list');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
     (() => {
         let chatMode = sessionStorage.getItem('chatMode');
         if (chatMode && chatMode !== getChatMode()) {
             switchChatMode(chatMode);
         } else if (!chatMode) {
             switchChatMode('new_songs');
-        } else {
-            isChatModeInitialized(chatMode);
         }
     })();
-
-    const sendButton = document.getElementById('send-button');
-    const userInput  = document.getElementById('user-input');
-    const messageList = document.getElementById('message-list');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
     const renderer = new marked.Renderer();
     const originalLinkRenderer = renderer.link;
@@ -196,6 +200,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         eventSource.onmessage = (event) => {
             const data = JSON.parse(event.data);
+
+            if (data.chat_mode && data.chat_mode !== getChatMode()) {
+                console.log(`Ignoring response for '${data.chat_mode}' mode as current mode is '${getChatMode()}'.`);
+                return; 
+            }
+
             if (data.response) {
                 if (Array.isArray(data.response)) {
                     const hasContent = data.response.some(text => text && text.trim() !== '');
@@ -272,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/chat_message_api/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ message: text })
+                body: JSON.stringify({message: text, chat_mode: getChatMode()})
             });
 
             if (!res.ok) {
@@ -308,15 +318,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const setActiveSegment = (mode) => {
+    function setActiveSegment(mode) {
         const buttons = document.querySelectorAll('.segment-button');
         buttons.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.mode === mode);
         });
-    };
+    }
 
     function switchChatMode(newMode) {
-        if (getChatMode() === newMode) return;
         const chatMode = newMode;
         sessionStorage.setItem('chatMode', chatMode);
         setActiveSegment(chatMode);
@@ -326,12 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             initializeChatMode(chatMode);
         }
-    }
-
-    function getChatMode() {
-        const activeBtn = document.querySelector('.segment-button.active');
-        if (activeBtn) return activeBtn.dataset.mode;
-        throw new Error('No active chat mode button found');
     }
 
     function isChatModeInitialized(mode) {
@@ -516,9 +519,7 @@ I've talked too much – let's get started! What can I do for you?`;
                 'X-CSRFToken': csrfToken,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                chat_mode: mode
-            })
+            body: JSON.stringify({chat_mode: mode})
         })
         .then(async (response) => {
             const data = await response.json().catch(() => ({}));
@@ -527,7 +528,10 @@ I've talked too much – let's get started! What can I do for you?`;
                 throw new Error(err);
             }
 
-            if (mode !== getChatMode()) return;
+            if (mode !== getChatMode()) {
+                console.log(`Ignoring initialization response for '${mode}' mode as current mode is '${getChatMode()}'.`);
+                return;
+            }
 
             if (mode === 'analysis') {
                 if (loadingInterval) clearInterval(loadingInterval);

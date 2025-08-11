@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 async function handlePlaylistAction(userAction) {
-    const chatMode = document.body.dataset.chatMode;
+    const chatMode = getChatMode();
     const messageList = document.getElementById('message-list');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     try {
@@ -41,6 +41,12 @@ async function handlePlaylistAction(userAction) {
 
         if (response.ok) {
             const data = await response.json();
+
+            if (data.chat_mode && data.chat_mode !== getChatMode()) {
+                console.log(`Ignoring playlist action response for '${data.chat_mode}' mode as current mode is '${getChatMode()}'.`);
+                return;
+            }
+
             if (data.success && data.initial_response) {
                 const allMessages = messageList.querySelectorAll('.message');
                 allMessages.forEach(message => {
