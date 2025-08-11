@@ -256,10 +256,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     overflow-y: auto;
     font-family: 'Poppins', sans-serif, Arial;
     font-size: 14px;
-    box-shadow: 
-        0 0 6px rgba(30, 200, 90, 0.1),
-        0 0 12px rgba(30, 200, 90, 0.06),
-        0 0 24px rgba(30, 200, 90, 0.04);
+    box-shadow: 0 0 6px rgba(30, 200, 90, 0.3), 0 0 10px rgba(30, 200, 90, 0.1), 0 0 13px rgba(30, 200, 90, 0.06);
     margin-right: 25px;
     margin-left: 5px;
     padding-left: 15px;
@@ -1048,7 +1045,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     display: flex;
     background-color: #161616;
     border: 1px solid #535353;
-    box-shadow: 0 0 6px rgba(30, 200, 90, 0.1), 0 0 12px rgba(30, 200, 90, 0.06), 0 0 24px rgba(30, 200, 90, 0.04);
+    box-shadow: 0 0 4px rgba(30, 200, 90, 0.3), 0 0 8px rgba(30, 200, 90, 0.1), 0 0 12px rgba(30, 200, 90, 0.06);
     width: 100%;
     border-radius: 20px;
     align-items: center;
@@ -1086,7 +1083,6 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .segment-button.active {
     background-color: transparent;
     border: 2px solid rgb(30,200,90);
-    box-shadow: 0 0 6px rgba(30, 200, 90, 0.1), 0 0 12px rgba(30, 200, 90, 0.06), 0 0 24px rgba(30, 200, 90, 0.04);
     pointer-events: none;
     z-index: 1;
 }

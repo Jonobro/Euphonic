@@ -528,16 +528,15 @@ I've talked too much – let's get started! What can I do for you?`;
                 throw new Error(err);
             }
 
-            if (mode !== getChatMode()) {
-                console.log(`Ignoring initialization response for '${mode}' mode as current mode is '${getChatMode()}'.`);
+            if (data.chat_mode !== getChatMode()) {
+                console.log(`Ignoring initialization response for '${data.chat_mode}' mode as current mode is '${getChatMode()}'.`);
                 return;
             }
 
             if (mode === 'analysis') {
-                if (loadingInterval) clearInterval(loadingInterval);
-
                 if (data.already_initialized) {
                     if (loadingIndicator) loadingIndicator.remove();
+                    if (loadingInterval) clearInterval(loadingInterval);
                     const firstMsgs = Array.isArray(data.first_ai_message) ? data.first_ai_message : [];
                     for (const msg of firstMsgs) addMessage(msg, 'ai', false);
                     userInput.disabled = sendButton.disabled = false;
@@ -580,6 +579,7 @@ I've talked too much – let's get started! What can I do for you?`;
                     };
                 } else {
                     if (loadingIndicator) loadingIndicator.remove();
+                    if (loadingInterval) clearInterval(loadingInterval);
                     addMessage('Sorry, something went wrong starting your analysis. Please refresh the page and try again.', 'ai');
                 }
             } else if (mode === 'saved_songs' || mode === 'new_songs') {
@@ -602,8 +602,8 @@ I've talked too much – let's get started! What can I do for you?`;
             }
         })
         .catch((error) => {
-            if (loadingInterval) clearInterval(loadingInterval);
             if (loadingIndicator) loadingIndicator.remove();
+            if (loadingInterval) clearInterval(loadingInterval);
             console.error("Initialization error:", error);
             addMessage('Sorry, there was a problem initializing the chat. Please refresh the page and try again.', 'ai');
         });
