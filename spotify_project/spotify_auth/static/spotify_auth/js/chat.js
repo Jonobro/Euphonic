@@ -88,9 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const aiMessageCount = messageList.querySelectorAll('.ai-message').length;
         const isFirstAiMessage = sender === 'ai' && aiMessageCount === 0;
-        const sessionKey = `blur_fade_shown_${chatMode}`;
-        const hasShownBlurFade = sessionStorage.getItem(sessionKey);
-        const shouldShowBlurFade = isFirstAiMessage && !hasShownBlurFade && (chatMode === 'saved_songs' || chatMode === 'new_songs');
+        const shouldShowBlurFade = isFirstAiMessage && (chatMode === 'saved_songs' || chatMode === 'new_songs');
         
         if (shouldShowBlurFade) {
             msg.classList.add('blur-fade-container');
@@ -137,14 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (shouldShowBlurFade) {
             const triggerAnimation = () => {
-                sessionStorage.setItem(sessionKey, 'true');
                 const overlay = msg.querySelector('.background-overlay');
                 const content = msg.querySelector('.blur-fade-combo');
                 if (overlay) overlay.classList.add('fade-out');
                 if (content) content.classList.add('focused');
             };
 
-            const delay = initialMessageDelayNeeded ? 1250 : 375;
+            const delay = initialMessageDelayNeeded ? 1250 : 300;
             initialMessageDelayNeeded = false;
             
             const container = document.querySelector('.container');
