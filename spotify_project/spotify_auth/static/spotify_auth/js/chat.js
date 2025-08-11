@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 3000);
 });
 
-let isInitialPageLoad = true;
+let initialMessageDelayNeeded = true;
 
 function getChatMode() {
     const activeBtn = document.querySelector('.segment-button.active');
@@ -144,8 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (content) content.classList.add('focused');
             };
 
-            const delay = isInitialPageLoad ? 2000 : 0;
-            isInitialPageLoad = false;
+            const delay = initialMessageDelayNeeded ? 2000 : 0;
+            initialMessageDelayNeeded = false;
             
             const container = document.querySelector('.container');
             if (container && container.classList.contains('loaded')) {
@@ -587,7 +587,10 @@ I've talked too much – let's get started! What can I do for you?`;
                 }
             } else if (mode === 'saved_songs' || mode === 'new_songs') {
                 const existingAiMessage = messageList.querySelector('.ai-message');
-                if (existingAiMessage) existingAiMessage.remove();
+                if (existingAiMessage) {
+                    existingAiMessage.remove();
+                    initialMessageDelayNeeded = true;
+                }
 
                 if (data.error) {
                     console.error(`Initialization failed: ${data.error}`);
