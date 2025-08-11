@@ -73,8 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 10);
     };
 
-    const addMessage = (text, sender, shouldScroll = true) => {
-        chatMode = getChatMode();
+    function addMessage(text, sender, shouldScroll = true) {
+        const chatMode = getChatMode();
         const msg = document.createElement('div');
         msg.className = `message ${sender}-message`;
         
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         return msg;
-    };
+    }
 
     window.addMessageAndScroll = (text, sender) => {
         const newMessage = addMessage(text, sender, false);
