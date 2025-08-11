@@ -521,7 +521,24 @@ def get_gemini_client():
 def index(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     _ensure_euphonic_intelligence_user_id(request)
-    return redirect(reverse('new_song_chat'))
+    return redirect(reverse('chat'))
+
+@csrf_protect
+@require_http_methods(["GET"])
+@never_cache
+def chat_view(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    _ensure_euphonic_intelligence_user_id(request)
+
+    final_new_songs_chat_history = request.session.get('final_new_songs_chat_history', [])
+    final_saved_songs_chat_history = request.session.get('final_saved_songs_chat_history', [])
+    final_analysis_chat_history = request.session.get('final_analysis_chat_history', [])
+
+    final_chat_history = [final_new_songs_chat_history, final_saved_songs_chat_history, final_analysis_chat_history]
+
+    return render(request, 'spotify_auth/chat.html', {
+        'chat_history_json': json.dumps(final_chat_history)
+    })
 
 def reset_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
@@ -824,60 +841,6 @@ def _get_spotify_track_url(request, song_title, artist_name):
         return 'error', None, response
 
 @csrf_protect
-@require_http_methods(["GET"])
-@never_cache
-def musical_analysis_view(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    _ensure_euphonic_intelligence_user_id(request)
-    request.session['chat_mode'] = request.GET.get('mode', 'analysis')
-    final_chat_history = request.session.get('final_analysis_chat_history', [])
-    is_loading_initial = not final_chat_history
-    initial_analysis_task_id = None
-
-    if is_loading_initial:
-        initial_analysis_task_id = str(uuid.uuid4())
-        request.session['initial_analysis_task_id'] = initial_analysis_task_id
-
-    return render(request, 'spotify_auth/chat.html', {
-        'chat_history_json': json.dumps(final_chat_history),
-        'is_loading_initial_data': is_loading_initial,
-        'chat_mode': request.session.get('chat_mode'),
-        'initial_analysis_task_id': initial_analysis_task_id
-    })
-
-@csrf_protect
-@require_http_methods(["GET"])
-@never_cache
-def saved_songs_chat_view(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    _ensure_euphonic_intelligence_user_id(request)
-    request.session['chat_mode'] = request.GET.get('mode', 'saved_songs')
-    final_chat_history = request.session.get('final_saved_songs_chat_history', [])
-    is_loading_initial = not final_chat_history
-
-    return render(request, 'spotify_auth/chat.html', {
-        'chat_history_json': json.dumps(final_chat_history),
-        'is_loading_initial_data': is_loading_initial,
-        'chat_mode': request.session.get('chat_mode')
-    })
-
-@csrf_protect
-@require_http_methods(["GET"])
-@never_cache
-def new_song_chat_view(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
-    _ensure_euphonic_intelligence_user_id(request)
-    request.session['chat_mode'] = request.GET.get('mode', 'new_songs')
-    final_chat_history = request.session.get('final_new_songs_chat_history', [])
-    is_loading_initial = not final_chat_history
-
-    return render(request, 'spotify_auth/chat.html', {
-        'chat_history_json': json.dumps(final_chat_history),
-        'is_loading_initial_data': is_loading_initial,
-        'chat_mode': request.session.get('chat_mode')
-    })
-
-@csrf_protect
 @require_http_methods(["POST"])
 @never_cache
 def initialize_chat_data_view(request):
@@ -914,7 +877,7 @@ def initialize_chat_data_view(request):
                 if entry.get('role') == 'model':
                     first_ai_message[0] = entry['parts'][0]['text']
                     break
-        return JsonResponse({'first_ai_message': first_ai_message, 'already_initialized': True})
+        return JsonResponse({'first_ai_message': first_ai_message, 'already_initialized': True, 'chat_mode': chat_mode})
 
     try:
         if not request.session.get('euphonic_intelligence_user_id'):
@@ -925,10 +888,6 @@ def initialize_chat_data_view(request):
         
         # If statement for analysis mode
         if chat_mode == 'analysis':
-            initial_analysis_task_id = data.get('initial_analysis_task_id')
-            if initial_analysis_task_id:
-                request.session['initial_analysis_task_id'] = initial_analysis_task_id
-
             session_data = dict(request.session)
             session_data['session_key'] = request.session.session_key
             thread = threading.Thread(
@@ -939,7 +898,7 @@ def initialize_chat_data_view(request):
             thread.start()
             _log_to_file(GENERAL_LOG_FILE, f"Started analysis generation thread for session {request.session.session_key} from initialize_chat_data_view")
             
-            return JsonResponse({'analysis_started': True})
+            return JsonResponse({'analysis_started': True, 'chat_mode': chat_mode})
         
         # If statement for saved songs mode
         if chat_mode == 'saved_songs':
@@ -982,9 +941,7 @@ I've talked too much – let's get started! What can I do for you?"""
             request.session['final_saved_songs_chat_history'] = final_history_list
             request.session.modified = True
 
-            return JsonResponse({
-                'first_ai_message': [initial_response]
-            })
+            return JsonResponse({'first_ai_message': [initial_response], 'chat_mode': chat_mode})
 
         # If statement for new songs mode
         if chat_mode == 'new_songs':
@@ -1014,7 +971,7 @@ I've talked too much – let's get started! What can I do for you?"""
             final_history_list = [{'role': 'model', 'parts': [{'text': initial_response}]}]
             request.session['final_new_songs_chat_history'] = final_history_list
             request.session.modified = True
-            return JsonResponse({'first_ai_message': [initial_response]})
+            return JsonResponse({'first_ai_message': [initial_response], 'chat_mode': chat_mode})
 
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in initialize_chat_data_view: {e}")

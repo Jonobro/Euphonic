@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
 </head>
-<body data-chat-mode="{{ chat_mode|escapejs }}">
+<body>
     <div class="beta-notice">
         <p>We're in beta! 🚀 Help us improve – send any bugs, suggestions, or feedback to <a href="mailto:jonathan@euphonicintelligence.com">jonathan@euphonicintelligence.com</a>.</p>
     </div>
@@ -61,9 +61,7 @@
             </div>
         </div>
         <div id="chat-container">
-            <div id="message-list" 
-                {% if is_loading_initial_data %}data-is-loading-initial="true"{% endif %}
-                {% if initial_analysis_task_id %}data-initial-analysis-task-id="{{ initial_analysis_task_id }}"{% endif %}>
+            <div id="message-list">
             </div>
             <div id="chat-input-area">
                 <textarea id="user-input" placeholder="Reply to Aria..."></textarea>
@@ -126,7 +124,6 @@
     <script src="{% static 'spotify_auth/js/playlist_handler.js' %}"></script>
     <script src="{% static 'spotify_auth/js/playlist_import.js' %}"></script>
     <script>
-        // Hamburger menu functionality
         const hamburgerBtn = document.getElementById('hamburger-btn');
         const hamburgerDropdown = document.getElementById('hamburger-dropdown');
 
@@ -142,7 +139,6 @@
         });
 
         function openModal(type) {
-            // Close hamburger menu when opening modal
             if (hamburgerDropdown.classList.contains('show')) {
                 hamburgerDropdown.classList.remove('show');
             }
@@ -312,13 +308,11 @@
         }
         
         function openImportModal() {
-            // Close hamburger menu when opening import modal
             if (hamburgerDropdown.classList.contains('show')) {
                 hamburgerDropdown.classList.remove('show');
             }
             
             document.getElementById('importModal').style.display = 'block';
-            // Initialize playlist import functionality
             if (window.playlistImport) {
                 window.playlistImport.initialize();
             }
@@ -328,7 +322,6 @@
             document.getElementById('importModal').style.display = 'none';
         }
         
-        // Close modal when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('legalModal');
             const importModal = document.getElementById('importModal');

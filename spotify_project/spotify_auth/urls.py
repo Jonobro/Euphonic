@@ -3,10 +3,8 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('chat', views.chat_view, name='chat'),
     path('reset/', views.reset_view, name='reset'),
-    path('chat/saved/', views.saved_songs_chat_view, name='saved_songs_chat'),
-    path('chat/new/', views.new_song_chat_view, name='new_song_chat'),
-    path('chat/analyze/', views.musical_analysis_view, name='musical_analysis'),
     path('initialize_chat_data/', views.initialize_chat_data_view, name='initialize_chat_data'),
     path('stream_initial_analysis/<str:task_id>/', views.stream_initial_analysis, name='stream_initial_analysis'),
     path('chat_message_api/', views.chat_message_api, name='chat_message_api'),

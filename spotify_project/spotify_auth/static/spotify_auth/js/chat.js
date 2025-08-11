@@ -1,4 +1,3 @@
-// Page loading state management
 window.addEventListener('load', function() {
     const container = document.querySelector('.container');
     const betaNotice = document.querySelector('.beta-notice');
@@ -31,14 +30,16 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    let chatMode = document.body.dataset.chatMode;
-
-    const path = location.pathname;
-    if (path.includes('/chat/saved')) chatMode = 'saved_songs';
-    else if (path.includes('/chat/new')) chatMode = 'new_songs';
-    else if (path.includes('/chat/analyze')) chatMode = 'analysis';
-
-    document.body.dataset.chatMode = chatMode;
+    (() => {
+        let chatMode = sessionStorage.getItem('chatMode');
+        if (chatMode && chatMode !== getChatMode()) {
+            switchChatMode(chatMode);
+        } else if (!chatMode) {
+            switchChatMode('new_songs');
+        } else {
+            isChatModeInitialized(chatMode);
+        }
+    })();
 
     const sendButton = document.getElementById('send-button');
     const userInput  = document.getElementById('user-input');
@@ -71,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const addMessage = (text, sender, shouldScroll = true) => {
+        chatMode = getChatMode();
         const msg = document.createElement('div');
         msg.className = `message ${sender}-message`;
         
@@ -131,13 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (shouldShowBlurFade) {
             const triggerAnimation = () => {
                 sessionStorage.setItem(sessionKey, 'true');
-                
                 const overlay = msg.querySelector('.background-overlay');
                 const content = msg.querySelector('.blur-fade-combo');
                 if (overlay) overlay.classList.add('fade-out');
                 if (content) content.classList.add('focused');
             };
-
             const container = document.querySelector('.container');
             if (container && container.classList.contains('loaded')) {
                 // Container is already loaded, start animation after short delay
@@ -148,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(triggerAnimation, 2000);
                     container.removeEventListener('transitionend', handleContainerLoad);
                 };
-                
                 if (container) {
                     container.addEventListener('transitionend', handleContainerLoad);
                 }
@@ -301,189 +300,83 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const isInitiallyLoading = messageList.dataset.isLoadingInitial === 'true';
-    const initialAnalysisTaskId = messageList.dataset.initialAnalysisTaskId;
+    const segmentButtons = document.querySelectorAll('.segment-button');
+    segmentButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const newMode = this.dataset.mode;
+            switchChatMode(newMode);
+        });
+    });
 
-    if (isInitiallyLoading) {
-        let loadingIndicator;
-        let loadingInterval;
-        
-        if (chatMode === 'analysis') {
-            const loadingIndicatorBaseText = "Welcome! I'm fetching your Spotify library and preparing your musical analysis. This might take a moment";
-            loadingIndicator = addMessage(loadingIndicatorBaseText + "...", 'ai');
-            let dotCount = 3;
-            loadingInterval = setInterval(() => {
-                dotCount = (dotCount % 3) + 1;
-                if (loadingIndicator) {
-                    loadingIndicator.textContent = loadingIndicatorBaseText + '.'.repeat(dotCount);
-                }
-            }, 400);
-        } else if (chatMode === 'saved_songs') {
-            const initialMessage = `Hi there! I'm Aria, your personal music curator. Let's craft some custom playlists from your Spotify collection. I can filter through your music using any criteria you can imagine.
+    const setActiveSegment = (mode) => {
+        const buttons = document.querySelectorAll('.segment-button');
+        buttons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+    };
 
-Here are some examples of what I can do:
-* Give me a playlist of all of my songs from the 90s
-* I'm on a road trip with my grandma – make a playlist of my songs that she might like
-* Create a playlist of all of the dream pop songs in my Spotify collection
-* Make a playlist of all my songs that are sung in Spanish
-* I'm feeling discouraged today – give me a playlist of my most uplifting songs
-* Make me a playlist of my most niche tracks
+    function switchChatMode(newMode) {
+        if (getChatMode() === newMode) return;
+        chatMode = newMode;
+        sessionStorage.setItem('chatMode', chatMode);
+        setActiveSegment(chatMode);
+        document.body.dataset.chatMode = chatMode;
+        if (isChatModeInitialized(chatMode)) {
+            renderHistory(chatMode);
+        } else {
+            initializeChatMode(chatMode);
+        }
+    };
 
-I've talked too much – let's get started! What can I do for you?`;
-            setTimeout(() => {
-                const existingMessages = messageList.querySelectorAll('.message');
-                if (existingMessages.length === 0) {
-                    addMessage(initialMessage, 'ai', false);
-                }
-            }, 100);
-        } else if (chatMode === 'new_songs') {
-            const initialMessage = `Hi there! I'm Aria, your personal music curator – here to help you discover new music and craft the perfect playlist.
+    const getChatMode = () => {
+        const activeBtn = document.querySelector('.segment-button.active');
+        if (activeBtn) return activeBtn.dataset.mode;
+        throw new Error('No active chat mode button found');
+    };
 
-Tell me a bit about what you are looking for. You can mention things like:
-* Mood (e.g., chill, focused, elated, exhausted)
-* Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
-* Favorite artists (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
-* A certain activity (e.g., music for studying history, road trip anthems, techno for bullet chess)
-* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven)
+    function isChatModeInitialized(mode) {
+        const el = document.getElementById('chat-history-data');
+        if (!el) return false;
 
-What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
-* Create a playlist of Katy Perry's worst songs
-* Make a playlist of songs that were produced in another country but blew up in the US
-* Give me a playlist of songs about monkeys
-* Create a playlist of songs that were released in May of 2021
-* Send me a playlist of songs about bowling
-
-I've talked too much – let's get started! What can I do for you?`;
-            setTimeout(() => {
-                const existingMessages = messageList.querySelectorAll('.message');
-                if (existingMessages.length === 0) {
-                    addMessage(initialMessage, 'ai', false);
-                }
-            }, 100);
+        let payload;
+        try {
+            payload = JSON.parse(el.textContent || '[]');
+        } catch {
+            return false;
         }
 
-        userInput.disabled = sendButton.disabled = true;
+        if (Array.isArray(payload) && payload.length === 3 && payload.every(Array.isArray)) {
+            const indexMap = {new_songs: 0, saved_songs: 1, analysis: 2};
+            const idx = indexMap[mode];
+            if (idx == null) return false;
+            const arr = payload[idx];
+            return Array.isArray(arr) && arr.length > 0;
+        }
 
-        fetch('/initialize_chat_data/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                chat_mode: chatMode,
-                initial_analysis_task_id: initialAnalysisTaskId
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(errData => {
-                    throw new Error(errData.error || `Initialization error: ${response.status}`);
-                }).catch(() => {
-                    throw new Error(`Initialization error: ${response.status}`);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (chatMode !== 'analysis') {
-                if (loadingInterval) clearInterval(loadingInterval);
-                if (loadingIndicator) loadingIndicator.remove();
-            }
+        return false;
+    }
 
-            if (chatMode === 'analysis') {
-                if (data.already_initialized) {
-                    if (loadingInterval) clearInterval(loadingInterval);
-                    if (loadingIndicator) loadingIndicator.remove();
-                    for (const messageText of data.first_ai_message) {
-                        addMessage(messageText, 'ai', false);
-                    }
-                    userInput.disabled = sendButton.disabled = false;
-                    if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
-                        userInput.focus();
-                    }
-                } else if (data.analysis_started && initialAnalysisTaskId) {
-                    const es = new EventSource(`/stream_initial_analysis/${initialAnalysisTaskId}/`);
-
-                    es.onmessage = e => {
-                        if (loadingIndicator) loadingIndicator.remove();
-                        clearInterval(loadingInterval);
-                        
-                        const data = JSON.parse(e.data);
-                        const history = data.response;
-
-                        if (Array.isArray(history)) {
-                            history.forEach(message => {
-                                if (message.role === 'model' && message.parts && message.parts[0] && message.parts[0].text) {
-                                    addMessage(message.parts[0].text, 'ai', false);
-                                }
-                            });
-                        }
-                        es.close();
-                        userInput.disabled = sendButton.disabled = false;
-                        if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
-                            userInput.focus();
-                        }
-                    };
-
-                    es.addEventListener('stream_error', e => {
-                        if (loadingIndicator) loadingIndicator.remove();
-                        clearInterval(loadingInterval);
-                        const errorData = JSON.parse(e.data);
-                        addMessage(`Sorry, an error occurred: ${errorData.message}`, 'ai');
-                        es.close();
-                        userInput.disabled = sendButton.disabled = false;
-                        userInput.focus();
-                    });
-
-                    es.onerror = () => {
-                        if (loadingIndicator) loadingIndicator.remove();
-                        clearInterval(loadingInterval);
-                        addMessage('Sorry, a connection error occurred while fetching your analysis.', 'ai');
-                        es.close();
-                        userInput.disabled = sendButton.disabled = false;
-                        userInput.focus();
-                    };
-                }
-            } else if (chatMode === 'saved_songs' || chatMode === 'new_songs') {
-                const existingAiMessage = messageList.querySelector('.ai-message');
-                if (existingAiMessage) {
-                    existingAiMessage.remove();
-                }
-                if (data.error) {
-                    addMessage(`Initialization failed: ${data.error}`, 'ai');
-                } else if (Array.isArray(data.first_ai_message)) {
-                    for (const messageText of data.first_ai_message) {
-                        addMessage(messageText, 'ai', false);
-                    }
-                }
-            }
-            messageList.removeAttribute('data-is-loading-initial');
-        })
-        .catch(error => {
-            if (loadingInterval) clearInterval(loadingInterval);
-            if (loadingIndicator) loadingIndicator.remove();
-            addMessage('Sorry, there was a problem initializing the chat. Please refresh the page to try again.', 'ai');
-            console.error("Initialization error:", error);
-            if (chatMode !== 'analysis') {
-                userInput.disabled = sendButton.disabled = false;
-                userInput.focus();
-            }
-        })
-        .finally(() => {
-            if (chatMode !== 'analysis') {
-                userInput.disabled = sendButton.disabled = false;
-                if (!isInitiallyLoading || (document.activeElement !== userInput && userInput.value === '')) {
-                     userInput.focus();
-                }
-            }
-        });
-    } else {
+    function renderHistory(mode) {
         const chatHistoryDataElement = document.getElementById('chat-history-data');
         if (chatHistoryDataElement) {
             try {
-                const history = JSON.parse(chatHistoryDataElement.textContent);
-                if (Array.isArray(history)) {
+                const allChatHistory = JSON.parse(chatHistoryDataElement.textContent);
+                
+                if (!Array.isArray(allChatHistory) || allChatHistory.length !== 3 || !allChatHistory.every(Array.isArray)) {
+                    console.error("Invalid chat history format");
+                    return;
+                }
+                
+                const indexMap = {new_songs: 0, saved_songs: 1, analysis: 2};
+                const modeIndex = indexMap[mode];
+                if (modeIndex == null) {
+                    console.error("Invalid chat mode:", mode);
+                    return;
+                }
+                
+                const history = allChatHistory[modeIndex];
+                
+                if (Array.isArray(history) && history.length > 0) {
                     const lastDividerIndex = history.map(m => m.role).lastIndexOf('divider');
 
                     history.forEach((message, index) => {
@@ -502,7 +395,7 @@ I've talked too much – let's get started! What can I do for you?`;
                             }
                             
                             // Special styling for second AI message on analysis page
-                            if (chatMode === 'analysis' && sender === 'ai') {
+                            if (mode === 'analysis' && sender === 'ai') {
                                 const aiMessages = messageList.querySelectorAll('.ai-message');
                                 if (aiMessages.length === 1) {
                                     messageElement.classList.add('analysis-first-message');
@@ -521,7 +414,7 @@ I've talked too much – let's get started! What can I do for you?`;
                         }
                     });
 
-                    if (chatMode === 'analysis') {
+                    if (mode === 'analysis') {
                         let analysisScrollThreshold = 3;
                         if (history.length > 3 && history[3]?.parts?.[0]?.text?.includes("Note: Your Spotify music collection contains")) {
                             analysisScrollThreshold = 4;
@@ -529,7 +422,7 @@ I've talked too much – let's get started! What can I do for you?`;
                         if (history.length > analysisScrollThreshold) {
                             scrollToBottom();
                         }
-                    } else if (chatMode === 'new_songs' || chatMode === 'saved_songs') {
+                    } else if (mode === 'new_songs' || mode === 'saved_songs') {
                         let messagesAfterDivider = 0;
                         if (lastDividerIndex !== -1) {
                             messagesAfterDivider = history.slice(lastDividerIndex + 1).filter(m => m.role !== 'divider').length;
@@ -555,80 +448,109 @@ I've talked too much – let's get started! What can I do for you?`;
         }
     }
 
-    const setActiveSegment = (mode) => {
-        const buttons = document.querySelectorAll('.segment-button');
-        buttons.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.mode === mode);
-        });
-    };
-
-    async function initializeCurrentMode() {
-        document.body.dataset.chatMode = chatMode;
-        setActiveSegment(chatMode);
-
+    function initializeChatMode(mode) {
         while (messageList.firstChild) messageList.removeChild(messageList.firstChild);
         userInput.disabled = true;
         sendButton.disabled = true;
 
         let initialAnalysisTaskId = null;
-        if (chatMode === 'analysis' && window.crypto?.randomUUID) {
-            initialAnalysisTaskId = window.crypto.randomUUID();
-            messageList.dataset.initialAnalysisTaskId = initialAnalysisTaskId;
-            messageList.dataset.isLoadingInitial = 'true';
-        } else {
-            delete messageList.dataset.initialAnalysisTaskId;
-            delete messageList.dataset.isLoadingInitial;
-        }
-
         let loadingIndicator = null;
         let loadingInterval = null;
-        if (chatMode === 'analysis') {
-            const loadingIndicatorBaseText = "Welcome! I'm fetching your Spotify library and preparing your musical analysis. This might take a moment";
-            loadingIndicator = addMessage(loadingIndicatorBaseText + "...", 'ai');
+
+        if (mode === 'analysis') {
+            if (window.crypto?.randomUUID) {
+                initialAnalysisTaskId = window.crypto.randomUUID();
+            } else {
+                initialAnalysisTaskId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+            }
+            const baseText = "Welcome! I'm fetching your Spotify library and preparing your musical analysis. This might take a moment";
+            loadingIndicator = addMessage(baseText + "...", 'ai');
             let dotCount = 3;
             loadingInterval = setInterval(() => {
                 dotCount = (dotCount % 3) + 1;
-                if (loadingIndicator) loadingIndicator.textContent = loadingIndicatorBaseText + '.'.repeat(dotCount);
+                if (loadingIndicator) loadingIndicator.textContent = baseText + '.'.repeat(dotCount);
             }, 400);
+        } else if (mode === 'saved_songs') {
+            const initialMessage = `Hi there! I'm Aria, your personal music curator. Let's craft some custom playlists from your Spotify collection. I can filter through your music using any criteria you can imagine.
+
+Here are some examples of what I can do:
+* Give me a playlist of all of my songs from the 90s
+* I'm on a road trip with my grandma – make a playlist of my songs that she might like
+* Create a playlist of all of the dream pop songs in my Spotify collection
+* Make a playlist of all my songs that are sung in Spanish
+* I'm feeling discouraged today – give me a playlist of my most uplifting songs
+* Make me a playlist of my most niche tracks
+
+I've talked too much – let's get started! What can I do for you?`;
+            setTimeout(() => {
+                const existingMessages = messageList.querySelectorAll('.message');
+                if (existingMessages.length === 0) addMessage(initialMessage, 'ai', false);
+            }, 100);
+        } else if (mode === 'new_songs') {
+            const initialMessage = `Hi there! I'm Aria, your personal music curator – here to help you discover new music and craft the perfect playlist.
+
+Tell me a bit about what you are looking for. You can mention things like:
+* Mood (e.g., chill, focused, elated, exhausted)
+* Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
+* Favorite artists (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
+* A certain activity (e.g., music for studying history, road trip anthems, techno for bullet chess)
+* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven)
+
+What's special about me, though, is that I can generate custom playlists for you based on any criteria you can imagine. For example:
+* Create a playlist of Katy Perry's worst songs
+* Make a playlist of songs that were produced in another country but blew up in the US
+* Give me a playlist of songs about monkeys
+* Create a playlist of songs that were released in May of 2021
+* Send me a playlist of songs about bowling
+
+I've talked too much – let's get started! What can I do for you?`;
+            setTimeout(() => {
+                const existingMessages = messageList.querySelectorAll('.message');
+                if (existingMessages.length === 0) addMessage(initialMessage, 'ai', false);
+            }, 100);
         }
 
-        try {
-            const res = await fetch('/initialize_chat_data/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    chat_mode: chatMode,
-                    initial_analysis_task_id: initialAnalysisTaskId
-                })
-            });
-
-            if (!res.ok) {
-                const err = (await res.json().catch(() => ({}))).error || `Initialization error: ${res.status}`;
+        fetch('/initialize_chat_data/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                chat_mode: mode
+            })
+        })
+        .then(async (response) => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const err = data.error || `Initialization error: ${response.status}`;
                 throw new Error(err);
             }
-            const data = await res.json();
 
-            // Handle per-mode bootstrap results (mirror existing on-load logic)
-            if (chatMode === 'analysis') {
+            if (mode !== getChatMode()) return;
+
+            if (mode === 'analysis') {
+                if (loadingInterval) clearInterval(loadingInterval);
+
                 if (data.already_initialized) {
-                    if (loadingInterval) clearInterval(loadingInterval);
                     if (loadingIndicator) loadingIndicator.remove();
-                    const firstMsgs = data.first_ai_message || [];
+                    const firstMsgs = Array.isArray(data.first_ai_message) ? data.first_ai_message : [];
                     for (const msg of firstMsgs) addMessage(msg, 'ai', false);
+                    userInput.disabled = sendButton.disabled = false;
+                    userInput.focus();
                 } else if (data.analysis_started && initialAnalysisTaskId) {
                     const es = new EventSource(`/stream_initial_analysis/${initialAnalysisTaskId}/`);
+
                     es.onmessage = (e) => {
-                        if (loadingInterval) clearInterval(loadingInterval);
                         if (loadingIndicator) loadingIndicator.remove();
+                        if (loadingInterval) clearInterval(loadingInterval);
+
                         const payload = JSON.parse(e.data);
                         const history = payload.response;
                         if (Array.isArray(history)) {
-                            history.forEach(m => {
-                                if (m.role === 'model' && m.parts?.[0]?.text) {
-                                    addMessage(m.parts[0].text, 'ai', false);
+                            history.forEach(message => {
+                                if (message.role === 'model' && message.parts?.[0]?.text) {
+                                    addMessage(message.parts[0].text, 'ai', false);
                                 }
                             });
                         }
@@ -636,57 +558,45 @@ I've talked too much – let's get started! What can I do for you?`;
                         userInput.disabled = sendButton.disabled = false;
                         userInput.focus();
                     };
-                    es.addEventListener('stream_error', e => {
-                        if (loadingInterval) clearInterval(loadingInterval);
+
+                    es.addEventListener('stream_error', (e) => {
                         if (loadingIndicator) loadingIndicator.remove();
-                        const errData = JSON.parse(e.data);
-                        console.error("Stream error:", errData.message);
-                        addMessage('Sorry, an unexpected error occurred. Please try again.', 'ai');
+                        if (loadingInterval) clearInterval(loadingInterval);
+                        const errorData = JSON.parse(e.data);
+                        addMessage('Sorry, an error occurred while processing your request. Please refresh the page and try again.', 'ai');
+                        console.error('Stream error:', errorData.message);
                         es.close();
-                        userInput.disabled = sendButton.disabled = false;
-                        userInput.focus();
                     });
+
                     es.onerror = () => {
-                        if (loadingInterval) clearInterval(loadingInterval);
                         if (loadingIndicator) loadingIndicator.remove();
-                        addMessage('Sorry, a connection error occurred while fetching your analysis.', 'ai');
+                        if (loadingInterval) clearInterval(loadingInterval);
+                        addMessage('Sorry, a connection error occurred while fetching your analysis. Please refresh the page and try again.', 'ai');
                         es.close();
-                        userInput.disabled = sendButton.disabled = false;
-                        userInput.focus();
                     };
-                    return;
+                } else {
+                    if (loadingIndicator) loadingIndicator.remove();
+                    addMessage('Sorry, something went wrong starting your analysis. Please refresh the page and try again.', 'ai');
                 }
-            } else {
+            } else if (mode === 'saved_songs' || mode === 'new_songs') {
                 const existingAiMessage = messageList.querySelector('.ai-message');
                 if (existingAiMessage) existingAiMessage.remove();
-                if (Array.isArray(data.first_ai_message)) {
-                    for (const msg of data.first_ai_message) addMessage(msg, 'ai', false);
+
+                if (data.error) {
+                    console.error(`Initialization failed: ${data.error}`);
+                    addMessage('Sorry, there was a problem initializing the chat. Please refresh the page and try again.', 'ai');
+                } else if (Array.isArray(data.first_ai_message)) {
+                    for (const messageText of data.first_ai_message) {
+                        addMessage(messageText, 'ai', false);
+                    }
                 }
             }
-        } catch (err) {
+        })
+        .catch((error) => {
             if (loadingInterval) clearInterval(loadingInterval);
             if (loadingIndicator) loadingIndicator.remove();
-            console.error("Initialization error:", err);
-            addMessage('Sorry, something went wrong while initializing. Please try again.', 'ai');
-        } finally {
-            if (chatMode !== 'analysis') {
-                userInput.disabled = sendButton.disabled = false;
-                userInput.focus();
-            }
-        }
-    }
-
-    const segmentButtons = document.querySelectorAll('.segment-button');
-    segmentButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const newMode = this.dataset.mode;
-            switchChatMode(newMode);
+            console.error("Initialization error:", error);
+            addMessage('Sorry, there was a problem initializing the chat. Please refresh the page and try again.', 'ai');
         });
-    });
-
-    async function switchChatMode(newMode) {
-        if (chatMode === newMode) return;
-        chatMode = newMode;
-        await initializeCurrentMode();
     }
 });
