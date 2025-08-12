@@ -59,6 +59,15 @@ async function handlePlaylistAction(userAction) {
                 const dividerElement = document.createElement('div');
                 dividerElement.className = 'conversation-divider';
                 messageList.appendChild(dividerElement);
+
+                try {
+                    if (window.appendDividerToHistory) {
+                        window.appendDividerToHistory();
+                    }
+                } catch (e) {
+                    console.error('Error persisting divider to chat history:', e);
+                }
+
                 toggleChatInput(false);
 
                 if (window.addMessageAndScroll) {
@@ -315,6 +324,5 @@ function processMessageForPlaylist(messageElement) {
     });
 
     document.querySelectorAll('#message-list .message').forEach(processMessageForPlaylist);
-
     observer.observe(messageList, { childList: true, subtree: true });
 });

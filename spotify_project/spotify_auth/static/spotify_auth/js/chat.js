@@ -77,6 +77,41 @@ document.addEventListener('DOMContentLoaded', () => {
         messageList.scrollTop = messageList.scrollHeight;
     }
 
+    let suppressHistoryUpdate = false;
+
+    function updateChatHistoryData(mode, newMessage) {
+        const chatHistoryDataElement = document.getElementById('chat-history-data');
+        if (!chatHistoryDataElement) return;
+
+        try {
+            let allChatHistory = JSON.parse(chatHistoryDataElement.textContent || '[[], [], []]');
+            if (!Array.isArray(allChatHistory) || allChatHistory.length !== 3) {
+                allChatHistory = [[], [], []];
+            }
+            const indexMap = { new_songs: 0, saved_songs: 1, analysis: 2 };
+            const modeIndex = indexMap[mode];
+            if (modeIndex != null) {
+                if (!Array.isArray(allChatHistory[modeIndex])) {
+                    allChatHistory[modeIndex] = [];
+                }
+                allChatHistory[modeIndex].push(newMessage);
+                chatHistoryDataElement.textContent = JSON.stringify(allChatHistory);
+            }
+        } catch (e) {
+            console.error('Error updating chat history data:', e);
+        }
+    }
+
+    window.updateChatHistoryData = updateChatHistoryData;
+    window.appendDividerToHistory = function() {
+        try {
+            const mode = getChatMode();
+            updateChatHistoryData(mode, { role: 'divider', parts: [{ text: '---' }] });
+        } catch (e) {
+            console.error('Error appending divider to history:', e);
+        }
+    };
+
     function addMessage(text, sender, shouldScroll = true, allowBlurFade = false) {
         const chatMode = getChatMode();
         const msg = document.createElement('div');
@@ -133,6 +168,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         messageList.append(msg);
         
+        const shouldPersist =
+            !suppressHistoryUpdate &&
+            typeof text === 'string' &&
+            text.trim() !== '';
+
+        if (shouldPersist) {
+            const messageData = {
+                role: sender === 'ai' ? 'model' : 'user',
+                parts: [{ text }]
+            };
+            updateChatHistoryData(chatMode, messageData);
+        }
+
         if (shouldShowBlurFade) {
             const triggerAnimation = () => {
                 const overlay = msg.querySelector('.background-overlay');
@@ -360,6 +408,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderHistory(mode) {
+        while (messageList.firstChild) {
+            messageList.removeChild(messageList.firstChild);
+        }
+
         const chatHistoryDataElement = document.getElementById('chat-history-data');
         if (chatHistoryDataElement) {
             try {
@@ -382,6 +434,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (Array.isArray(history) && history.length > 0) {
                     const lastDividerIndex = history.map(m => m.role).lastIndexOf('divider');
 
+                    suppressHistoryUpdate = true;
+
                     history.forEach((message, index) => {
                         if (message.role && message.parts && message.parts[0] && message.parts[0].text) {
                             if (message.role === 'divider') {
@@ -397,7 +451,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 messageElement.classList.add('previous-conversation');
                             }
                             
-                            // Special styling for second AI message on analysis page
                             if (mode === 'analysis' && sender === 'ai') {
                                 const aiMessages = messageList.querySelectorAll('.ai-message');
                                 if (aiMessages.length === 1) {
@@ -416,6 +469,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
                     });
+
+                    suppressHistoryUpdate = false;
 
                     if (mode === 'analysis') {
                         let analysisScrollThreshold = 3;

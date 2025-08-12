@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Prevent re-entry
         validating[id] = true;
         
-        // Update input only if changed (avoids triggering oninput loop)
+        // Update input only if changed
         const inputElement = document.querySelector(`input[data-playlist-id="${id}"]`);
         if (inputElement && inputElement.value !== parsedUrl) {
             const cursorPosition = inputElement.selectionStart;
@@ -164,10 +164,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             
             if (response.ok) {
-                // Close modal and show success
                 window.closeImportModal();
                 
-                // Update the import button in header
                 const tooltipContainer = document.querySelector('.tooltip-container-import');
                 if (tooltipContainer) {
                     tooltipContainer.style.display = 'none';
@@ -342,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (playlist.justSucceeded) {
                             triggerBurstAnimation(inputContainer);
                         } else {
-                            // For existing success states, apply transform directly without animation
                             const containerRect = inputContainer.getBoundingClientRect();
                             const elementRect = successElement.getBoundingClientRect();
                             const distanceToLeft = elementRect.left - containerRect.left - 5.5;
@@ -362,7 +359,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const addButtonDiv = document.createElement('div');
             
             if (totalTracks > 1000) {
-                // Track limit reached - show disabled message
                 addButtonDiv.className = 'playlist-add-button-container';
                 addButtonDiv.innerHTML = `
                     <div class="playlist-limit-message">
@@ -370,7 +366,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             } else {
-                // Normal add button
                 addButtonDiv.className = 'playlist-add-button-container';
                 addButtonDiv.innerHTML = `
                     <button class="playlist-add-btn" onclick="window.playlistImport.handleAddPlaylist()">
@@ -386,24 +381,20 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(addButtonDiv);
         }
         
-        // Reset justSucceeded flags
         playlistStates = playlistStates.map(p => ({ ...p, justSucceeded: false }));
     }
 
-    // Initialize
     function initialize() {
-        visibleCount = 3; // Reset to initial visible count
+        visibleCount = 3;
         renderPlaylistInputs();
         updateImportButton();
         
-        // Set up import button event listener
         const importBtn = document.getElementById('importPlaylistsBtn');
         if (importBtn) {
             importBtn.addEventListener('click', handleImportAll);
         }
     }
 
-    // Expose functions globally for use in onclick handlers
     window.playlistImport = {
         handlePlaylistBlur,
         handlePlaylistChange,
@@ -415,7 +406,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let isModalOpen = false;
 
-    // Initialize when import modal is opened
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
@@ -423,7 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (importModal) {
                     if (importModal.style.display === 'block' && !isModalOpen) {
                         isModalOpen = true;
-                        setTimeout(initialize, 100); // Small delay to ensure DOM is ready
+                        setTimeout(initialize, 100);
                     } else if (importModal.style.display !== 'block' && isModalOpen) {
                         isModalOpen = false;
                         playlistStates = playlistStates.map(playlist => ({ 
