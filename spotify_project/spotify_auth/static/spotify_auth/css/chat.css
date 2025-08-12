@@ -360,17 +360,18 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .message-container p + p {
-    margin-top: 0.35em;
+    margin-top: -4px;
+    margin-bottom: -4px;
 }
 
 .create-playlist-success {
     text-align: center;
-    padding: 6px 13px 0px 13px;
+    padding: 10px 15px 0px 15px;
 }
 
 .create-playlist-instructions {
     text-align: center;
-    padding: 5px 13px 8px 13px;
+    padding: 0px 15px 0px 15px;
 }
 
 .spotify-save-icon{

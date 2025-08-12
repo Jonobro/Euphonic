@@ -29,6 +29,13 @@ async function handlePlaylistAction(userAction) {
     const chatMode = getChatMode();
     const messageList = document.getElementById('message-list');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    const allMessages = messageList.querySelectorAll('.message');
+    allMessages.forEach(message => {
+        const existingSecondary = message.querySelector('.additional-buttons-container');
+        if (existingSecondary) { existingSecondary.remove(); }
+    });
+
     try {
         const response = await fetch('/reset_chat_history_api/', {
             method: 'POST',
@@ -49,13 +56,7 @@ async function handlePlaylistAction(userAction) {
 
             if (data.success && data.initial_response) {
                 const allMessages = messageList.querySelectorAll('.message');
-                allMessages.forEach(message => {
-                    message.classList.add('previous-conversation');
-                    const existingSecondary = message.querySelector('.additional-buttons-container');
-                    if (existingSecondary) {
-                        existingSecondary.remove();
-                    }
-                });
+                allMessages.forEach(message => { message.classList.add('previous-conversation'); });
                 const dividerElement = document.createElement('div');
                 dividerElement.className = 'conversation-divider';
                 messageList.appendChild(dividerElement);
@@ -80,7 +81,7 @@ async function handlePlaylistAction(userAction) {
         }
     } catch (error) {
         console.error('Error resetting chat:', error);
-        alert(`Error: ${error.message}`);
+        alert("Sorry, something went wrong. Please try again.");
         toggleChatInput(false);
     }
 }
