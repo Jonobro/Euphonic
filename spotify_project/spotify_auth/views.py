@@ -537,7 +537,7 @@ def chat_view(request):
     final_chat_history = [final_new_songs_chat_history, final_saved_songs_chat_history, final_analysis_chat_history]
 
     return render(request, 'spotify_auth/chat.html', {
-        'chat_history_json': json.dumps(final_chat_history)
+        'chat_history': final_chat_history
     })
 
 def reset_view(request):

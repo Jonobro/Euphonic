@@ -117,9 +117,8 @@
         </div>
     </div>
     
-    <script id="chat-history-data" type="application/json">
-        {{ chat_history_json|safe }}
-    </script>
+    {{chat_history|json_script:"chat-history-data"}}
+
     <script src="{% static 'spotify_auth/js/chat.js' %}"></script>
     <script src="{% static 'spotify_auth/js/playlist_handler.js' %}"></script>
     <script src="{% static 'spotify_auth/js/playlist_import.js' %}"></script>
