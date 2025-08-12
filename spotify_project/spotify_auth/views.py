@@ -576,7 +576,7 @@ def _generate_musical_analysis(session_data):
         _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: analysis already in progress.")
         return
     
-    cache.set(analysis_in_progress_key, True, timeout=300)
+    cache.set(analysis_in_progress_key, True, timeout=600)
 
     try:
         cache_key_tracks = f'spotify_user_tracks_{user_id}'

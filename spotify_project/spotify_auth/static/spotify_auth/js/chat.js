@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
     let suppressHistoryUpdate = false;
+    let initialAnalysisEventSource = null;
 
     (() => {
         const chatMode = sessionStorage.getItem('chatMode') || 'new_songs';
@@ -603,7 +604,13 @@ I've talked too much – let's get started! What can I do for you?`;
                     userInput.disabled = sendButton.disabled = false;
                     userInput.focus();
                 } else if (data.analysis_started && initialAnalysisTaskId) {
+                    if (initialAnalysisEventSource) {
+                        console.log('Initial analysis EventSource already open');
+                        return;
+                    }
+
                     const es = new EventSource(`/stream_initial_analysis/${initialAnalysisTaskId}/`);
+                    initialAnalysisEventSource = es;
 
                     es.onmessage = (e) => {
                         if (loadingIndicator) loadingIndicator.remove();
@@ -619,6 +626,8 @@ I've talked too much – let's get started! What can I do for you?`;
                             });
                         }
                         es.close();
+                        initialAnalysisEventSource = null;
+
                         userInput.disabled = sendButton.disabled = false;
                         userInput.focus();
                     };
@@ -630,6 +639,7 @@ I've talked too much – let's get started! What can I do for you?`;
                         addMessage('Sorry, an error occurred while processing your request. Please refresh the page and try again.', 'ai');
                         console.error('Stream error:', errorData.message);
                         es.close();
+                        initialAnalysisEventSource = null;
                     });
 
                     es.onerror = () => {
@@ -637,6 +647,7 @@ I've talked too much – let's get started! What can I do for you?`;
                         if (loadingInterval) clearInterval(loadingInterval);
                         addMessage('Sorry, a connection error occurred while fetching your analysis. Please refresh the page and try again.', 'ai');
                         es.close();
+                        initialAnalysisEventSource = null;
                     };
                 } else {
                     if (loadingIndicator) loadingIndicator.remove();
