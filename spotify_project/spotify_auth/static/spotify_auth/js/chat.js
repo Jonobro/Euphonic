@@ -73,6 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 10);
     }
 
+    function scrollToBottomImmediate() {
+        messageList.scrollTop = messageList.scrollHeight;
+    }
+
     function addMessage(text, sender, shouldScroll = true, allowBlurFade = false) {
         const chatMode = getChatMode();
         const msg = document.createElement('div');
@@ -415,29 +419,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (mode === 'analysis') {
                         let analysisScrollThreshold = 3;
-                        if (history.length > 3 && history[3]?.parts?.[0]?.text?.includes("Note: Your Spotify music collection contains")) {
-                            analysisScrollThreshold = 4;
-                        }
                         if (history.length > analysisScrollThreshold) {
-                            scrollToBottom();
+                            scrollToBottomImmediate();
                         }
                     } else if (mode === 'new_songs' || mode === 'saved_songs') {
-                        let messagesAfterDivider = 0;
-                        if (lastDividerIndex !== -1) {
-                            messagesAfterDivider = history.slice(lastDividerIndex + 1).filter(m => m.role !== 'divider').length;
-                        } else {
-                            messagesAfterDivider = history.filter(m => m.role !== 'divider').length;
-                        }
-                        if (lastDividerIndex !== -1 && messagesAfterDivider > 0) {
-                            scrollToBottom();
-                        }
-                        let scrollThreshold = 1;
-                        if (history.length > 1 && history[1]?.parts?.[0]?.text?.includes("Note: Your Spotify music collection contains")) {
-                            scrollThreshold = 2;
-                        }
-                        if (history.length > scrollThreshold) {
-                            scrollToBottom();
-                        }
+                        scrollToBottomImmediate();
                     }
                 }
             } catch (e) {
