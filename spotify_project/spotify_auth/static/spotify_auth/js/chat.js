@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function escapeNonAscii(str) {
-        return str.replace(/[&\u007F-\uFFFF]/g, function(c) {
+        return str.replace(/[&<>\u007F-\uFFFF]/g, function(c) {
             return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
         });
     }
@@ -514,6 +514,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 initialAnalysisTaskId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
             }
+            const prev = suppressHistoryUpdate;
+            suppressHistoryUpdate = true;
             const baseText = "Welcome! I'm fetching your Spotify library and preparing your musical analysis. This might take a moment";
             loadingIndicator = addMessage(baseText + "...", 'ai', true, false);
             let dotCount = 3;
@@ -521,6 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dotCount = (dotCount % 3) + 1;
                 if (loadingIndicator) loadingIndicator.textContent = baseText + '.'.repeat(dotCount);
             }, 400);
+            suppressHistoryUpdate = prev;
         } else if (mode === 'saved_songs') {
             const initialMessage = `Hi there! I'm Aria, your personal music curator. Let's craft some custom playlists from your Spotify collection. I can filter through your music using any criteria you can imagine.
 

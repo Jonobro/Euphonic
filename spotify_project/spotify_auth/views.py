@@ -686,9 +686,10 @@ Here are a few questions you might find interesting:
         if not session_key_from_data:
             _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis for user {user_id}: session_key not found in session_data.")
             return
-            
+        
         session = session_store(session_key=session_key_from_data)
-        session.update(mock_request.session)
+        session['analysis_chat_history'] = mock_request.session.get('analysis_chat_history', [])
+        session['final_analysis_chat_history'] = mock_request.session.get('final_analysis_chat_history', [])
         session.save()
         _log_to_file(GENERAL_LOG_FILE, f"Successfully generated and saved musical analysis for user {user_id}")
     except Exception as e:
