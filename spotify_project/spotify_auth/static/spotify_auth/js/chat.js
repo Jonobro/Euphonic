@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function escapeNonAscii(str) {
-        return str.replace(/[\u007F-\uFFFF]/g, function(c) {
+        return str.replace(/[&\u007F-\uFFFF]/g, function(c) {
             return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
         });
     }
