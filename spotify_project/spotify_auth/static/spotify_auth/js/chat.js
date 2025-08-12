@@ -420,10 +420,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (mode === 'analysis') {
                         let analysisScrollThreshold = 3;
                         if (history.length > analysisScrollThreshold) {
-                            scrollToBottomImmediate();
+                            setTimeout(() => {
+                                scrollToBottomImmediate();
+                            }, 0);
                         }
                     } else if (mode === 'new_songs' || mode === 'saved_songs') {
-                        scrollToBottomImmediate();
+                        setTimeout(() => {
+                            scrollToBottomImmediate();
+                        }, 0);
                     }
                 }
             } catch (e) {
