@@ -79,6 +79,12 @@ document.addEventListener('DOMContentLoaded', () => {
         messageList.scrollTop = messageList.scrollHeight;
     }
 
+    function escapeNonAscii(str) {
+        return str.replace(/[\u007F-\uFFFF]/g, function(c) {
+            return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
+        });
+    }
+
     function updateChatHistoryData(mode, newMessage) {
         const chatHistoryDataElement = document.getElementById('chat-history-data');
         if (!chatHistoryDataElement) return;
@@ -95,7 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     allChatHistory[modeIndex] = [];
                 }
                 allChatHistory[modeIndex].push(newMessage);
-                chatHistoryDataElement.textContent = JSON.stringify(allChatHistory);
+                const jsonString = JSON.stringify(allChatHistory);
+                chatHistoryDataElement.textContent = escapeNonAscii(jsonString);
             }
         } catch (e) {
             console.error('Error updating chat history data:', e);
@@ -528,7 +535,12 @@ Here are some examples of what I can do:
 I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
-                if (existingMessages.length === 0) addMessage(initialMessage, 'ai', false, true);
+                if (existingMessages.length === 0) {
+                    const prev = suppressHistoryUpdate;
+                    suppressHistoryUpdate = true;
+                    addMessage(initialMessage, 'ai', false, true);
+                    suppressHistoryUpdate = prev;
+                }
             }, 100);
         } else if (mode === 'new_songs') {
             const initialMessage = `Hi there! I'm Aria, your personal music curator – here to help you discover new music and craft the perfect playlist.
@@ -550,7 +562,12 @@ What's special about me, though, is that I can generate custom playlists for you
 I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
-                if (existingMessages.length === 0) addMessage(initialMessage, 'ai', false, true);
+                if (existingMessages.length === 0) {
+                    const prev = suppressHistoryUpdate;
+                    suppressHistoryUpdate = true;
+                    addMessage(initialMessage, 'ai', false, true);
+                    suppressHistoryUpdate = prev;
+                }
             }, 100);
         }
 
