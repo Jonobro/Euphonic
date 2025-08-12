@@ -43,6 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageList = document.getElementById('message-list');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
+    let suppressHistoryUpdate = false;
+
     (() => {
         const chatMode = sessionStorage.getItem('chatMode') || 'new_songs';
         switchChatMode(chatMode);
@@ -76,8 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function scrollToBottomImmediate() {
         messageList.scrollTop = messageList.scrollHeight;
     }
-
-    let suppressHistoryUpdate = false;
 
     function updateChatHistoryData(mode, newMessage) {
         const chatHistoryDataElement = document.getElementById('chat-history-data');
