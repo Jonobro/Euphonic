@@ -240,6 +240,11 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     text-shadow: 0.75px 0.75px 1.6px rgba(27, 112, 57, 0.4);
 }
 
+.user-message a {
+    color: #0C0C0C;
+    text-decoration: none;
+}
+
 #chat-input-area {
     display: flex;
     align-items: center;

@@ -83,7 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function escapeNonAscii(str) {
         return str.replace(/[&<>\u007F-\uFFFF]/g, function(c) {
-            return '\\u' + ('0000' + c.charCodeAt(0).toString(16).toUpperCase()).slice(-4);
+            const hex = c.charCodeAt(0).toString(16);
+            const upperHex = hex.slice(0, -1) + hex.slice(-1).toUpperCase();
+            return '\\u' + ('0000' + upperHex).slice(-4);
         });
     }
 
@@ -198,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (content) content.classList.add('focused');
             };
 
-            const delay = initialMessageDelayNeeded ? 1250 : 300;
+            const delay = initialMessageDelayNeeded ? 15000 : 5000;
             initialMessageDelayNeeded = false;
             
             const container = document.querySelector('.container');
@@ -562,10 +564,7 @@ I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
                 if (existingMessages.length === 0) {
-                    const prev = suppressHistoryUpdate;
-                    suppressHistoryUpdate = true;
                     addMessage(initialMessage, 'ai', false, true);
-                    suppressHistoryUpdate = prev;
                 }
             }, 100);
         } else if (mode === 'new_songs') {
@@ -589,10 +588,7 @@ I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
                 if (existingMessages.length === 0) {
-                    const prev = suppressHistoryUpdate;
-                    suppressHistoryUpdate = true;
                     addMessage(initialMessage, 'ai', false, true);
-                    suppressHistoryUpdate = prev;
                 }
             }, 100);
         }
@@ -677,19 +673,13 @@ I've talked too much – let's get started! What can I do for you?`;
                     addMessage('Sorry, something went wrong starting your analysis. Please refresh the page and try again.', 'ai');
                 }
             } else if (mode === 'saved_songs' || mode === 'new_songs') {
-                const existingAiMessage = messageList.querySelector('.ai-message');
-                if (existingAiMessage) {
-                    existingAiMessage.remove();
-                    initialMessageDelayNeeded = true;
-                }
-
                 if (data.error) {
                     console.error(`Initialization failed: ${data.error}`);
                     addMessage('Sorry, there was a problem initializing the chat. Please refresh the page and try again.', 'ai');
                 } else if (Array.isArray(data.first_ai_message)) {
-                    for (const messageText of data.first_ai_message) {
+                    data.first_ai_message.slice(1).forEach(messageText => {
                         addMessage(messageText, 'ai', false, true);
-                    }
+                    });
                 }
                 userInput.disabled = sendButton.disabled = false;
                 userInput.focus();
