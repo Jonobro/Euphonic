@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userInput  = document.getElementById('user-input');
     const messageList = document.getElementById('message-list');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const MAX_TOKENS_ERROR = "Aria thought so hard she lost her train of thought. Please resend your message.";
 
     let suppressHistoryUpdate = false;
     let initialAnalysisEventSource = null;
@@ -305,9 +306,16 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         eventSource.addEventListener('stream_error', (event) => {
-            const data = JSON.parse(event.data);
-            addMessage('Sorry, an unexpected error occurred. Please try again.', 'ai');
-            console.error('Stream error:', data.message);
+            let serverMsg = null;
+            try {
+                const data = JSON.parse(event.data);
+                serverMsg = data.message;
+                console.error('Stream error:', data.message);
+            } catch (e) {
+                console.error('Stream error (parse failed):', e);
+            }
+            const fallback = 'Sorry, an unexpected error occurred. Please try again.';
+            addMessage(serverMsg === MAX_TOKENS_ERROR ? serverMsg : fallback, 'ai');
             cleanup();
         });
 
@@ -661,9 +669,16 @@ I've talked too much – let's get started! What can I do for you?`;
                     es.addEventListener('stream_error', (e) => {
                         if (loadingIndicator) loadingIndicator.remove();
                         if (loadingInterval) clearInterval(loadingInterval);
-                        const errorData = JSON.parse(e.data);
-                        addMessage('Sorry, an error occurred while processing your request. Please refresh the page and try again.', 'ai');
-                        console.error('Stream error:', errorData.message);
+                        let serverMsg = null;
+                        try {
+                            const errorData = JSON.parse(e.data);
+                            serverMsg = errorData.message;
+                            console.error('Stream error:', errorData.message);
+                        } catch (err) {
+                            console.error('Stream error (parse failed):', err);
+                        }
+                        const fallback = 'Sorry, an error occurred while processing your request. Please refresh the page and try again.';
+                        addMessage(serverMsg === MAX_TOKENS_ERROR ? serverMsg : fallback, 'ai');
                         es.close();
                         initialAnalysisEventSource = null;
                     });

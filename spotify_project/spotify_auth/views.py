@@ -12,7 +12,7 @@ from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.http import require_http_methods
 from google import genai
 from google.genai import types
-from google.genai.types import Tool, HarmCategory, HarmBlockThreshold
+from google.genai.types import Tool, HarmCategory, HarmBlockThreshold, FinishReason
 from django.views.decorators.cache import never_cache
 from pathlib import Path
 import time
@@ -396,6 +396,7 @@ SAFETY_SETTINGS = [
 ]
 
 SPOTIFY_ID = settings.SPOTIFY_ID
+MAX_TOKENS_ERROR_MESSAGE = "Aria thought so hard she lost her train of thought. Please resend your message."
 
 def _log_to_file(log_file_path, message):
     try:
@@ -635,7 +636,7 @@ DEVELOPER MESSAGE: ANALYZE THE ABOVE LIBRARY AND PROVIDE YOUR INSIGHTS PER THE R
             tools=current_tools,
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
-            thinking_config=types.ThinkingConfig(include_thoughts=True)
+            thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
         )
         chat = client.chats.create(
             model=MODEL_NAME,
@@ -1263,7 +1264,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             tools=first_pass_tools,
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
-            thinking_config=types.ThinkingConfig(include_thoughts=True)
+            # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
+            thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True)
         )
         
         chat = client.chats.create(
@@ -1284,6 +1286,15 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         response = chat.send_message(user_message)
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
+
+        try:
+            if (getattr(response, "candidates", None) and response.candidates and
+                getattr(response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
+                _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS first pass Task {task_id}.")
+                cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                return
+        except Exception as e_mt:
+            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (first pass): {e_mt}")
 
         try:
             thought_summaries = []
@@ -1333,7 +1344,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             formatting_chat_config = types.GenerateContentConfig(
                 system_instruction=FORMATTING_SYSTEM_INSTRUCTION,
                 safety_settings=SAFETY_SETTINGS,
-                thinking_config=types.ThinkingConfig(include_thoughts=True)
+                thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
             )
 
             formatting_chat = client.chats.create(
@@ -1350,6 +1361,15 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             formatting_response = formatting_chat.send_message(formatting_prompt)
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Formatting Pass - Task {task_id}):\n{formatting_response}\n******************************\n")
+
+            try:
+                if (getattr(formatting_response, "candidates", None) and formatting_response.candidates and
+                    getattr(formatting_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
+                    _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS formatting pass Task {task_id}.")
+                    cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                    return
+            except Exception as e_fmt_mt:
+                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (formatting pass): {e_fmt_mt}")
 
             try:
                 thought_summaries = []
@@ -1484,7 +1504,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 tools=feedback_pass_tools,
                 response_modalities=["TEXT"],
                 safety_settings=SAFETY_SETTINGS,
-                thinking_config=types.ThinkingConfig(include_thoughts=True)
+                thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
             )
 
             feedback_chat = client.chats.create(
@@ -1502,6 +1522,15 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
+            
+            try:
+                if (getattr(correction_response, "candidates", None) and correction_response.candidates and
+                    getattr(correction_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
+                    _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS feedback pass Task {task_id}.")
+                    cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                    return
+            except Exception as e_fb_mt:
+                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (feedback pass): {e_fb_mt}")
 
             try:
                 thought_summaries = []
@@ -1584,7 +1613,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     tools=removal_pass_tools,
                     response_modalities=["TEXT"],
                     safety_settings=SAFETY_SETTINGS,
-                    thinking_config=types.ThinkingConfig(include_thoughts=True)
+                    thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
                 )
 
                 removal_chat = client.chats.create(
@@ -1875,7 +1904,7 @@ def stream_initial_analysis(request, task_id):
 def stream_chat_response(request, task_id):
     def event_stream():
         try:
-            for _ in range(500):
+            for _ in range(600):
                 result = cache.get(task_id)
                 if result:
                     if 'error' in result:
