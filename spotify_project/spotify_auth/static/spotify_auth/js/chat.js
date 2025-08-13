@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (content) content.classList.add('focused');
             };
 
-            const delay = initialMessageDelayNeeded ? 1500 : 350;
+            const delay = initialMessageDelayNeeded ? 1000 : 350;
             initialMessageDelayNeeded = false;
             
             const container = document.querySelector('.container');
