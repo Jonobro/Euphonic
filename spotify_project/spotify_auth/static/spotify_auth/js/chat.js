@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let suppressHistoryUpdate = false;
     let initialAnalysisEventSource = null;
+    let modeSwitchCooldown = false;
 
     (() => {
         const chatMode = sessionStorage.getItem('chatMode') || 'new_songs';
@@ -327,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         userInput.disabled = sendButton.disabled = true;
         
         const thinkingMsgElement = addMessage('', 'ai');
+        thinkingMsgElement.classList.add('thinking-message');
         thinkingMsgElement.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px;">
                 <img src="/static/spotify_auth/images/FinalThinkingIndicator.svg" alt="Loading" style="width: 40px; height: 40px;">
@@ -369,6 +371,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const segmentButtons = document.querySelectorAll('.segment-button');
     segmentButtons.forEach(button => {
         button.addEventListener('click', function() {
+            if (modeSwitchCooldown) return;
+
+            modeSwitchCooldown = true;
+            segmentButtons.forEach(btn => {
+                btn.style.pointerEvents = 'none';
+            });
+            setTimeout(() => {
+                modeSwitchCooldown = false;
+                segmentButtons.forEach(btn => {
+                    btn.style.pointerEvents = '';
+                });
+            }, 250);
+
+            if (document.querySelector('.thinking-message')) {
+                alert("Aria's still thinking! Let her finish.");
+                return;
+            }
             const newMode = this.dataset.mode;
             switchChatMode(newMode);
         });
