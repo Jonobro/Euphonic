@@ -511,6 +511,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             scrollToBottomImmediate();
                         }, 0);
                     }
+
+                    userInput.disabled = sendButton.disabled = false;
+                    userInput.focus();
                 }
             } catch (e) {
                 console.error("Could not parse chat history:", e);

@@ -358,11 +358,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const totalTracks = getTotalTrackCount();
             const addButtonDiv = document.createElement('div');
             
-            if (totalTracks > 1000) {
+            if (totalTracks > 500) {
                 addButtonDiv.className = 'playlist-add-button-container';
                 addButtonDiv.innerHTML = `
                     <div class="playlist-limit-message">
-                        You've reached the 1000-track limit. We will use the first 1000 tracks from the playlists you have included so far.
+                        You've reached the 500-track limit. We will use the first 500 tracks from the playlists you have included so far.
                     </div>
                 `;
             } else {

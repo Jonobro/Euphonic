@@ -634,7 +634,8 @@ DEVELOPER MESSAGE: ANALYZE THE ABOVE LIBRARY AND PROVIDE YOUR INSIGHTS PER THE R
             system_instruction=ANALYSIS_SYSTEM_INSTRUCTION,
             tools=current_tools,
             response_modalities=["TEXT"],
-            safety_settings=SAFETY_SETTINGS
+            safety_settings=SAFETY_SETTINGS,
+            thinking_config=types.ThinkingConfig(include_thoughts=True)
         )
         chat = client.chats.create(
             model=MODEL_NAME,
@@ -651,7 +652,26 @@ DEVELOPER MESSAGE: ANALYZE THE ABOVE LIBRARY AND PROVIDE YOUR INSIGHTS PER THE R
         response = chat.send_message(initial_prompt)
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (_generate_musical_analysis for user {user_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (_generate_musical_analysis for user {user_id}):\n{response}\n******************************\n")
-        
+
+        try:
+            thought_summaries = []
+            if getattr(response, "candidates", None):
+                cand = response.candidates[0]
+                parts = getattr(getattr(cand, "content", None), "parts", []) or []
+                for part in parts:
+                    if getattr(part, "thought", False) and getattr(part, "text", None):
+                        thought_summaries.append(part.text)
+            if thought_summaries:
+                _log_to_file(
+                    GEMINI_API_LOG_FILE,
+                    "\n******************************\n"
+                    f"Thought Summaries (_generate_musical_analysis for user {user_id}):\n"
+                    f"{'\n\n'.join(thought_summaries)}\n"
+                    "******************************\n"
+                )
+        except Exception as e:
+            _log_to_file(GENERAL_LOG_FILE, f"Error extracting thought summaries (analysis) for user {user_id}: {e}")
+
         initial_text_from_gemini = response.text or ""
 
         introductory_message_start = "I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!"
@@ -1242,7 +1262,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             system_instruction=system_instruction_for_mode,
             tools=first_pass_tools,
             response_modalities=["TEXT"],
-            safety_settings=SAFETY_SETTINGS
+            safety_settings=SAFETY_SETTINGS,
+            thinking_config=types.ThinkingConfig(include_thoughts=True)
         )
         
         chat = client.chats.create(
@@ -1263,6 +1284,25 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         response = chat.send_message(user_message)
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
+
+        try:
+            thought_summaries = []
+            if getattr(response, "candidates", None):
+                cand = response.candidates[0]
+                parts = getattr(getattr(cand, "content", None), "parts", []) or []
+                for part in parts:
+                    if getattr(part, "thought", False) and getattr(part, "text", None):
+                        thought_summaries.append(part.text)
+            if thought_summaries:
+                _log_to_file(
+                    GEMINI_API_LOG_FILE,
+                    "\n******************************\n"
+                    f"Thought Summaries (chat_message_api - First Pass - Task {task_id}):\n"
+                    f"{'\n\n'.join(thought_summaries)}\n"
+                    "******************************\n"
+                )
+        except Exception as e:
+            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (first pass): {e}")
 
         ai_response_text = None
         if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
@@ -1292,7 +1332,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 
             formatting_chat_config = types.GenerateContentConfig(
                 system_instruction=FORMATTING_SYSTEM_INSTRUCTION,
-                safety_settings=SAFETY_SETTINGS
+                safety_settings=SAFETY_SETTINGS,
+                thinking_config=types.ThinkingConfig(include_thoughts=True)
             )
 
             formatting_chat = client.chats.create(
@@ -1309,6 +1350,25 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             formatting_response = formatting_chat.send_message(formatting_prompt)
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Formatting Pass - Task {task_id}):\n{formatting_response}\n******************************\n")
+
+            try:
+                thought_summaries = []
+                if getattr(formatting_response, "candidates", None):
+                    cand = formatting_response.candidates[0]
+                    parts = getattr(getattr(cand, "content", None), "parts", []) or []
+                    for part in parts:
+                        if getattr(part, "thought", False) and getattr(part, "text", None):
+                            thought_summaries.append(part.text)
+                if thought_summaries:
+                    _log_to_file(
+                        GEMINI_API_LOG_FILE,
+                        "\n******************************\n"
+                        f"Thought Summaries (chat_message_api - Formatting Pass - Task {task_id}):\n"
+                        f"{'\n\n'.join(thought_summaries)}\n"
+                        "******************************\n"
+                    )
+            except Exception as e:
+                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (formatting pass): {e}")
 
             if formatting_response.candidates and formatting_response.candidates[0].content and formatting_response.candidates[0].content.parts:
                 ai_response_text = formatting_response.text
@@ -1423,7 +1483,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 system_instruction=system_instruction_for_feedback,
                 tools=feedback_pass_tools,
                 response_modalities=["TEXT"],
-                safety_settings=SAFETY_SETTINGS
+                safety_settings=SAFETY_SETTINGS,
+                thinking_config=types.ThinkingConfig(include_thoughts=True)
             )
 
             feedback_chat = client.chats.create(
@@ -1437,12 +1498,29 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 f"  Config: {{'tools': {feedback_chat_config.tools}}}"
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
-            
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) (Task {task_id})")
             correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
-
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
+
+            try:
+                thought_summaries = []
+                if getattr(correction_response, "candidates", None):
+                    cand = correction_response.candidates[0]
+                    parts = getattr(getattr(cand, "content", None), "parts", []) or []
+                    for part in parts:
+                        if getattr(part, "thought", False) and getattr(part, "text", None):
+                            thought_summaries.append(part.text)
+                if thought_summaries:
+                    _log_to_file(
+                        GEMINI_API_LOG_FILE,
+                        "\n******************************\n"
+                        f"Thought Summaries (chat_message_api - Feedback Pass - Task {task_id}):\n"
+                        f"{'\n\n'.join(thought_summaries)}\n"
+                        "******************************\n"
+                    )
+            except Exception as e:
+                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (feedback pass): {e}")
 
             # # Logic to strip away "thinking" text that Gemini sometimes adds (in violation of the system instructions)
             # # Currently unnecessary due to updates to system instructions, but kept for potential future use
@@ -1505,7 +1583,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     system_instruction=REMOVAL_SYSTEM_INSTRUCTION,
                     tools=removal_pass_tools,
                     response_modalities=["TEXT"],
-                    safety_settings=SAFETY_SETTINGS
+                    safety_settings=SAFETY_SETTINGS,
+                    thinking_config=types.ThinkingConfig(include_thoughts=True)
                 )
 
                 removal_chat = client.chats.create(
@@ -1519,12 +1598,29 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     f"  Config: {{'tools': {removal_chat_config.tools}}}"
                 )
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
-                
                 _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) (Task {task_id})")
                 final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
                 _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
-
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass - Task {task_id}):\n{final_removal_response}\n******************************\n")
+
+                try:
+                    thought_summaries = []
+                    if getattr(final_removal_response, "candidates", None):
+                        cand = final_removal_response.candidates[0]
+                        parts = getattr(getattr(cand, "content", None), "parts", []) or []
+                        for part in parts:
+                            if getattr(part, "thought", False) and getattr(part, "text", None):
+                                thought_summaries.append(part.text)
+                    if thought_summaries:
+                        _log_to_file(
+                            GEMINI_API_LOG_FILE,
+                            "\n******************************\n"
+                            f"Thought Summaries (chat_message_api - Removal Pass - Task {task_id}):\n"
+                            f"{'\n\n'.join(thought_summaries)}\n"
+                            "******************************\n"
+                        )
+                except Exception as e:
+                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (removal pass): {e}")
 
                 # Logic to strip away "thinking" text that Gemini sometimes adds (in violation of the system instructions)
                 removal_content_parts = (final_removal_response.candidates[0].content.parts if final_removal_response.candidates and final_removal_response.candidates[0].content and final_removal_response.candidates[0].content.parts else []) or []
@@ -1833,7 +1929,6 @@ def import_playlists_api(request):
         if len(playlist_urls) > 10:
             return JsonResponse({'error': 'Maximum of 10 playlists allowed'}, status=400)
         
-        # Validate URLs and extract playlist IDs
         valid_urls = []
         for url in playlist_urls:
             if not isinstance(url, str):
@@ -1842,7 +1937,6 @@ def import_playlists_api(request):
             if not url:
                 continue
             
-            # Basic Spotify playlist URL validation
             if 'https://open.spotify.com/playlist/' not in url:
                 return JsonResponse({'error': f'Invalid Spotify playlist URL: {url}'}, status=400)
             
@@ -1856,44 +1950,36 @@ def import_playlists_api(request):
         
         _log_to_file(GENERAL_LOG_FILE, f"Starting synchronous playlist import for {len(valid_urls)} URLs for session {session_key}")
         
-        # Get Spotify access token
         access_token = get_spotify_access_token()
         if not access_token:
             _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist import in session {session_key}")
             return JsonResponse({'error': 'Failed to connect to Spotify'}, status=500)
         
-        # Set up headers for Spotify API requests
         spotify_get_playlist_items_headers = {'Authorization': f'Bearer {access_token}'}
         
         all_tracks = []
         
-        # Create a shared track counter with threading lock
         track_counter = {
             'count': 0,
             'lock': threading.Lock()
         }
         
-        # Process playlists in parallel using ThreadPoolExecutor
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            # Submit all playlist processing tasks
             future_to_url = {
                 executor.submit(_process_single_playlist, url, spotify_get_playlist_items_headers, track_counter): url 
                 for url in valid_urls
             }
             
-            # Collect results as they complete
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
                     tracks = future.result()
-                    # Add tracks to all_tracks, avoiding duplicates
                     for track in tracks:
                         if track not in all_tracks:
                             all_tracks.append(track)
                 except Exception as e:
                     _log_to_file(GENERAL_LOG_FILE, f"Exception occurred while processing playlist {url}: {e}")
         
-        # Cache the combined tracks for the user
         if all_tracks:
             if user_id:
                 cache_key_tracks = f'spotify_user_tracks_{user_id}'
@@ -1901,12 +1987,10 @@ def import_playlists_api(request):
                 _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully cached {len(all_tracks)} total tracks for user {user_id}")
                 _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
                 
-                # Generate the musical analysis asynchronously
                 _log_to_file(GENERAL_LOG_FILE, f"Playlist processing complete for session {session_key}. Starting musical analysis in background.")
                 session_data = dict(request.session)
                 session_data['session_key'] = session_key
                 
-                # Start analysis in background thread
                 thread = threading.Thread(
                     target=_generate_musical_analysis,
                     args=(session_data,)
@@ -1933,15 +2017,11 @@ def import_playlists_api(request):
 
 def _process_single_playlist(url, spotify_get_playlist_items_headers, track_counter):
     try:
-        # Extract playlist ID from URL
         if 'open.spotify.com/playlist/' in url:
             playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
         else:
             _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
             return []
-        
-        # Check if we have cached playlist details from validation
-        # Note: We'll get user_id from the session data passed to the import function
         
         tracks = []
         offset = 0
@@ -1949,10 +2029,9 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
         max_retries = 5
         
         while True:
-            # Check if we've exceeded the 1000 track limit
             with track_counter['lock']:
-                if track_counter['count'] >= 1000:
-                    _log_to_file(GENERAL_LOG_FILE, f"Track limit of 1000 reached, stopping playlist {playlist_id} processing")
+                if track_counter['count'] >= 500:
+                    _log_to_file(GENERAL_LOG_FILE, f"Track limit of 500 reached, stopping playlist {playlist_id} processing")
                     break
             
             playlist_api_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
@@ -1962,7 +2041,6 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
                 'offset': offset
             }
             
-            # Implement backoff retry logic
             for attempt in range(max_retries):
                 try:
                     _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_api_url} (offset: {offset}, limit: {limit})")
@@ -1972,18 +2050,15 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
                     if response.status_code == 200:
                         break
                     elif response.status_code == 429:
-                        # Rate limited - implement backoff
                         retry_after = int(response.headers.get('Retry-After', 2 ** attempt))
                         delay = retry_after + random.uniform(0, 1)
                         _log_to_file(SPOTIFY_API_LOG_FILE, f"Rate limited for playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                         time.sleep(delay)
                         continue
                     elif response.status_code in {400, 401, 403, 404, 422}:
-                        # Non-retryable error
                         _log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} for playlist {playlist_id}")
                         return tracks
                     else:
-                        # Other errors - implement exponential backoff
                         if attempt < max_retries - 1:
                             delay = 2 ** attempt + random.uniform(0, 1)
                             _log_to_file(SPOTIFY_API_LOG_FILE, f"Error {response.status_code} for playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
@@ -2003,7 +2078,6 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
                         _log_to_file(SPOTIFY_API_LOG_FILE, f"Request failed for playlist {playlist_id} after {max_retries} attempts: {e}")
                         return tracks
             else:
-                # All retries exhausted
                 _log_to_file(SPOTIFY_API_LOG_FILE, f"All retries exhausted for playlist {playlist_id}")
                 return tracks
             
@@ -2015,10 +2089,8 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
             items = playlist_data.get('items', [])
             
             if not items:
-                # No more tracks to fetch
                 break
             
-            # Process tracks from this batch
             batch_tracks = []
             for item in items:
                 track = item.get('track')
@@ -2034,15 +2106,13 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
                         }
                         batch_tracks.append(track_info)
             
-            # Update the global track counter and check limit
             with track_counter['lock']:
-                if track_counter['count'] + len(batch_tracks) > 1000:
-                    # Only add tracks up to the limit
-                    remaining_slots = 1000 - track_counter['count']
+                if track_counter['count'] + len(batch_tracks) > 500:
+                    remaining_slots = 500 - track_counter['count']
                     batch_tracks = batch_tracks[:remaining_slots]
                     tracks.extend(batch_tracks)
                     track_counter['count'] += len(batch_tracks)
-                    _log_to_file(GENERAL_LOG_FILE, f"Reached 1000 track limit while processing playlist {playlist_id}")
+                    _log_to_file(GENERAL_LOG_FILE, f"Reached 500 track limit while processing playlist {playlist_id}")
                     break
                 else:
                     tracks.extend(batch_tracks)
@@ -2050,7 +2120,6 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
             
             offset += limit
             
-            # Check if we've fetched all tracks for this playlist
             total_tracks = playlist_data.get('total', 0)
             if offset >= total_tracks:
                 break
