@@ -837,7 +837,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .playlist-remove-btn:hover {
-    background-color: rgba(24, 24, 24, 0.2);
+    background-color: rgba(24, 24, 24, 0.5);
 }
 
 .spinner-small {

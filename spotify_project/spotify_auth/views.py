@@ -887,7 +887,7 @@ def initialize_chat_data_view(request):
             first_ai_message = ["Chat already initialized.", "", ""]
             for index, entry in enumerate(request.session.get(final_history_mode, [])):
                 if entry.get('role') == 'model':
-                    first_ai_message[index-1] = entry['parts'][0]['text']
+                    first_ai_message[index] = entry['parts'][0]['text']
                 elif entry.get('role') == 'user' and index != 0:
                     break
         elif chat_mode in ['saved_songs', 'new_songs']:
