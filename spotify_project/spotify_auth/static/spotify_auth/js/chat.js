@@ -81,6 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
         messageList.scrollTop = messageList.scrollHeight;
     }
 
+    function scrollToTopImmediate() {
+        messageList.scrollTop = 0;
+    }
+
     function escapeNonAscii(str) {
         return str.replace(/[&<>\u007F-\uFFFF]/g, function(c) {
             const hex = c.charCodeAt(0).toString(16);
@@ -506,6 +510,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (history.length > analysisScrollThreshold) {
                             setTimeout(() => {
                                 scrollToBottomImmediate();
+                            }, 0);
+                        } else {
+                            setTimeout(() => {
+                                scrollToTopImmediate();
                             }, 0);
                         }
                     } else if (mode === 'new_songs' || mode === 'saved_songs') {

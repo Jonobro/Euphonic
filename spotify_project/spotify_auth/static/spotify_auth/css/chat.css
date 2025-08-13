@@ -911,7 +911,8 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     filter: blur(8px);
     transform: scale(0.95);
     z-index: 1;
-    transition: all 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    /* Using 0.725s instead of 0.75s for transform fixes an issue with text snapping at the end of the animation */
+    transition: filter 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.725s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .blur-fade-combo.focused {
