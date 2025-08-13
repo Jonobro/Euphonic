@@ -874,6 +874,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-second-message {
 
 body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     margin-top: 8px;
+    max-width: 87.5%;
 }
 
 .conversation-divider.analysis-divider-before {
