@@ -133,10 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const msg = document.createElement('div');
         msg.className = `message ${sender}-message`;
         
-        if (sender === 'ai' && text && text.includes("I'm afraid I can't help with that. Do you have any questions or requests related to your music?")) {
-            msg.classList.add('error-message');
-        }
-        
         const aiMessageCount = messageList.querySelectorAll('.ai-message').length;
         const isFirstAiMessage = sender === 'ai' && aiMessageCount === 0;
         const shouldShowBlurFade = allowBlurFade && isFirstAiMessage && (chatMode === 'saved_songs' || chatMode === 'new_songs');
@@ -381,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const thinkingMsgElement = addMessage('', 'ai');
         thinkingMsgElement.classList.add('thinking-message');
         thinkingMsgElement.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: -6px;">
                 <img src="/static/spotify_auth/images/FinalThinkingIndicator.svg" alt="Loading" style="width: 40px; height: 40px;">
                 <span>Aria's Thinking...</span>
             </div>
