@@ -677,7 +677,10 @@ DEVELOPER MESSAGE: ANALYZE THE ABOVE LIBRARY AND PROVIDE YOUR INSIGHTS PER THE R
         except Exception as e:
             _log_to_file(GENERAL_LOG_FILE, f"Error extracting thought summaries (analysis) for user {user_id}: {e}")
 
-        initial_text_from_gemini = response.text or ""
+        if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
+            initial_text_from_gemini = response.text
+        else:
+            initial_text_from_gemini = "Failed to generate analysis."
 
         introductory_message_start = "I have thoroughly analyzed your Spotify library and have provided my insights below. Have a look!"
         introductory_message_body_display = f"""<p class="musical-analysis-title"><strong>Your Musical Analysis</strong></p>\n\n{initial_text_from_gemini}"""
@@ -1650,6 +1653,15 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
                 _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass - Task {task_id}):\n{final_removal_response}\n******************************\n")
+
+                try:
+                    if (getattr(final_removal_response, "candidates", None) and final_removal_response.candidates and
+                        getattr(final_removal_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
+                        _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS removal pass Task {task_id}.")
+                        cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                        return
+                except Exception as e_rm_mt:
+                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (removal pass): {e_rm_mt}")
 
                 try:
                     thought_summaries = []

@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (content) content.classList.add('focused');
             };
 
-            const delay = initialMessageDelayNeeded ? 1000 : 350;
+            const delay = initialMessageDelayNeeded ? 1100 : 450;
             initialMessageDelayNeeded = false;
             
             const container = document.querySelector('.container');
@@ -247,6 +247,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return msg;
     }
 
+    function addEphemeralMessage(text, sender='ai', allowBlurFade=false) {
+        const prev = suppressHistoryUpdate;
+        suppressHistoryUpdate = true;
+        addMessage(text, sender, true, allowBlurFade);
+        suppressHistoryUpdate = prev;
+    }
+
     window.addMessageAndScroll = (text, sender) => {
         const newMessage = addMessage(text, sender, false);
         newMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -280,13 +287,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                     } else {
-                        addMessage("Sorry, I had a problem with your request. Please resend your message.", 'ai', false);
+                        addEphemeralMessage("Sorry, I had a problem with your request. Please resend your message.", 'ai');
                     }
                 } else {
                     if (data.response && data.response.trim() !== '') {
                         addMessage(data.response, 'ai', false);
                     } else {
-                        addMessage("Sorry, I had a problem with your request. Please resend your message.", 'ai', false);
+                        addEphemeralMessage("Sorry, I had a problem with your request. Please resend your message.", 'ai');
                     }
                 }
                 setTimeout(() => {
@@ -300,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }, 10);
             } else {
-                addMessage("Sorry, I had a problem with your request. Please resend your message.", 'ai', false);
+                addEphemeralMessage("Sorry, I had a problem with your request. Please resend your message.", 'ai');
             }
             cleanup();
         };
@@ -310,17 +317,16 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const data = JSON.parse(event.data);
                 serverMsg = data.message;
-                console.error('Stream error:', data.message);
             } catch (e) {
                 console.error('Stream error (parse failed):', e);
             }
             const fallback = 'Sorry, an unexpected error occurred. Please try again.';
-            addMessage(serverMsg === MAX_TOKENS_ERROR ? serverMsg : fallback, 'ai');
+            addEphemeralMessage(serverMsg === MAX_TOKENS_ERROR ? serverMsg : fallback, 'ai');
             cleanup();
         });
 
         eventSource.onerror = (err) => {
-            addMessage('A connection error occurred. Please try again.', 'ai');
+            addEphemeralMessage('A connection error occurred. Please try again.', 'ai');
             console.error("EventSource failed:", err);
             cleanup();
         };
@@ -367,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (e) {
             if (thinkingMsgElement) thinkingMsgElement.remove();
-            addMessage('Sorry, something went wrong. Please try again.', 'ai');
+            addEphemeralMessage('Sorry, something went wrong. Please try again.', 'ai');
             console.error('Chat send error:', e);
             userInput.disabled = sendButton.disabled = false;
             userInput.focus();
@@ -535,7 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (e) {
                 console.error("Could not parse chat history:", e);
-                addMessage("Sorry, there was an error loading your chat history.", 'ai');
+                addEphemeralMessage("Sorry, there was an error loading your chat history.", 'ai');
             }
         }
     }
@@ -582,7 +588,7 @@ I've talked too much – let's get started! What can I do for you?`;
                 if (existingMessages.length === 0) {
                     addMessage(initialMessage, 'ai', false, true);
                 }
-            }, 100);
+            }, 0);
         } else if (mode === 'new_songs') {
             const initialMessage = `Hi there! I'm Aria, your personal music curator – here to help you discover new music and craft the perfect playlist.
 
@@ -606,7 +612,7 @@ I've talked too much – let's get started! What can I do for you?`;
                 if (existingMessages.length === 0) {
                     addMessage(initialMessage, 'ai', false, true);
                 }
-            }, 100);
+            }, 0);
         }
 
         fetch('/initialize_chat_data/', {
@@ -634,6 +640,13 @@ I've talked too much – let's get started! What can I do for you?`;
                     if (loadingIndicator) loadingIndicator.remove();
                     if (loadingInterval) clearInterval(loadingInterval);
                     const firstMsgs = Array.isArray(data.first_ai_message) ? data.first_ai_message : [];
+                    const FAILURE_MARKER = "Failed to generate analysis.";
+                    if (firstMsgs.some(m => typeof m === 'string' && m.includes(FAILURE_MARKER))) {
+                        addEphemeralMessage('Whoops - your musical analysis failed. Please click the three dots (...) and select "Reset" to try again. You will need to reattach your Spotify playlists.', 'ai');
+                        userInput.disabled = true;
+                        sendButton.disabled = true;
+                        return;
+                    }
                     for (const msg of firstMsgs) addMessage(msg, 'ai', false, false);
                     userInput.disabled = sendButton.disabled = false;
                     userInput.focus();
@@ -652,6 +665,15 @@ I've talked too much – let's get started! What can I do for you?`;
 
                         const payload = JSON.parse(e.data);
                         const history = payload.response;
+                        const FAILURE_MARKER = "Failed to generate analysis.";
+                        if (Array.isArray(history) && history.some(message => message?.parts?.[0]?.text?.includes(FAILURE_MARKER))) {
+                            addEphemeralMessage('Whoops - your musical analysis failed. Please click the three dots (...) and select "Reset" to try again. You will need to reattach your Spotify playlists.', 'ai');
+                            userInput.disabled = true;
+                            sendButton.disabled = true;
+                            es.close();
+                            initialAnalysisEventSource = null;
+                            return;
+                        }
                         if (Array.isArray(history)) {
                             history.forEach(message => {
                                 if (message.role === 'model' && message.parts?.[0]?.text) {
@@ -673,12 +695,11 @@ I've talked too much – let's get started! What can I do for you?`;
                         try {
                             const errorData = JSON.parse(e.data);
                             serverMsg = errorData.message;
-                            console.error('Stream error:', errorData.message);
                         } catch (err) {
                             console.error('Stream error (parse failed):', err);
                         }
                         const fallback = 'Sorry, an error occurred while processing your request. Please refresh the page and try again.';
-                        addMessage(serverMsg === MAX_TOKENS_ERROR ? serverMsg : fallback, 'ai');
+                        addEphemeralMessage(serverMsg === MAX_TOKENS_ERROR ? serverMsg : fallback, 'ai');
                         es.close();
                         initialAnalysisEventSource = null;
                     });
@@ -686,23 +707,25 @@ I've talked too much – let's get started! What can I do for you?`;
                     es.onerror = () => {
                         if (loadingIndicator) loadingIndicator.remove();
                         if (loadingInterval) clearInterval(loadingInterval);
-                        addMessage('Sorry, a connection error occurred while fetching your analysis. Please refresh the page and try again.', 'ai');
+                        addEphemeralMessage('Sorry, a connection error occurred while fetching your analysis. Please refresh the page and try again.', 'ai');
                         es.close();
                         initialAnalysisEventSource = null;
                     };
                 } else {
                     if (loadingIndicator) loadingIndicator.remove();
                     if (loadingInterval) clearInterval(loadingInterval);
-                    addMessage('Sorry, something went wrong starting your analysis. Please refresh the page and try again.', 'ai');
+                    addEphemeralMessage('Sorry, something went wrong starting your analysis. Please refresh the page and try again.', 'ai');
                 }
             } else if (mode === 'saved_songs' || mode === 'new_songs') {
                 if (data.error) {
                     console.error(`Initialization failed: ${data.error}`);
-                    addMessage('Sorry, there was a problem initializing the chat. Please refresh the page and try again.', 'ai');
+                    addEphemeralMessage('Sorry, there was a problem initializing the chat. Please refresh the page and try again.', 'ai');
                 } else if (Array.isArray(data.first_ai_message)) {
-                    data.first_ai_message.slice(1).forEach(messageText => {
-                        addMessage(messageText, 'ai', false, true);
-                    });
+                    // Only add intro message if it wasn't already rendered by the front end
+                    const aiMessages = messageList.querySelectorAll('.ai-message');
+                    if (aiMessages.length === 0 && data.first_ai_message.length > 0) {
+                        addMessage(data.first_ai_message[0], 'ai', false, false);
+                    }
                 }
                 userInput.disabled = sendButton.disabled = false;
                 userInput.focus();
@@ -712,7 +735,7 @@ I've talked too much – let's get started! What can I do for you?`;
             if (loadingIndicator) loadingIndicator.remove();
             if (loadingInterval) clearInterval(loadingInterval);
             console.error("Initialization error:", error);
-            addMessage('Sorry, there was a problem initializing the chat. Please refresh the page and try again.', 'ai');
+            addEphemeralMessage('Sorry, there was a problem initializing the chat. Please refresh the page and try again.', 'ai');
         });
     }
 });
