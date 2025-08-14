@@ -239,7 +239,14 @@ function processMessageForPlaylist(messageElement) {
             openButton.addEventListener('click', async () => {
                 openButton.disabled = true;
                 openButton.innerHTML = `
-                    <div class="spinner-small"></div>
+                    <span class="spinner-small" aria-hidden="true">
+                        <svg class="spinner-small-svg" viewBox="0 0 23.813 23.813">
+                            <g class="spinner-rotator">
+                                <path class="spinner-dot" d="M2.97 11.905a1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1 1 1 0 0 0-1 1"/>
+                                <path class="spinner-ring" d="M4.97 11.906v.017a7.53 7.53 0 0 0 2.185 5.257 7.53 7.53 0 0 0 5.262 2.172 7.53 7.53 0 0 0 5.256-2.185 7.53 7.53 0 0 0 2.17-5.069 8.55 8.55 0 0 1-2.469 5.775 8.54 8.54 0 0 1-5.967 2.472c-2.21 0-4.405-.91-5.968-2.472a8.54 8.54 0 0 1-2.472-5.967Z"/>
+                            </g>
+                        </svg>
+                    </span>
                     Working on it...
                 `;
 

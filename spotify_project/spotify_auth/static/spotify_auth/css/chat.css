@@ -12,6 +12,7 @@ body {
     background-size: 100% auto;
     background-attachment: fixed;
 }
+
 .container {
     background-color: #161616;
     border-radius: 15px;
@@ -20,7 +21,9 @@ body {
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
+    will-change: opacity;
 }
+
 .container.loaded {
     visibility: visible;
     opacity: 1;
@@ -28,6 +31,7 @@ body {
     align-items: center;
     flex-direction: column;
 }
+
 h1 {
     color: rgb(30, 200, 90);
     margin-top: 0;
@@ -322,6 +326,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
+    will-change: opacity;
 }
 
 .spotify-footer.loaded {
@@ -635,6 +640,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
     box-shadow: 1px 4px 8px rgba(0, 0, 0, 0.4);
+    will-change: opacity;
 }
 
 .beta-notice.loaded {
@@ -890,25 +896,41 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 .thinking-spinner .delay-67 {animation-delay: -0.67s;}
 
 .spinner-small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 1.5rem;
     height: 1.5rem;
     margin-right: 0.5rem;
     margin-left: -0.55rem;
-    background-image: url('../images/LoadingIndicatorFinal.svg');
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
 }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+.spinner-small-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    display: block;
+}
+
+.spinner-rotator {
+    animation: spinner-rotate 1.3s linear infinite;
+    transform-origin: 11.90625px 11.90625px;
+    will-change: transform;
+}
+
+.spinner-small-svg .spinner-dot,
+.spinner-small-svg .spinner-ring {
+    fill: #1ec85a;
+}
+
+@keyframes spinner-rotate {
+    to {transform: rotate(360deg);}
 }
 
 /* Special spacing for analysis page AI messages */
 body[data-chat-mode="analysis"] .ai-message.analysis-first-message {
     margin-bottom: 8px;
+    margin-top: 9px;
 }
 
 body[data-chat-mode="analysis"] .ai-message.analysis-second-message {
@@ -944,6 +966,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     background: #161616;
     z-index: 2;
     transition: opacity 0.75s ease-out;
+    will-change: opacity;
 }
 
 .background-overlay.fade-out {
@@ -957,6 +980,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     z-index: 1;
     /* Using 0.725s instead of 0.75s for transform fixes an issue with text snapping at the end of the animation */
     transition: filter 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.725s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: filter, transform;
 }
 
 .blur-fade-combo.focused {
@@ -979,6 +1003,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     height: 1px;
     pointer-events: none;
     z-index: 1;
+    will-change: transform, opacity, filter;
 }
 
 .burst-multilayer::before,
@@ -990,6 +1015,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     transform: translate(-50%, -50%);
     border-radius: 50%;
     opacity: 0;
+    will-change: transform, opacity, filter;
 }
 
 .burst-multilayer::before {
