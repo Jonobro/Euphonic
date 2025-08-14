@@ -1414,6 +1414,11 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: ai_response_text was None, setting to empty string")
 
         if chat_mode == 'analysis':
+            if (not isinstance(ai_response_text, str) or not ai_response_text.strip()):
+                result = {'error': 'Invalid model response'}
+                cache.set(task_id, result, timeout=600)
+                return
+            
             internal_history = list(history_list)
             internal_history.append({'role': 'user', 'parts': [{'text': user_message}]})
             internal_history.append({'role': 'model', 'parts': [{'text': ai_response_text}]})
@@ -1751,6 +1756,12 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             if detailed_playlist_for_cache:
                 cache.set(f"last_processed_playlist_details_{user_id}", detailed_playlist_for_cache, timeout=3600)
 
+        if (not isinstance(final_ai_text_to_process_for_user, str) or not final_ai_text_to_process_for_user.strip() or
+            not isinstance(processed_ai_response_text, str) or not processed_ai_response_text.strip()):
+            result = {'error': 'Invalid model response'}
+            cache.set(task_id, result, timeout=600)
+            return
+        
         chat_history_placeholder = None
         if chat_mode == 'saved_songs':
             chat_history_placeholder = 'saved_songs_chat_history'

@@ -216,14 +216,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isImporting) return;
         
         if (validCount > 0) {
-            btn.style.opacity = '0.9';
-            btn.style.pointerEvents = 'auto';
             btn.disabled = false;
+            btn.classList.add('import-playlist-button--active');
             btn.textContent = `Import ${validCount} Playlist${validCount !== 1 ? 's' : ''}`;
         } else {
-            btn.style.opacity = '0';
-            btn.style.pointerEvents = 'none';
             btn.disabled = true;
+            btn.classList.remove('import-playlist-button--active');
             btn.textContent = '';
         }
     }

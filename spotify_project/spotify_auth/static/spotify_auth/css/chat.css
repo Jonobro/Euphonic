@@ -689,6 +689,11 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     justify-content: center;
 }
 
+.import-playlist-button--active {
+    opacity: 0.9;
+    pointer-events: auto;
+}
+
 .import-playlist-button:hover {
     background: rgb(30, 200, 90);
     opacity: 1.0;
