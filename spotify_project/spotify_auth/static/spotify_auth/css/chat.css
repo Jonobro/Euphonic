@@ -150,7 +150,7 @@ h2, h3, h4, h5, h6 {
     margin-bottom: 10px;
     padding: 10px 15px;
     border-radius: 15px;
-    max-width: 84.1%;
+    max-width: 84%;
     word-wrap: break-word;
     width: fit-content;
 }
@@ -214,6 +214,17 @@ h2, h3, h4, h5, h6 {
 
 .ai-message.has-playlist-button.previous-conversation {
     padding-bottom: 6px;
+}
+
+.ai-message.thinking-message {
+	padding-top: 1px;
+	padding-bottom: 1px;
+}
+
+.ai-message.thinking-message .thinking-message-contents {
+	display: flex;
+	align-items: center;
+	gap: 12px;
 }
 
 body[data-chat-mode="analysis"] .ai-message.second-message {
@@ -845,6 +856,38 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 .playlist-remove-btn:hover {
     background-color: rgba(24, 24, 24, 0.5);
 }
+
+@keyframes rotate-clockwise {
+    0% {transform: rotate(0deg);}
+    100% {transform: rotate(360deg);}
+}
+@keyframes rotate-counter-clockwise {
+    0% {transform: rotate(0deg);}
+    100% {transform: rotate(-360deg);}
+}
+
+.thinking-spinner {
+    width: 40px;
+    height: 40px;
+    display: block;
+}
+
+.thinking-spinner .spin-cw,
+.thinking-spinner .spin-ccw {
+    transform-origin: 11.90625px 11.90625px;
+    will-change: transform;
+}
+
+.thinking-spinner .spin-cw {
+    animation: rotate-clockwise 1s linear infinite;
+}
+
+.thinking-spinner .spin-ccw {
+    animation: rotate-counter-clockwise 1s linear infinite;
+}
+
+.thinking-spinner .delay-33 {animation-delay: -0.33s;}
+.thinking-spinner .delay-67 {animation-delay: -0.67s;}
 
 .spinner-small {
     width: 1.5rem;

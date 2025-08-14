@@ -377,8 +377,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const thinkingMsgElement = addMessage('', 'ai');
         thinkingMsgElement.classList.add('thinking-message');
         thinkingMsgElement.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: -6px;">
-                <img src="/static/spotify_auth/images/FinalThinkingIndicator.svg" alt="Loading" style="width: 40px; height: 40px;">
+            <div class="thinking-message-contents">
+                <svg class="thinking-spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.812 23.813" role="img" aria-label="Loading">
+                    <g id="layer1" fill="none">
+                        <g class="spin-ccw delay-33">
+                            <path d="M17.686 11.906a.647.647 0 0 1-.647.646.647.647 0 0 1-.647-.646.647.647 0 0 1 .647-.647.647.647 0 0 1 .647.647z" style="fill:#1ec85a;stroke:#000;stroke-width:0"/>
+                            <path d="M16.392 11.906v.011a4.87 4.87 0 0 1-1.412 3.4 4.87 4.87 0 0 1-3.404 1.405 4.87 4.87 0 0 1-3.4-1.413 4.87 4.87 0 0 1-1.403-3.279 5.53 5.53 0 0 0 1.597 3.735 5.52 5.52 0 0 0 3.86 1.6 5.52 5.52 0 0 0 3.859-1.6 5.52 5.52 0 0 0 1.599-3.859z" style="fill:#1ec85a;fill-opacity:1;stroke:#000;stroke-width:0"/>
+                        </g>
+                        <g class="spin-cw delay-67">
+                            <path d="M8.571 11.906a.373.373 0 0 0 .373.373.373.373 0 0 0 .374-.373.373.373 0 0 0-.374-.373.373.373 0 0 0-.373.373z" style="fill:#1ec85a;stroke:#000;stroke-width:0"/>
+                            <path d="M9.317 11.906v.007c.001.726.301 1.448.816 1.962a2.8 2.8 0 0 0 1.964.81 2.8 2.8 0 0 0 1.962-.815c.496-.498.791-1.19.81-1.892a3.2 3.2 0 0 1-.922 2.155 3.2 3.2 0 0 1-2.227.923c-.825 0-1.644-.34-2.227-.923a3.2 3.2 0 0 1-.923-2.227z" style="fill:#1ec85a;fill-opacity:1;stroke:#000;stroke-width:0"/>
+                        </g>
+                        <g class="spin-cw">
+                            <path d="M2.97 11.905a1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1 1 1 0 0 0-1 1z" style="fill:#1ec85a;stroke:#000;stroke-width:0"/>
+                            <path d="M4.97 11.906v.017a7.53 7.53 0 0 0 2.185 5.257 7.53 7.53 0 0 0 5.262 2.172 7.53 7.53 0 0 0 5.256-2.185 7.53 7.53 0 0 0 2.17-5.069 8.55 8.55 0 0 1-2.469 5.775 8.54 8.54 0 0 1-5.967 2.472c-2.21 0-4.405-.91-5.968-2.472a8.54 8.54 0 0 1-2.472-5.967Z" style="fill:#1ec85a;fill-opacity:1;stroke:#000;stroke-width:0"/>
+                        </g>
+                        <path d="M13.084 11.906a1.18 1.18 0 0 1-1.178 1.178 1.18 1.18 0 0 1-1.178-1.178 1.18 1.18 0 0 1 1.178-1.178 1.18 1.18 0 0 1 1.178 1.178" style="fill:#1ec85a;stroke:#000;stroke-width:0"/>
+                        <path d="M22.411 11.906a10.505 10.505 0 0 1-10.505 10.505A10.505 10.505 0 0 1 1.401 11.906 10.505 10.505 0 0 1 11.906 1.401a10.505 10.505 0 0 1 10.505 10.505Z" style="stroke:#1ec85a;stroke-width:1.47958;fill:none"/>
+                    </g>
+                </svg>
                 <span>Aria's Thinking...</span>
             </div>
         `;
