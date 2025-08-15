@@ -677,7 +677,7 @@ DEVELOPER MESSAGE: ANALYZE THE ABOVE LIBRARY AND PROVIDE YOUR INSIGHTS PER THE R
         except Exception as e:
             _log_to_file(GENERAL_LOG_FILE, f"Error extracting thought summaries (analysis) for user {user_id}: {e}")
 
-        if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
+        if response.candidates and response.candidates[0].content and response.candidates[0].content.parts and response.text and response.text.strip():
             initial_text_from_gemini = response.text
         else:
             initial_text_from_gemini = "Failed to generate analysis."
