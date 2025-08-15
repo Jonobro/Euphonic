@@ -156,8 +156,10 @@ function processMessageForPlaylist(messageElement) {
                 playlistActionsContainer.appendChild(messageContainer);
                 playlistActionsContainer.appendChild(secondaryActionsContainer);
                 content.appendChild(playlistActionsContainer);
-                window.toggleChatInput?.(true);
-                window.updateChatInputPlaceholder?.();
+                setTimeout(() => {
+                    window.toggleChatInput?.(true);
+                    window.updateChatInputPlaceholder?.();
+                }, 0);
                 return;
             }
 
@@ -187,10 +189,6 @@ function processMessageForPlaylist(messageElement) {
         if (trackLinks.length > 0) {
             messageElement.classList.add('has-playlist-button');
             const isLastMessage = messageIndex === allMessages.length - 1;
-            if (isLastMessage) {
-                window.toggleChatInput?.(true);
-                window.updateChatInputPlaceholder?.();
-            }
             
             const existingErrorContainer = content.querySelector('.save-playlist-error');
             if (existingErrorContainer) {
@@ -216,6 +214,13 @@ function processMessageForPlaylist(messageElement) {
             }
 
             content.appendChild(playlistActionsContainer);
+
+            if (isLastMessage) {
+                setTimeout(() => {
+                    window.toggleChatInput?.(true);
+                    window.updateChatInputPlaceholder?.();
+                }, 0);
+            }
 
             openButton.addEventListener('click', async () => {
                 openButton.disabled = true;
