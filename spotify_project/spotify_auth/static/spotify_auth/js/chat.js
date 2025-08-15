@@ -48,6 +48,45 @@ document.addEventListener('DOMContentLoaded', () => {
     let initialAnalysisEventSource = null;
     let modeSwitchCooldown = false;
 
+    function shouldShowActionPlaceholder() {
+        const aiMessages = document.querySelectorAll('.ai-message.has-playlist-button');
+        for (const msg of aiMessages) {
+            if (msg.querySelector('.secondary-button')) return true;
+        }
+        return false;
+    }
+
+    function updateChatInputPlaceholder() {
+        if (!userInput) return;
+        if (userInput.disabled) {
+            if (shouldShowActionPlaceholder()) {
+                userInput.placeholder = 'Please select an option above to continue...';
+            } else {
+                userInput.placeholder = '';
+            }
+        } else {
+            userInput.placeholder = 'Reply to Aria...';
+        }
+    }
+
+    function toggleChatInput(disable) {
+        if (userInput) {
+            userInput.disabled = disable;
+            updateChatInputPlaceholder();
+        }
+        if (sendButton) {
+            sendButton.disabled = disable;
+            if (disable) {
+                sendButton.classList.add('disabled-no-hover');
+            } else {
+                sendButton.classList.remove('disabled-no-hover');
+            }
+        }
+    }
+    window.toggleChatInput = toggleChatInput;
+    window.updateChatInputPlaceholder = updateChatInputPlaceholder;
+    window.shouldShowActionPlaceholder = shouldShowActionPlaceholder;
+
     (() => {
         const chatMode = sessionStorage.getItem('chatMode') || 'new_songs';
         switchChatMode(chatMode);
@@ -284,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cleanup = () => {
             eventSource.close();
             if (thinkingMsgElement) thinkingMsgElement.remove();
-            userInput.disabled = sendButton.disabled = false;
+            toggleChatInput(false);
             userInput.focus();
         };
 
@@ -372,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const userMessageElement = addMessage(text, 'user');
         userInput.value = '';
-        userInput.disabled = sendButton.disabled = true;
+        toggleChatInput(true);
         
         const thinkingMsgElement = addMessage('', 'ai');
         thinkingMsgElement.classList.add('thinking-message');
@@ -419,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (thinkingMsgElement) thinkingMsgElement.remove();
             addEphemeralMessage(`Sorry, something went wrong. Please try again.`, 'ai');
             console.error('Chat send error:', e);
-            userInput.disabled = sendButton.disabled = false;
+            toggleChatInput(false);
             userInput.focus();
         }
     };
@@ -580,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }, 0);
                     }
 
-                    userInput.disabled = sendButton.disabled = false;
+                    toggleChatInput(false);
                     userInput.focus();
                 }
             } catch (e) {
@@ -592,8 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initializeChatMode(mode) {
         while (messageList.firstChild) messageList.removeChild(messageList.firstChild);
-        userInput.disabled = true;
-        sendButton.disabled = true;
+        toggleChatInput(true);
 
         let initialAnalysisTaskId = null;
         let loadingIndicator = null;
@@ -687,12 +725,11 @@ I've talked too much – let's get started! What can I do for you?`;
                     const FAILURE_MARKER = "Failed to generate analysis.";
                     if (firstMsgs.some(m => typeof m === 'string' && m.includes(FAILURE_MARKER))) {
                         addEphemeralMessage(`Whoops - your musical analysis failed. Please click the three dots (...) and select "Reset" to try again. You will need to reattach your Spotify playlists.`, 'ai');
-                        userInput.disabled = true;
-                        sendButton.disabled = true;
+                        toggleChatInput(true);
                         return;
                     }
                     for (const msg of firstMsgs) addMessage(msg, 'ai', false, false);
-                    userInput.disabled = sendButton.disabled = false;
+                    toggleChatInput(false);
                     userInput.focus();
                 } else if (data.analysis_started && initialAnalysisTaskId) {
                     if (initialAnalysisEventSource) {
@@ -712,8 +749,7 @@ I've talked too much – let's get started! What can I do for you?`;
                         const FAILURE_MARKER = "Failed to generate analysis.";
                         if (Array.isArray(history) && history.some(message => message?.parts?.[0]?.text?.includes(FAILURE_MARKER))) {
                             addEphemeralMessage(`Whoops - your musical analysis failed. Please click the three dots (...) and select "Reset" to try again. You will need to reattach your Spotify playlists.`, 'ai');
-                            userInput.disabled = true;
-                            sendButton.disabled = true;
+                            toggleChatInput(true);
                             es.close();
                             initialAnalysisEventSource = null;
                             return;
@@ -728,7 +764,7 @@ I've talked too much – let's get started! What can I do for you?`;
                         es.close();
                         initialAnalysisEventSource = null;
 
-                        userInput.disabled = sendButton.disabled = false;
+                        toggleChatInput(false);
                         userInput.focus();
                     };
 
@@ -765,7 +801,7 @@ I've talked too much – let's get started! What can I do for you?`;
                         addMessage(data.first_ai_message[0], 'ai', false, false);
                     }
                 }
-                userInput.disabled = sendButton.disabled = false;
+                toggleChatInput(false);
                 userInput.focus();
             }
         })

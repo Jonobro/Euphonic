@@ -2,29 +2,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageList = document.getElementById('message-list');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    function toggleChatInput(disabled) {
-        const chatInput = document.querySelector('input[type="text"], textarea');
-        const sendButton = document.getElementById('send-button');
-
-        if (chatInput) {
-            chatInput.disabled = disabled;
-            if (disabled) {
-                chatInput.placeholder = 'Please select an option above to continue...';
-            } else {
-                chatInput.placeholder = 'Reply to Aria...';
-            }
-        }
-        
-        if (sendButton) {
-            sendButton.disabled = disabled;
-            if (disabled) {
-                sendButton.classList.add('disabled-no-hover');
-            } else {
-                sendButton.classList.remove('disabled-no-hover');
-            }
-        }
-    }
-
 async function handlePlaylistAction(userAction) {
     const chatMode = getChatMode();
     const messageList = document.getElementById('message-list');
@@ -69,7 +46,8 @@ async function handlePlaylistAction(userAction) {
                     console.error('Error persisting divider to chat history:', e);
                 }
 
-                toggleChatInput(false);
+                window.toggleChatInput?.(false);
+                window.updateChatInputPlaceholder?.();
 
                 if (window.addMessageAndScroll) {
                     window.addMessageAndScroll(data.initial_response, 'ai');
@@ -82,7 +60,8 @@ async function handlePlaylistAction(userAction) {
     } catch (error) {
         console.error('Error resetting chat:', error);
         alert("Sorry, something went wrong. Please try again.");
-        toggleChatInput(false);
+        window.toggleChatInput?.(false);
+        window.updateChatInputPlaceholder?.();
     }
 }
 
@@ -177,7 +156,8 @@ function processMessageForPlaylist(messageElement) {
                 playlistActionsContainer.appendChild(messageContainer);
                 playlistActionsContainer.appendChild(secondaryActionsContainer);
                 content.appendChild(playlistActionsContainer);
-                toggleChatInput(true);
+                window.toggleChatInput?.(true);
+                window.updateChatInputPlaceholder?.();
                 return;
             }
 
@@ -208,7 +188,8 @@ function processMessageForPlaylist(messageElement) {
             messageElement.classList.add('has-playlist-button');
             const isLastMessage = messageIndex === allMessages.length - 1;
             if (isLastMessage) {
-                toggleChatInput(true);
+                window.toggleChatInput?.(true);
+                window.updateChatInputPlaceholder?.();
             }
             
             const existingErrorContainer = content.querySelector('.save-playlist-error');
