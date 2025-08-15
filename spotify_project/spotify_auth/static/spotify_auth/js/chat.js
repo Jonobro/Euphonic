@@ -741,6 +741,11 @@ I've talked too much – let's get started! What can I do for you?`;
                     initialAnalysisEventSource = es;
 
                     es.onmessage = (e) => {
+                        if (getChatMode() !== 'analysis') {
+                            es.close();
+                            initialAnalysisEventSource = null;
+                            return;
+                        }
                         if (loadingIndicator) loadingIndicator.remove();
                         if (loadingInterval) clearInterval(loadingInterval);
 
@@ -769,6 +774,11 @@ I've talked too much – let's get started! What can I do for you?`;
                     };
 
                     es.addEventListener('stream_error', (e) => {
+                        if (getChatMode() !== 'analysis') {
+                            es.close();
+                            initialAnalysisEventSource = null;
+                            return;
+                        }
                         if (loadingIndicator) loadingIndicator.remove();
                         if (loadingInterval) clearInterval(loadingInterval);
                         const errorData = JSON.parse(e.data);
@@ -779,6 +789,11 @@ I've talked too much – let's get started! What can I do for you?`;
                     });
 
                     es.onerror = () => {
+                        if (getChatMode() !== 'analysis') {
+                            es.close();
+                            initialAnalysisEventSource = null;
+                            return;
+                        }
                         if (loadingIndicator) loadingIndicator.remove();
                         if (loadingInterval) clearInterval(loadingInterval);
                         addEphemeralMessage(`Sorry, a connection error occurred while fetching your analysis. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
