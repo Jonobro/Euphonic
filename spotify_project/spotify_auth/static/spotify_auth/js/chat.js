@@ -643,16 +643,20 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 initialAnalysisTaskId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
             }
-            const prev = suppressHistoryUpdate;
-            suppressHistoryUpdate = true;
-            const baseText = "Welcome! I'm fetching your Spotify library and preparing your musical analysis. This might take a moment";
-            loadingIndicator = addMessage(baseText + "...", 'ai', true, false);
-            let dotCount = 3;
-            loadingInterval = setInterval(() => {
-                dotCount = (dotCount % 3) + 1;
-                if (loadingIndicator) loadingIndicator.textContent = baseText + '.'.repeat(dotCount);
-            }, 400);
-            suppressHistoryUpdate = prev;
+            const baseText = "Welcome! I'm preparing your musical analysis. This might take a moment";
+            setTimeout(() => {
+                if (messageList.querySelectorAll('.message').length === 0) {
+                    const prev = suppressHistoryUpdate;
+                    suppressHistoryUpdate = true;
+                    loadingIndicator = addMessage(baseText + "...", 'ai', true, false);
+                    let dotCount = 3;
+                    loadingInterval = setInterval(() => {
+                        dotCount = (dotCount % 3) + 1;
+                        if (loadingIndicator) loadingIndicator.textContent = baseText + '.'.repeat(dotCount);
+                    }, 400);
+                    suppressHistoryUpdate = prev;
+                }
+            }, 10);
         } else if (mode === 'saved_songs') {
             const initialMessage = `Hi there! I'm Aria, your personal music curator. Let's craft some custom playlists from your Spotify collection. I can filter through your music using any criteria you can imagine.
 
