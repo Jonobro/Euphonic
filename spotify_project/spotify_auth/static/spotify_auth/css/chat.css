@@ -65,7 +65,6 @@ h2, h3, h4, h5, h6 {
     padding-top: 4.5px;
     padding-bottom: 4.5px;
     min-width: 30%;
-    transform: translateX(10px);
 }
 
 .button {
@@ -180,7 +179,6 @@ h2, h3, h4, h5, h6 {
     background-color: #161616;
     color: #e0e0e0;
     align-self: flex-start;
-    border-bottom-left-radius: 5px;
     font-size: 0.86em;
     /* Poppins Regular */
     font-weight: 400;
@@ -200,11 +198,12 @@ h2, h3, h4, h5, h6 {
 
 .ai-message.has-playlist-button {
     padding-bottom: 22px;
-    border-bottom-left-radius: 15px;
-    padding-right: 35px;
     margin-left: auto;
     margin-right: auto;
     margin-top: -18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .message.ai-message.has-playlist-button ul {
@@ -403,7 +402,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     display: flex;
     justify-content: center;
     gap: 18px;
-    transform: translateX(10px);
 }
 
 .save-playlist-error {
@@ -416,7 +414,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     margin-top: 10px;
     margin-bottom: 5px;
     padding: 10px 20px;
-    transform: translateX(11px);
     color: #0C0C0C;
     background: rgb(30, 200, 90);
     border: none;
@@ -432,7 +429,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .save-playlist-button:hover {
-    transform: translateX(11px);
     background: rgb(30, 200, 90);
     padding: 11px 22px;
     opacity: 1.0;
@@ -459,7 +455,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     font-size: 13px;
     margin-top: 10px;
     margin-bottom: 5px;
-    min-width: 129px;
+    min-width: 130px;
     background-color: #121212;
     color: rgba(224,224,224,0.85);
     padding: 10px 20px;
