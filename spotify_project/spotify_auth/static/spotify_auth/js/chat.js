@@ -832,6 +832,7 @@ I've talked too much – let's get started! What can I do for you?`;
 
         const cfg = { dotSpeed: 0.1 /* Revised from dotSpeed: 0.8 for testing */, glowColor: 'rgb(30,200,90)', /* glowBlur: 8 */ dotRadius: 4, lineWidth: 2 };
         const easing = { easeInCubic: t => t*t*t, easeOutCubic: t => 1 - Math.pow(1-t,3) };
+        ctx.lineJoin = 'round';
 
         function animateTransition(fromBtn, toBtn, done) {
             if (isAnimating || !fromBtn || !toBtn || fromBtn === toBtn) { done && done(); return; }
@@ -994,23 +995,39 @@ I've talked too much – let's get started! What can I do for you?`;
             return path.points[path.points.length-1];
         }
         function roundedRectPath(r){
-            const {x,y,width,height,radius} = r;
-            const pts=[]; const cornerSeg=15; const lineSeg=Math.max(1, Math.floor(width/10));
-            const addLine=(x1,y1,x2,y2,n)=>{for(let i=1;i<=n;i++){const t=i/n;pts.push({x:x1+(x2-x1)*t,y:y1+(y2-y1)*t});}};
-            const addCorner=(cx,cy,a1,a2)=>{for(let i=1;i<=cornerSeg;i++){const t=i/cornerSeg;const ang=a1+(a2-a1)*t;pts.push({x:cx+radius*Math.cos(ang),y:cy+radius*Math.sin(ang)});}};
-            pts.push({x:x+width/2,y:y+height});
-            addLine(x+width/2,y+height,x+width-radius,y+height,lineSeg/2);
-            addCorner(x+width-radius,y+height-radius,Math.PI/2,0);
-            addLine(x+width,y+height-radius,x+width,y+radius,lineSeg);
-            addCorner(x+width-radius,y+radius,0,-Math.PI/2);
-            addLine(x+width-radius,y,x+radius,y,lineSeg);
-            addCorner(x+radius,y+radius,-Math.PI/2,-Math.PI);
-            addLine(x,y+radius,x,y+height-radius,lineSeg);
-            addCorner(x+radius,y+height-radius,-Math.PI,-Math.PI*1.5);
-            addLine(x+radius,y+height,x+width/2,y+height,lineSeg/2);
-            const lengths=[]; let total=0;
-            for(let i=0;i<pts.length-1;i++){const dx=pts[i+1].x-pts[i].x;const dy=pts[i+1].y-pts[i].y;const len=Math.hypot(dx,dy);lengths.push(len);total+=len;}
-            return {points:pts,lengths,totalLength:total};
+            let {x,y,width,height,radius} = r;
+            const maxR = Math.min(width, height) / 2;
+            radius = Math.min(Math.max(0, radius), maxR);
+
+            const pts = [];
+            const lengths = [];
+            const stepsPerQuarter = 18;
+            function addArc(cx, cy, startAng, endAng){
+                for (let i=1;i<=stepsPerQuarter;i++){
+                    const t=i/stepsPerQuarter;
+                    const ang=startAng + (endAng-startAng)*t;
+                    pts.push({ x: cx + radius*Math.cos(ang), y: cy + radius*Math.sin(ang) });
+                }
+            }
+
+            pts.push({ x: x + width/2, y: y + height });
+            pts.push({ x: x + width - radius, y: y + height });
+            addArc(x + width - radius, y + height - radius, Math.PI/2, 0);
+            pts.push({ x: x + width, y: y + radius });
+            addArc(x + width - radius, y + radius, 0, -Math.PI/2);
+            pts.push({ x: x + radius, y: y });
+            addArc(x + radius, y + radius, -Math.PI/2, -Math.PI);
+            pts.push({ x: x, y: y + height - radius });
+            addArc(x + radius, y + height - radius, -Math.PI, -Math.PI*1.5);
+            pts.push({ x: x + width/2, y: y + height });
+            let total=0;
+            for (let i=0;i<pts.length-1;i++){
+                const dx=pts[i+1].x-pts[i].x, dy=pts[i+1].y-pts[i].y;
+                const len=Math.hypot(dx,dy);
+                lengths.push(len);
+                total += len;
+            }
+            return { points: pts, lengths, totalLength: total };
         }
         function progressOnPath(path, point){
             let best=0,bestDist=Infinity,acc=0;
