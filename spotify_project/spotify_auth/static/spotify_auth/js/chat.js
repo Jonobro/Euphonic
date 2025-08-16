@@ -857,12 +857,14 @@ I've talked too much – let's get started! What can I do for you?`;
                 .then(() => runTravel(fromBtn, toBtn))
                 .then(() => runPathAnimation(toPath, 'paint', direction, paintDuration))
                 .then(() => {
-                    ctx.clearRect(0,0,canvas.width,canvas.height);
-                    fromBtn.classList.remove('was-active');
                     toBtn.classList.add('active');
-                    control.classList.remove('is-animating');
-                    isAnimating = false;
-                    done && done();
+                    requestAnimationFrame(() => {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        fromBtn.classList.remove('was-active');
+                        control.classList.remove('is-animating');
+                        isAnimating = false;
+                        done && done();
+                    });
                 });
         }
 
