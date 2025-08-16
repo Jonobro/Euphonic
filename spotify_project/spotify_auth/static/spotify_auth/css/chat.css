@@ -981,33 +981,21 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     position: relative;
 }
 
-.background-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: #161616;
-    z-index: 2;
-    transition: opacity 0.75s ease-out;
-    will-change: opacity;
-}
-
-.background-overlay.fade-out {
-    opacity: 0;
-}
-
 .blur-fade-combo {
-    opacity: 1;
+    opacity: 0;
     filter: blur(8px);
     transform: scale(0.95);
     z-index: 1;
-    /* Using 0.725s instead of 0.75s for transform fixes an issue with text snapping at the end of the animation */
-    transition: filter 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.725s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    will-change: filter, transform;
+    transition: 
+        opacity 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        filter 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        /* Using 0.725s instead of 0.75s for transform fixes an issue with text snapping at the end of the animation */
+        transform 0.725s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: opacity, filter, transform;
 }
 
 .blur-fade-combo.focused {
+    opacity: 1;
     filter: blur(0px);
     transform: scale(1);
 }

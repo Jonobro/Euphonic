@@ -178,10 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (shouldShowBlurFade) {
             msg.classList.add('blur-fade-container');
-            const backgroundOverlay = document.createElement('div');
-            backgroundOverlay.className = 'background-overlay';
-            msg.appendChild(backgroundOverlay);
-            
             const contentDiv = document.createElement('div');
             contentDiv.className = 'blur-fade-combo';
             msg.appendChild(contentDiv);
@@ -234,9 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (shouldShowBlurFade) {
             const triggerAnimation = () => {
-                const overlay = msg.querySelector('.background-overlay');
                 const content = msg.querySelector('.blur-fade-combo');
-                if (overlay) overlay.classList.add('fade-out');
                 if (content) content.classList.add('focused');
             };
 
