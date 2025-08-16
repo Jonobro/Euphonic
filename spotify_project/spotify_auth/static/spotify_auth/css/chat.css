@@ -1136,6 +1136,21 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     width: 100%;
     border-radius: 20px;
     align-items: center;
+    position: relative;
+}
+
+#segment-animation-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.segmented-control.is-animating .segment-button.active,
+.segmented-control.is-animating .segment-button.was-active {
+    border-color: transparent;
 }
 
 .segment-button {

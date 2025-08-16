@@ -471,31 +471,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const segmentButtons = document.querySelectorAll('.segment-button');
-    segmentButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            if (modeSwitchCooldown) return;
-
-            modeSwitchCooldown = true;
-            segmentButtons.forEach(btn => {
-                btn.style.pointerEvents = 'none';
-            });
-            setTimeout(() => {
-                modeSwitchCooldown = false;
-                segmentButtons.forEach(btn => {
-                    btn.style.pointerEvents = '';
-                });
-            }, 250);
-
-            if (document.querySelector('.thinking-message')) {
-                alert("Aria's still thinking! Let her finish.");
-                return;
-            }
-            const newMode = this.dataset.mode;
-            switchChatMode(newMode);
-        });
-    });
-
     function setActiveSegment(mode) {
         const buttons = document.querySelectorAll('.segment-button');
         buttons.forEach(btn => {
@@ -832,4 +807,255 @@ I've talked too much – let's get started! What can I do for you?`;
             addEphemeralMessage(`Sorry, there was a problem initializing the chat. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
         });
     }
+
+    (function initSegmentedControlAnimation() {
+        const control = document.querySelector('.segmented-control');
+        const canvas = document.getElementById('segment-animation-canvas');
+        if (!control || !canvas) return;
+        const ctx = canvas.getContext('2d');
+        const buttons = Array.from(control.querySelectorAll('.segment-button'));
+
+        let isAnimating = false;
+
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = control.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.setTransform(1,0,0,1,0,0);
+            ctx.scale(dpr, dpr);
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const cfg = { dotSpeed: 0.8, glowColor: 'rgb(30,200,90)', glowBlur: 8, dotRadius: 4, lineWidth: 2 };
+        const easing = { easeInCubic: t => t*t*t, easeOutCubic: t => 1 - Math.pow(1-t,3) };
+
+        function animateTransition(fromBtn, toBtn, done) {
+            if (isAnimating || !fromBtn || !toBtn || fromBtn === toBtn) { done && done(); return; }
+            isAnimating = true;
+            control.classList.add('is-animating');
+
+            const fromRect = relRect(fromBtn);
+            const toRect = relRect(toBtn);
+            const fromIdx = buttons.indexOf(fromBtn);
+            const toIdx = buttons.indexOf(toBtn);
+            const direction = toIdx > fromIdx ? 'forward' : 'reverse';
+
+            const fromPath = roundedRectPath(fromRect);
+            const toPath = roundedRectPath(toRect);
+            const eraseDuration = fromPath.totalLength / cfg.dotSpeed;
+            const paintDuration = toPath.totalLength / cfg.dotSpeed;
+
+            fromBtn.classList.remove('active');
+            fromBtn.classList.add('was-active');
+
+            runPathAnimation(fromPath, 'erase', direction, eraseDuration)
+                .then(() => runTravel(fromBtn, toBtn))
+                .then(() => runPathAnimation(toPath, 'paint', direction, paintDuration))
+                .then(() => {
+                    ctx.clearRect(0,0,canvas.width,canvas.height);
+                    fromBtn.classList.remove('was-active');
+                    toBtn.classList.add('active');
+                    control.classList.remove('is-animating');
+                    isAnimating = false;
+                    done && done();
+                });
+        }
+
+        function runTravel(fromBtn, toBtn) {
+            return new Promise(res => {
+                const cRect = relRect(control, true);
+                const cPath = roundedRectPath(cRect);
+                const fRect = relRect(fromBtn);
+                const tRect = relRect(toBtn);
+                const startPt = { x: fRect.x + fRect.width/2, y: fRect.y + fRect.height + cfg.lineWidth };
+                const endPt   = { x: tRect.x + tRect.width/2, y: tRect.y + tRect.height + cfg.lineWidth };
+                const startProg = progressOnPath(cPath, startPt);
+                const endProg = progressOnPath(cPath, endPt);
+                const distF = (endProg - startProg + 1) % 1;
+                const distB = (startProg - endProg + 1) % 1;
+                const travelFrac = Math.min(distF, distB);
+                const dir = distF < distB ? 1 : -1;
+                const travelPx = travelFrac * cPath.totalLength;
+                const duration = travelPx / 2.4;
+                let start = null;
+                function frame(ts) {
+                    if (!start) start = ts;
+                    const elapsed = ts - start;
+                    const raw = duration > 0 ? Math.min(elapsed / duration, 1) : 1;
+                    ctx.clearRect(0,0,canvas.width,canvas.height);
+                    const pathProg = (startProg + travelFrac * raw * dir + 1) % 1;
+                    const pos = pointOnPath(cPath, pathProg);
+                    drawDot(pos.x, pos.y);
+                    if (raw < 1) requestAnimationFrame(frame); else res();
+                }
+                requestAnimationFrame(frame);
+            });
+        }
+
+        function runPathAnimation(orig, type, direction, duration) {
+            return new Promise(res => {
+                let path = orig;
+                if (direction === 'reverse') {
+                    path = { ...orig, points: [...orig.points].reverse(), lengths: [...orig.lengths].reverse() };
+                }
+                let start = null;
+                function frame(ts) {
+                    if (!start) start = ts;
+                    const elapsed = ts - start;
+                    const raw = duration > 0 ? Math.min(elapsed / duration, 1) : 1;
+                    const eased = type === 'erase' ? easing.easeInCubic(raw) : easing.easeOutCubic(raw);
+                    ctx.clearRect(0,0,canvas.width,canvas.height);
+                    ctx.lineWidth = cfg.lineWidth;
+                    ctx.lineCap = 'round';
+                    ctx.strokeStyle = cfg.glowColor;
+                    ctx.shadowColor = cfg.glowColor;
+                    ctx.shadowBlur = cfg.glowBlur;
+                    if (type === 'erase') {
+                        drawFullPath(path.points);
+                        erasePortion(path, eased);
+                    } else {
+                        paintPortion(path, eased);
+                    }
+                    const pos = pointOnPath(path, eased);
+                    drawDot(pos.x, pos.y);
+                    if (raw < 1) requestAnimationFrame(frame); else res();
+                }
+                requestAnimationFrame(frame);
+            });
+        }
+
+        function drawDot(x,y){ ctx.beginPath(); ctx.arc(x,y,cfg.dotRadius,0,Math.PI*2); ctx.fillStyle=cfg.glowColor; ctx.fill(); ctx.shadowBlur=0; }
+        function drawFullPath(pts){ ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y); ctx.stroke(); }
+        function paintPortion(path, prog){
+            const target = path.totalLength * prog;
+            ctx.beginPath(); ctx.moveTo(path.points[0].x, path.points[0].y);
+            let acc=0;
+            for(let i=1;i<path.points.length;i++){
+                const seg = path.lengths[i-1];
+                if (acc + seg > target){
+                    const rem = target - acc;
+                    const r = rem / seg;
+                    ctx.lineTo(path.points[i-1].x + (path.points[i].x - path.points[i-1].x)*r,
+                               path.points[i-1].y + (path.points[i].y - path.points[i-1].y)*r);
+                    break;
+                }
+                ctx.lineTo(path.points[i].x, path.points[i].y);
+                acc += seg;
+            }
+            ctx.stroke();
+        }
+        function erasePortion(path, prog){
+            ctx.save();
+            ctx.globalCompositeOperation='destination-out';
+            ctx.lineWidth = cfg.lineWidth + 2;
+            const target = path.totalLength * prog;
+            ctx.beginPath(); ctx.moveTo(path.points[0].x, path.points[0].y);
+            let acc=0;
+            for(let i=1;i<path.points.length;i++){
+                const seg = path.lengths[i-1];
+                if (acc + seg > target){
+                    const rem = target - acc;
+                    const r = rem / seg;
+                    ctx.lineTo(path.points[i-1].x + (path.points[i].x - path.points[i-1].x)*r,
+                               path.points[i-1].y + (path.points[i].y - path.points[i-1].y)*r);
+                    break;
+                }
+                ctx.lineTo(path.points[i].x, path.points[i].y);
+                acc += seg;
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+        function pointOnPath(path, prog){
+            const target = path.totalLength * prog;
+            let acc=0;
+            for(let i=1;i<path.points.length;i++){
+                const seg = path.lengths[i-1];
+                if (acc + seg >= target){
+                    const rem = target - acc;
+                    const r = seg ? rem / seg : 0;
+                    return {
+                        x: path.points[i-1].x + (path.points[i].x - path.points[i-1].x)*r,
+                        y: path.points[i-1].y + (path.points[i].y - path.points[i-1].y)*r
+                    };
+                }
+                acc += seg;
+            }
+            return path.points[path.points.length-1];
+        }
+        function roundedRectPath(r){
+            const {x,y,width,height,radius} = r;
+            const pts=[]; const cornerSeg=15; const lineSeg=Math.max(1, Math.floor(width/10));
+            const addLine=(x1,y1,x2,y2,n)=>{for(let i=1;i<=n;i++){const t=i/n;pts.push({x:x1+(x2-x1)*t,y:y1+(y2-y1)*t});}};
+            const addCorner=(cx,cy,a1,a2)=>{for(let i=1;i<=cornerSeg;i++){const t=i/cornerSeg;const ang=a1+(a2-a1)*t;pts.push({x:cx+radius*Math.cos(ang),y:cy+radius*Math.sin(ang)});}};
+            pts.push({x:x+width/2,y:y+height});
+            addLine(x+width/2,y+height,x+width-radius,y+height,lineSeg/2);
+            addCorner(x+width-radius,y+height-radius,Math.PI/2,0);
+            addLine(x+width,y+height-radius,x+width,y+radius,lineSeg);
+            addCorner(x+width-radius,y+radius,0,-Math.PI/2);
+            addLine(x+width-radius,y,x+radius,y,lineSeg);
+            addCorner(x+radius,y+radius,-Math.PI/2,-Math.PI);
+            addLine(x,y+radius,x,y+height-radius,lineSeg);
+            addCorner(x+radius,y+height-radius,-Math.PI,-Math.PI*1.5);
+            addLine(x+radius,y+height,x+width/2,y+height,lineSeg/2);
+            const lengths=[]; let total=0;
+            for(let i=0;i<pts.length-1;i++){const dx=pts[i+1].x-pts[i].x;const dy=pts[i+1].y-pts[i].y;const len=Math.hypot(dx,dy);lengths.push(len);total+=len;}
+            return {points:pts,lengths,totalLength:total};
+        }
+        function progressOnPath(path, point){
+            let best=0,bestDist=Infinity,acc=0;
+            for(let i=0;i<path.points.length-1;i++){
+                const p1=path.points[i],p2=path.points[i+1];const seg=path.lengths[i];
+                if (!seg){acc+=seg;continue;}
+                const dx=p2.x-p1.x, dy=p2.y-p1.y;
+                let t=((point.x-p1.x)*dx+(point.y-p1.y)*dy)/(seg*seg);
+                t=Math.max(0,Math.min(1,t));
+                const cx=p1.x+t*dx, cy=p1.y+t*dy;
+                const dist=(point.x-cx)**2+(point.y-cy)**2;
+                if (dist<bestDist){bestDist=dist;best=(acc + t*seg)/path.totalLength;}
+                acc+=seg;
+            }
+            return best;
+        }
+        function relRect(el,isContainer=false){
+            const parent = control.getBoundingClientRect();
+            const rect = el.getBoundingClientRect();
+            const radius = parseFloat(getComputedStyle(buttons[0]).borderRadius)||20;
+            const inset = cfg.lineWidth/2;
+            if (isContainer) return {x:inset,y:inset,width:rect.width-inset*2,height:rect.height-inset*2,radius:radius-inset};
+            return {
+                x: rect.left - parent.left + inset,
+                y: rect.top - parent.top + inset,
+                width: rect.width - inset*2,
+                height: rect.height - inset*2,
+                radius: radius - inset
+            };
+        }
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (isAnimating || modeSwitchCooldown || this.classList.contains('active')) return;
+                if (document.querySelector('.thinking-message')) {
+                    alert("Aria's still thinking! Let her finish.");
+                    return;
+                }
+                const fromBtn = document.querySelector('.segment-button.active');
+                const toBtn = this;
+                modeSwitchCooldown = true;
+                buttons.forEach(b => b.style.pointerEvents='none');
+
+                animateTransition(fromBtn, toBtn, () => {
+                    switchChatMode(toBtn.dataset.mode);
+                    setTimeout(() => {
+                        modeSwitchCooldown = false;
+                        buttons.forEach(b => b.style.pointerEvents='');
+                    }, 100);
+                });
+            }, { capture: true });
+        });
+    })();
 });
