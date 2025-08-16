@@ -830,7 +830,7 @@ I've talked too much – let's get started! What can I do for you?`;
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        const cfg = { dotSpeed: 0.8, glowColor: 'rgb(30,200,90)', glowBlur: 8, dotRadius: 4, lineWidth: 2 };
+        const cfg = { dotSpeed: 0.1 /* Revised from dotSpeed: 0.8 for testing */, glowColor: 'rgb(30,200,90)', /* glowBlur: 8 */ dotRadius: 4, lineWidth: 2 };
         const easing = { easeInCubic: t => t*t*t, easeOutCubic: t => 1 - Math.pow(1-t,3) };
 
         function animateTransition(fromBtn, toBtn, done) {
@@ -880,7 +880,7 @@ I've talked too much – let's get started! What can I do for you?`;
                 const travelFrac = Math.min(distF, distB);
                 const dir = distF < distB ? 1 : -1;
                 const travelPx = travelFrac * cPath.totalLength;
-                const duration = travelPx / 2.4;
+                const duration = travelPx / 0.3; /* Revised from 2.4 for testing */
                 let start = null;
                 function frame(ts) {
                     if (!start) start = ts;
@@ -912,8 +912,8 @@ I've talked too much – let's get started! What can I do for you?`;
                     ctx.lineWidth = cfg.lineWidth;
                     ctx.lineCap = 'round';
                     ctx.strokeStyle = cfg.glowColor;
-                    ctx.shadowColor = cfg.glowColor;
-                    ctx.shadowBlur = cfg.glowBlur;
+                    // ctx.shadowColor = cfg.glowColor; // glow disabled
+                    // ctx.shadowBlur = cfg.glowBlur; // glow disabled
                     if (type === 'erase') {
                         drawFullPath(path.points);
                         erasePortion(path, eased);
@@ -928,7 +928,13 @@ I've talked too much – let's get started! What can I do for you?`;
             });
         }
 
-        function drawDot(x,y){ ctx.beginPath(); ctx.arc(x,y,cfg.dotRadius,0,Math.PI*2); ctx.fillStyle=cfg.glowColor; ctx.fill(); ctx.shadowBlur=0; }
+        function drawDot(x,y){
+            ctx.beginPath();
+            ctx.arc(x,y,cfg.dotRadius,0,Math.PI*2);
+            ctx.fillStyle=cfg.glowColor;
+            ctx.fill();
+            // ctx.shadowBlur=0; // not needed while glow disabled
+        }
         function drawFullPath(pts){ ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y); ctx.stroke(); }
         function paintPortion(path, prog){
             const target = path.totalLength * prog;
@@ -1053,7 +1059,7 @@ I've talked too much – let's get started! What can I do for you?`;
                     setTimeout(() => {
                         modeSwitchCooldown = false;
                         buttons.forEach(b => b.style.pointerEvents='');
-                    }, 100);
+                    }, 200);
                 });
             }, { capture: true });
         });
