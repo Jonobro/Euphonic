@@ -1233,7 +1233,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     position: absolute;
     z-index: 1000;
     width: 19rem;
-    background-color: #1f1f1f;
+    background-color: #141414;
     border: 1px solid #535353;
     border-radius: 12px;
     box-shadow: 0px 3px 7.5px rgba(0, 0, 0, 0.3), 0px 3px 15px rgba(0,0,0,0.15);
@@ -1277,8 +1277,8 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 }
 
 .dropdown-link:hover {
-    border-radius: 12px;
-    background-color: #1B1B1B;
+    border-radius: 0px;
+    background-color: #191919;
 }
 
 .segment-icon {
