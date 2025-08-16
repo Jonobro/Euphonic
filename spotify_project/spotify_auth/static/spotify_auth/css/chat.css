@@ -1154,7 +1154,9 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 }
 
 .segment-button {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                padding-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     font-family: 'Saira', sans-serif, Arial;
     background-color: transparent;
