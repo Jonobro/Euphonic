@@ -815,7 +815,7 @@ I've talked too much – let's get started! What can I do for you?`;
         const ctx = canvas.getContext('2d');
         const buttons = Array.from(control.querySelectorAll('.segment-button'));
 
-        const cfg = { dotSpeed: 0.1 /* Revised from dotSpeed: 0.8 for testing */, glowColor: 'rgb(30,200,90)', /* glowBlur: 8 */ dotRadius: 4, lineWidth: 2 };
+        const cfg = { dotSpeed: 0.1 /* Revised from dotSpeed: 0.8 for testing */, glowColor: 'rgb(30,200,90)', /* glowBlur: 8 */ dotRadius: 3.5, lineWidth: 2 };
         const CANVAS_PAD = cfg.dotRadius + cfg.lineWidth + 4;
         const easing = { easeInCubic: t => t*t*t, easeOutCubic: t => 1 - Math.pow(1-t,3) };
         ctx.lineJoin = 'round';
