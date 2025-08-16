@@ -820,17 +820,22 @@ I've talked too much – let's get started! What can I do for you?`;
         function resizeCanvas() {
             const dpr = window.devicePixelRatio || 1;
             const rect = control.getBoundingClientRect();
-            canvas.width = rect.width * dpr;
-            canvas.height = rect.height * dpr;
+            canvas.width = (rect.width + CANVAS_PAD*2) * dpr;
+            canvas.height = (rect.height + CANVAS_PAD*2) * dpr;
             ctx.setTransform(1,0,0,1,0,0);
             ctx.scale(dpr, dpr);
-            canvas.style.width = rect.width + 'px';
-            canvas.style.height = rect.height + 'px';
+            canvas.style.width = (rect.width + CANVAS_PAD*2) + 'px';
+            canvas.style.height = (rect.height + CANVAS_PAD*2) + 'px';
+            canvas.style.position = 'absolute';
+            canvas.style.top = -CANVAS_PAD + 'px';
+            canvas.style.left = -CANVAS_PAD + 'px';
+            control.style.overflow = 'visible';
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
         const cfg = { dotSpeed: 0.1 /* Revised from dotSpeed: 0.8 for testing */, glowColor: 'rgb(30,200,90)', /* glowBlur: 8 */ dotRadius: 4, lineWidth: 2 };
+        const CANVAS_PAD = cfg.dotRadius + cfg.lineWidth + 4;
         const easing = { easeInCubic: t => t*t*t, easeOutCubic: t => 1 - Math.pow(1-t,3) };
         ctx.lineJoin = 'round';
 
@@ -1051,10 +1056,19 @@ I've talked too much – let's get started! What can I do for you?`;
             const rect = el.getBoundingClientRect();
             const radius = parseFloat(getComputedStyle(buttons[0]).borderRadius)||20;
             const inset = cfg.lineWidth/2;
-            if (isContainer) return {x:inset,y:inset,width:rect.width-inset*2,height:rect.height-inset*2,radius:radius-inset};
+            const offset = CANVAS_PAD;
+            if (isContainer) {
+                return {
+                    x: inset + offset,
+                    y: inset + offset,
+                    width: rect.width - inset*2,
+                    height: rect.height - inset*2,
+                    radius: radius - inset
+                };
+            }
             return {
-                x: rect.left - parent.left + inset,
-                y: rect.top - parent.top + inset,
+                x: rect.left - parent.left + inset + offset,
+                y: rect.top - parent.top + inset + offset,
                 width: rect.width - inset*2,
                 height: rect.height - inset*2,
                 radius: radius - inset

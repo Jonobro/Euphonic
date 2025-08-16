@@ -1137,6 +1137,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     border-radius: 20px;
     align-items: center;
     position: relative;
+    overflow: visible;
 }
 
 #segment-animation-canvas {
@@ -1146,6 +1147,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     height: 100%;
     pointer-events: none;
     z-index: 2;
+    overflow: visible;
 }
 
 .segmented-control.is-animating .segment-button.active,
