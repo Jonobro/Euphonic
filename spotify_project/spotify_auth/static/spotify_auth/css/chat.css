@@ -112,7 +112,7 @@ h2, h3, h4, h5, h6 {
 }
 
 #chat-container {
-    background-color: #161616;
+    background-color: transparent;
     border-radius: 5px;
     padding: 0px;
     display: flex;
@@ -191,7 +191,7 @@ h2, h3, h4, h5, h6 {
 }
 
 .ai-message {
-    background-color: #161616;
+    background-color: transparent;
     color: #e0e0e0;
     align-self: flex-start;
     font-size: 0.86em;
@@ -280,7 +280,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     flex-grow: 1;
     border-radius: 20px;
     border: 1px solid #535353;
-    background-color: #161616;
+    background-color: transparent;
     color: #e0e0e0;
     resize: none;
     overflow-y: auto;
@@ -1145,7 +1145,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 .segmented-control {
     display: flex;
-    background-color: #161616;
+    background-color: transparent;
     border: 1px solid #535353;
     box-shadow: 0 0 4px rgba(30, 200, 90, 0.3), 0 0 8px rgba(30, 200, 90, 0.1), 0 0 12px rgba(30, 200, 90, 0.06);
     width: 100%;
