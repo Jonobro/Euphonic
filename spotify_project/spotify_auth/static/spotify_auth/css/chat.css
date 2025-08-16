@@ -955,7 +955,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 .message.fade-in-analysis-message {
     opacity: 0;
-    animation: fadeInAnalysisMessage 0.6s ease forwards;
+    animation: fadeInAnalysisMessage 1.2s ease forwards;
 }
 
 @keyframes fadeInAnalysisMessage {
