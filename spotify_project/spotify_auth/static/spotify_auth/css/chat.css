@@ -1143,16 +1143,6 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     overflow: visible;
 }
 
-#segment-animation-canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 2;
-    overflow: visible;
-}
-
 .segmented-control.is-animating .segment-button.active,
 .segmented-control.is-animating .segment-button.was-active {
     border-color: transparent;
@@ -1198,6 +1188,23 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 .segment-button:focus {
     outline: none;
+}
+
+#segment-animation-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+    overflow: visible;
+    /* Improve stroke rendering */
+    shape-rendering: geometricPrecision;
+}
+
+#segment-animation-svg path,
+#segment-animation-svg circle {
+    vector-effect: non-scaling-stroke;
 }
 
 .hamburger-menu-container {
