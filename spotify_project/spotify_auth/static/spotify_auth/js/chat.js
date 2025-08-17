@@ -937,6 +937,7 @@ I've talked too much – let's get started! What can I do for you?`;
             ctx.fill();
             // ctx.shadowBlur=0; // not needed while glow disabled
         }
+
         function drawFullPath(pts){ ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y); ctx.stroke(); }
         function paintPortion(path, prog){
             const target = path.totalLength * prog;
@@ -956,6 +957,7 @@ I've talked too much – let's get started! What can I do for you?`;
             }
             ctx.stroke();
         }
+
         function erasePortion(path, prog){
             ctx.save();
             ctx.globalCompositeOperation='destination-out';
@@ -978,6 +980,7 @@ I've talked too much – let's get started! What can I do for you?`;
             ctx.stroke();
             ctx.restore();
         }
+
         function pointOnPath(path, prog){
             const target = path.totalLength * prog;
             let acc=0;
@@ -995,41 +998,107 @@ I've talked too much – let's get started! What can I do for you?`;
             }
             return path.points[path.points.length-1];
         }
+
         function roundedRectPath(r){
+            console.log('roundedRectPath called with:', r);
+            
             let {x,y,width,height,radius} = r;
             const maxR = Math.min(width, height) / 2;
             radius = Math.min(Math.max(0, radius), maxR);
+            
+            console.log('Calculated values:');
+            console.log('  maxR:', maxR);
+            console.log('  adjusted radius:', radius);
 
             const pts = [];
             const lengths = [];
             const stepsPerQuarter = 18;
+            
             function addArc(cx, cy, startAng, endAng){
+                console.log(`  Adding arc: center(${cx}, ${cy}), angles ${startAng} to ${endAng}`);
                 for (let i=1;i<=stepsPerQuarter;i++){
                     const t=i/stepsPerQuarter;
                     const ang=startAng + (endAng-startAng)*t;
-                    pts.push({ x: cx + radius*Math.cos(ang), y: cy + radius*Math.sin(ang) });
+                    const point = { x: cx + radius*Math.cos(ang), y: cy + radius*Math.sin(ang) };
+                    pts.push(point);
                 }
+                console.log(`    Added ${stepsPerQuarter} arc points`);
             }
 
-            pts.push({ x: x + width/2, y: y + height });
-            pts.push({ x: x + width - radius, y: y + height });
+            console.log('Building path points:');
+            
+            // Start point (bottom center)
+            const startPoint = { x: x + width/2, y: y + height };
+            console.log('1. Start point (bottom center):', startPoint);
+            pts.push(startPoint);
+            
+            // Bottom right corner approach
+            const bottomRightApproach = { x: x + width - radius, y: y + height };
+            console.log('2. Bottom right corner approach:', bottomRightApproach);
+            pts.push(bottomRightApproach);
+            
+            // Bottom right arc
+            console.log('3. Bottom right arc:');
             addArc(x + width - radius, y + height - radius, Math.PI/2, 0);
-            pts.push({ x: x + width, y: y + radius });
+            
+            // Right side approach to top right
+            const rightSideApproach = { x: x + width, y: y + radius };
+            console.log('4. Right side approach:', rightSideApproach);
+            pts.push(rightSideApproach);
+            
+            // Top right arc
+            console.log('5. Top right arc:');
             addArc(x + width - radius, y + radius, 0, -Math.PI/2);
-            pts.push({ x: x + radius, y: y });
+            
+            // Top left corner approach
+            const topLeftApproach = { x: x + radius, y: y };
+            console.log('6. Top left corner approach:', topLeftApproach);
+            pts.push(topLeftApproach);
+            
+            // Top left arc
+            console.log('7. Top left arc:');
             addArc(x + radius, y + radius, -Math.PI/2, -Math.PI);
-            pts.push({ x: x, y: y + height - radius });
+            
+            // Left side approach to bottom left
+            const leftSideApproach = { x: x, y: y + height - radius };
+            console.log('8. Left side approach:', leftSideApproach);
+            pts.push(leftSideApproach);
+            
+            // Bottom left arc
+            console.log('9. Bottom left arc:');
             addArc(x + radius, y + height - radius, -Math.PI, -Math.PI*1.5);
-            pts.push({ x: x + width/2, y: y + height });
+            
+            // Close the path back to start
+            const endPoint = { x: x + width/2, y: y + height };
+            console.log('10. End point (back to start):', endPoint);
+            pts.push(endPoint);
+            
+            console.log(`Total points generated: ${pts.length}`);
+            
+            // Calculate segment lengths
             let total=0;
+            console.log('Calculating segment lengths:');
             for (let i=0;i<pts.length-1;i++){
                 const dx=pts[i+1].x-pts[i].x, dy=pts[i+1].y-pts[i].y;
                 const len=Math.hypot(dx,dy);
                 lengths.push(len);
                 total += len;
+                if (i < 5 || i >= pts.length-6) { // Log first and last few segments
+                    console.log(`  Segment ${i}: length ${len.toFixed(3)}`);
+                } else if (i === 5) {
+                    console.log(`  ... (${pts.length-11} middle segments) ...`);
+                }
             }
-            return { points: pts, lengths, totalLength: total };
+            
+            const result = { points: pts, lengths, totalLength: total };
+            console.log('roundedRectPath result:');
+            console.log('  Total path length:', total.toFixed(3));
+            console.log('  Number of segments:', lengths.length);
+            console.log('  Result object:', result);
+            
+            return result;
         }
+
         function progressOnPath(path, point){
             let best=0,bestDist=Infinity,acc=0;
             for(let i=0;i<path.points.length-1;i++){
@@ -1045,6 +1114,7 @@ I've talked too much – let's get started! What can I do for you?`;
             }
             return best;
         }
+
         function relRect(el,isContainer=false){
             const parent = control.getBoundingClientRect();
             const rect = el.getBoundingClientRect();
@@ -1052,21 +1122,25 @@ I've talked too much – let's get started! What can I do for you?`;
             const inset = cfg.lineWidth/2;
             const offset = CANVAS_PAD;
             if (isContainer) {
-                return {
+                const result = {
                     x: inset + offset,
                     y: inset + offset,
                     width: rect.width - inset*2,
                     height: rect.height - inset*2,
                     radius: radius - inset
                 };
+                console.log('relRect (container):', result);
+                return result;
             }
-            return {
+            const result = {
                 x: rect.left - parent.left + inset + offset,
                 y: rect.top - parent.top + inset + offset,
                 width: rect.width - inset*2,
                 height: rect.height - inset*2,
                 radius: radius - inset
             };
+            console.log('relRect (button):', result);
+            return result;
         }
 
         buttons.forEach(btn => {
