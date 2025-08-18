@@ -1017,6 +1017,7 @@ I've talked too much – let's get started! What can I do for you?`;
                 .then(() => {
                     toBtn.classList.add('active');
                     oldPathEl.style.visibility = 'hidden';
+                    newPathEl.style.visibility = 'hidden';
                     setTimeout(() => {
                         dotEl.style.visibility = 'hidden';
                         control.classList.remove('is-animating');

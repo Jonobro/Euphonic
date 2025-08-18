@@ -1175,7 +1175,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 }
 
 .segment-button:hover {
-    background-color: #232323;
+    background-color: #1D1D1D;
     padding: 5px 0px;
 }
 
@@ -1184,6 +1184,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     border: 2px solid rgb(30,200,90);
     pointer-events: none;
     z-index: 1;
+    box-shadow: 0 0 6px rgba(30,200,90,0.6);
 }
 
 .segment-button:focus {
