@@ -2,26 +2,17 @@ import multiprocessing
 
 bind = "0.0.0.0:8000"
 
-# Calculate workers based on CPU cores
-calculated_workers = multiprocessing.cpu_count() * 2 + 1
-MAX_WORKERS = 8
-workers = min(calculated_workers, MAX_WORKERS)
+workers = min(multiprocessing.cpu_count(), 4)
 
-# Worker class - use sync for Django
-worker_class = "sync"
-
-# Timeout (seconds)
+worker_class = "gthread"
+threads = 15
 timeout = 500
-
-# Maximum number of requests a worker will process before restarting
 max_requests = 1000
 max_requests_jitter = 50
 
+loglevel = "info"
 errorlog = "logs/gunicorn.log"
 accesslog = "logs/access.log"
 pidfile = "logs/gunicorn.pid"
-loglevel = "info"
-
 capture_output = True
-
 proc_name = "spotify_project"
