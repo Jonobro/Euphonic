@@ -172,6 +172,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (response.ok) {
                 window.closeImportModal();
+                if (window.pendingModeSwitch && window.switchChatMode) {
+                    const target = window.pendingModeSwitch;
+                    window.pendingModeSwitch = null;
+                    window.switchChatMode(target);
+                }
             } else {
                 throw new Error(result.error || 'Failed to import playlists');
             }

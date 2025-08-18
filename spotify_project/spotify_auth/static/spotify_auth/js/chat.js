@@ -483,6 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeChatMode(chatMode);
         }
     }
+    window.switchChatMode = switchChatMode;
 
     function isChatModeInitialized(mode) {
         const el = document.getElementById('chat-history-data');
@@ -1050,7 +1051,7 @@ I've talked too much – let's get started! What can I do for you?`;
                         const data = await resp.json();
                         if (!data.completed) {
                             if (typeof openImportModal === 'function') {
-                                openImportModal();
+                                openImportModal(this.dataset.mode);
                             } else {
                                 alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
                             }

@@ -307,11 +307,17 @@
             document.getElementById('legalModal').style.display = 'none';
         }
         
-        function openImportModal() {
+        if (window.pendingModeSwitch === undefined) {
+            window.pendingModeSwitch = null;
+        }
+
+        function openImportModal(switchToModeOnCompletion) {
             if (hamburgerDropdown.classList.contains('show')) {
                 hamburgerDropdown.classList.remove('show');
             }
-            
+            if (switchToModeOnCompletion) {
+                window.pendingModeSwitch = switchToModeOnCompletion;
+            }
             document.getElementById('importModal').style.display = 'block';
             if (window.playlistImport) {
                 window.playlistImport.initialize();
