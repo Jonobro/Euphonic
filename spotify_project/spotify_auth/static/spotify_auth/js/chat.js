@@ -818,29 +818,28 @@ I've talked too much – let's get started! What can I do for you?`;
             return 2;
         };
 
-        const baseEraseSpeed  = 0.30;
-        const basePaintSpeed  = 0.30;
-        const baseTravelSpeed = 0.90;
-        const baseWidth = Math.max(1, control.getBoundingClientRect().width);
+        const referenceWidth = 600; // reference width in pixels
+        const referenceEraseSpeed  = 0.5; // px/ms at reference width
+        const referencePaintSpeed  = 0.5;
+        const referenceTravelSpeed = 1.5;
 
         const cfg = {
             strokeWidth: getStrokeWidth(),
             glowColor: 'rgb(30,200,90)',
             dotRadius: 3.5,
-            eraseSpeed: baseEraseSpeed,
-            paintSpeed: basePaintSpeed,
-            travelSpeed: baseTravelSpeed,
+            eraseSpeed: referenceEraseSpeed,
+            paintSpeed: referencePaintSpeed,
+            travelSpeed: referenceTravelSpeed,
             easingIn: t => t*t*t,
             easingOut: t => 1 - Math.pow(1 - t, 3)
         };
 
         function updateSpeeds() {
             const currentWidth = Math.max(1, control.getBoundingClientRect().width);
-            let scale = currentWidth / baseWidth;
-            scale = Math.min(2.0, Math.max(0.5, scale));
-            cfg.eraseSpeed  = baseEraseSpeed  * scale;
-            cfg.paintSpeed  = basePaintSpeed  * scale;
-            cfg.travelSpeed = baseTravelSpeed * scale;
+            const scale = currentWidth / referenceWidth;
+            cfg.eraseSpeed  = referenceEraseSpeed  * scale;
+            cfg.paintSpeed  = referencePaintSpeed  * scale;
+            cfg.travelSpeed = referenceTravelSpeed * scale;
         }
         updateSpeeds();
 
