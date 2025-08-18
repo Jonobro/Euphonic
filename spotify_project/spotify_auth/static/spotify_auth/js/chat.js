@@ -841,7 +841,7 @@ I've talked too much – let's get started! What can I do for you?`;
             svg.style.left = '0';
             svg.style.pointerEvents = 'none';
             svg.style.overflow = 'visible';
-            control.style.position = control.style.position || 'relative';
+            if (!control.style.position) control.style.position = 'relative';
         }
 
         const oldPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -868,45 +868,28 @@ I've talked too much – let's get started! What can I do for you?`;
         function rectFor(el) {
             const parent = control.getBoundingClientRect();
             const r = el.getBoundingClientRect();
+            const borderLeft = parseFloat(getComputedStyle(control).borderLeftWidth) || 0;
             const result = {
-                x: r.left - parent.left,
-                y: r.top - parent.top,
+                x: r.left - parent.left - borderLeft,
+                y: 0,
                 width: r.width,
                 height: r.height
             };
-            const idx = buttons.indexOf(el);
-            if (idx !== -1) {
-                const cs = getComputedStyle(control);
-                const borderLeft  = parseFloat(cs.borderLeftWidth) || 0;
-
-                if (idx === 0 && borderLeft) {
-                    result.x -= borderLeft;
-                } else if (idx === 1) {
-                    result.x -= borderLeft;
-                } else if (idx === buttons.length - 1 && borderLeft) {
-                    result.x -= borderLeft;
-                }
-            }
-            result.y = 0;
             return result;
         }
 
-        function buildPillPath(r, startAtBottomCenter = true) {
-            const strokeW = (typeof cfg !== 'undefined' && typeof cfg.strokeWidth === 'number') ? cfg.strokeWidth : 2;
-            const inset = strokeW / 2;
-
+        function buildPillPath(r) {
+            const inset = ((cfg && typeof cfg.strokeWidth === 'number') ? cfg.strokeWidth : 2) * 0.5;
             let { x, y, width, height } = r;
             x += inset;
             y += inset;
             width -= inset * 2;
             height -= inset * 2;
             const radius = height / 2;
-
             const sx = x + width / 2;
             const sy = y + height;
             const brA = x + width - radius;
-
-            const path = [
+            return [
                 `M ${sx} ${sy}`,
                 `L ${brA} ${y + height}`,
                 `A ${radius} ${radius} 0 0 0 ${x + width} ${y + height - radius}`,
@@ -918,24 +901,18 @@ I've talked too much – let's get started! What can I do for you?`;
                 `A ${radius} ${radius} 0 0 0 ${x + radius} ${y + height}`,
                 `L ${sx} ${sy}`
             ].join(' ');
-            return path;
-        }
-
-        function pathInfo(pathEl) {
-            const len = pathEl.getTotalLength();
-            return { length: len };
         }
 
         function animateStroke(pathEl, type, direction, speedPxPerMs) {
             return new Promise(res => {
-                const { length } = pathInfo(pathEl);
+                const length = pathEl.getTotalLength();
                 pathEl.style.visibility = 'visible';
                 pathEl.setAttribute('stroke-dasharray', `${length}`);
                 let from, to;
                 if (type === 'erase') {
-                    pathEl.setAttribute('stroke-dashoffset', '0');
                     from = 0;
                     to = direction === 'reverse' ? length : -length;
+                    pathEl.setAttribute('stroke-dashoffset', '0');
                 } else {
                     from = direction === 'reverse' ? -length : length;
                     to = 0;
@@ -949,12 +926,7 @@ I've talked too much – let's get started! What can I do for you?`;
                     const eased = type === 'erase' ? cfg.easingIn(raw) : cfg.easingOut(raw);
                     const current = from + (to - from) * eased;
                     pathEl.setAttribute('stroke-dashoffset', `${current}`);
-                    let prog;
-                    if (type === 'erase') {
-                        prog = direction === 'reverse' ? 1 - eased : eased;
-                    } else {
-                        prog = direction === 'reverse' ? 1 - eased : eased;
-                    }
+                    const prog = direction === 'reverse' ? 1 - eased : eased;
                     const posLen = prog * length;
                     const pt = pathEl.getPointAtLength(Math.max(0, Math.min(length, posLen)));
                     dotEl.setAttribute('cx', pt.x);
@@ -974,12 +946,10 @@ I've talked too much – let's get started! What can I do for you?`;
                 const dx = endX - startX;
                 const dist = Math.abs(dx);
                 const duration = dist / cfg.travelSpeed;
-
                 let startTime = null;
                 dotEl.style.visibility = 'visible';
                 dotEl.setAttribute('cx', startX);
                 dotEl.setAttribute('cy', y);
-
                 function frame(ts) {
                     if (!startTime) startTime = ts;
                     const raw = Math.min((ts - startTime) / duration, 1);
@@ -1000,11 +970,8 @@ I've talked too much – let's get started! What can I do for you?`;
             const toRect = rectFor(toBtn);
             toRect.width = fromRect.width;
             toRect.height = fromRect.height;
-            const fromD = buildPillPath(fromRect, true);
-            const toD = buildPillPath(toRect, true);
-
-            oldPathEl.setAttribute('d', fromD);
-            newPathEl.setAttribute('d', toD);
+            oldPathEl.setAttribute('d', buildPillPath(fromRect));
+            newPathEl.setAttribute('d', buildPillPath(toRect));
             newPathEl.style.visibility = 'hidden';
             dotEl.style.visibility = 'hidden';
 
