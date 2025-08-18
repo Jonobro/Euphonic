@@ -25,6 +25,8 @@ import httpx
 REDIS_CLIENT = settings.REDIS_CLIENT
 ANALYSIS_EVENT_CHANNEL_PREFIX = 'analysis_completion:'
 ANALYSIS_EVENT_TIMEOUT = 300
+CHAT_EVENT_CHANNEL_PREFIX = 'chat_completion:'
+CHAT_EVENT_TIMEOUT = 300
 
 GEMINI_CLIENT = None
 MODEL_NAME = "gemini-2.5-flash"
@@ -1449,6 +1451,10 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 'session_data': mock_request.session
             }
             cache.set(task_id, result, timeout=600)
+            try:
+                REDIS_CLIENT.publish(f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}", 'completed')
+            except Exception as pub_err:
+                _log_to_file(GENERAL_LOG_FILE, f"Redis publish error (analysis message task {task_id}): {pub_err}")
             return
 
         unfound_tracks_for_feedback = []
@@ -1831,10 +1837,17 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             'chat_mode': chat_mode
         }
         cache.set(task_id, result, timeout=600)
-
+        try:
+            REDIS_CLIENT.publish(f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}", 'completed')
+        except Exception as pub_err:
+            _log_to_file(GENERAL_LOG_FILE, f"Redis publish error (task {task_id}): {pub_err}")
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in chat processing thread for task {task_id}: {e}")
         cache.set(task_id, {'error': 'An unexpected error occurred processing your message.'}, timeout=600)
+        try:
+            REDIS_CLIENT.publish(f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}", 'completed')
+        except Exception as pub_err:
+            _log_to_file(GENERAL_LOG_FILE, f"Redis publish error after exception (task {task_id}): {pub_err}")
 
 @csrf_protect
 @require_http_methods(["POST"])
@@ -1920,7 +1933,7 @@ def stream_initial_analysis(request, task_id):
                         yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
                         return
 
-                    if current_time - last_keepalive >= 30:
+                    if current_time - last_keepalive >= 29:
                         yield ":\n\n"
                         last_keepalive = current_time
 
@@ -1970,38 +1983,78 @@ def stream_initial_analysis(request, task_id):
 @never_cache
 def stream_chat_response(request, task_id):
     def event_stream():
+        channel = f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}"
+        pubsub = REDIS_CLIENT.pubsub()
+        start_time = time.time()
+        last_keepalive = start_time
         try:
-            for _ in range(600):
-                result = cache.get(task_id)
-                if result:
+            pubsub.subscribe(channel)
+            pre_result = cache.get(task_id)
+            if pre_result:
+                if 'error' in pre_result:
+                    yield f"event: stream_error\ndata: {json.dumps({'message': pre_result['error']})}\n\n"
+                else:
+                    request.session.update(pre_result.get('session_data', {}))
+                    request.session.save()
+                    data = {
+                        'response': pre_result.get('response'),
+                        'chat_mode': pre_result.get('chat_mode')
+                    }
+                    yield f"data: {json.dumps(data)}\n\n"
+                return
+
+            while True:
+                now = time.time()
+                if now - start_time > CHAT_EVENT_TIMEOUT:
+                    err = {'message': 'Request timed out.'}
+                    yield f"event: stream_error\ndata: {json.dumps(err)}\n\n"
+                    return
+
+                if now - last_keepalive >= 29:
+                    yield ":\n\n"
+                    last_keepalive = now
+
+                message = pubsub.get_message(timeout=1.0)
+                if not message:
+                    continue
+                if message['type'] != 'message':
+                    continue
+                payload = message['data']
+                if isinstance(payload, bytes):
+                    payload = payload.decode('utf-8')
+                if payload == 'completed':
+                    result = cache.get(task_id)
+                    if not result:
+                        # Retry after slight delay to allow cache edit propagation
+                        time.sleep(0.05)
+                        result = cache.get(task_id)
+                    if not result:
+                        err = {'message': 'Result missing.'}
+                        yield f"event: stream_error\ndata: {json.dumps(err)}\n\n"
+                        return
                     if 'error' in result:
-                        error_data = {'message': result['error']}
-                        yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+                        yield f"event: stream_error\ndata: {json.dumps({'message': result['error']})}\n\n"
                     else:
-                        request.session.clear()
-                        request.session.update(result['session_data'])
+                        request.session.update(result.get('session_data', {}))
                         request.session.save()
-                        
                         data = {
                             'response': result.get('response'),
                             'chat_mode': result.get('chat_mode')
                         }
                         yield f"data: {json.dumps(data)}\n\n"
-                    
-                    cache.delete(task_id)
-                    break 
-                else:
-                    yield ":\n\n"
-                    time.sleep(1)
-            else: 
-                error_data = {'message': 'Request timed out.'}
-                yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+                    return
         except GeneratorExit:
-            _log_to_file(GENERAL_LOG_FILE, f"SSE stream for task {task_id} closed by client.")
+            _log_to_file(GENERAL_LOG_FILE, f"SSE chat stream closed by client (task {task_id}).")
+            raise
         except Exception as e:
-            _log_to_file(GENERAL_LOG_FILE, f"Error in SSE stream for task {task_id}: {e}")
-            error_data = {'message': 'A server error occurred during streaming.'}
-            yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+            _log_to_file(GENERAL_LOG_FILE, f"Error in chat SSE stream for task {task_id}: {e}")
+            err = {'message': 'A server error occurred during streaming.'}
+            yield f"event: stream_error\ndata: {json.dumps(err)}\n\n"
+        finally:
+            try:
+                pubsub.close()
+            except Exception as close_err:
+                _log_to_file(GENERAL_LOG_FILE, f"Error closing chat pubsub for task {task_id}: {close_err}")
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'
