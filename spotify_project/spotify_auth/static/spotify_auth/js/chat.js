@@ -818,16 +818,31 @@ I've talked too much – let's get started! What can I do for you?`;
             return 2;
         };
 
+        const baseEraseSpeed  = 0.30;
+        const basePaintSpeed  = 0.30;
+        const baseTravelSpeed = 0.90;
+        const baseWidth = Math.max(1, control.getBoundingClientRect().width);
+
         const cfg = {
             strokeWidth: getStrokeWidth(),
             glowColor: 'rgb(30,200,90)',
             dotRadius: 3.5,
-            eraseSpeed: 0.30,
-            paintSpeed: 0.30,
-            travelSpeed: 0.60,
+            eraseSpeed: baseEraseSpeed,
+            paintSpeed: basePaintSpeed,
+            travelSpeed: baseTravelSpeed,
             easingIn: t => t*t*t,
             easingOut: t => 1 - Math.pow(1 - t, 3)
         };
+
+        function updateSpeeds() {
+            const currentWidth = Math.max(1, control.getBoundingClientRect().width);
+            let scale = currentWidth / baseWidth;
+            scale = Math.min(2.0, Math.max(0.5, scale));
+            cfg.eraseSpeed  = baseEraseSpeed  * scale;
+            cfg.paintSpeed  = basePaintSpeed  * scale;
+            cfg.travelSpeed = baseTravelSpeed * scale;
+        }
+        updateSpeeds();
 
         let isAnimating = false;
 
@@ -842,6 +857,7 @@ I've talked too much – let's get started! What can I do for you?`;
             svg.style.pointerEvents = 'none';
             svg.style.overflow = 'visible';
             if (!control.style.position) control.style.position = 'relative';
+            updateSpeeds();
         }
 
         const oldPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
