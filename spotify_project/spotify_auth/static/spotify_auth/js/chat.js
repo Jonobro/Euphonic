@@ -807,6 +807,18 @@ I've talked too much – let's get started! What can I do for you?`;
         const svg = document.getElementById('segment-animation-svg');
         if (!control || !svg) return;
 
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        defs.innerHTML = `
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3.5" result="coloredBlur"></feGaussianBlur>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"></feMergeNode>
+                    <feMergeNode in="SourceGraphic"></feMergeNode>
+                </feMerge>
+            </filter>
+        `;
+        svg.appendChild(defs);
+
         const buttons = Array.from(control.querySelectorAll('.segment-button'));
 
         const getStrokeWidth = () => {
@@ -870,11 +882,13 @@ I've talked too much – let's get started! What can I do for you?`;
             p.setAttribute('stroke-linejoin', 'round');
             p.setAttribute('stroke-linecap', 'round');
             p.style.visibility = 'hidden';
+            p.style.filter = 'url(#glow)';
         });
 
         dotEl.setAttribute('r', cfg.dotRadius);
         dotEl.setAttribute('fill', cfg.glowColor);
         dotEl.style.visibility = 'hidden';
+        dotEl.style.filter = 'url(#glow)';
 
         svg.appendChild(oldPathEl);
         svg.appendChild(newPathEl);
