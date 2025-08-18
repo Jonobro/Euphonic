@@ -636,11 +636,16 @@ DEVELOPER MESSAGE: ANALYZE THE ABOVE LIBRARY AND PROVIDE YOUR INSIGHTS PER THE R
             tools=current_tools,
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
-            # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True),
 
-            # Testing custom settings
-            thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
-            max_output_tokens = 1024
+            # Default config for dynamic max thinking and no thought summaries
+            thinking_config=types.ThinkingConfig(thinking_budget=-1)
+
+            # Config to obtain thought summaries for analysis/debugging
+            # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
+
+            # Config with thinking budget and max output tokens budget
+            # thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
+            # max_output_tokens = 1024
         )
         chat = client.chats.create(
             model=MODEL_NAME,
@@ -1271,11 +1276,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             tools=first_pass_tools,
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
-            # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True),
 
-            # Testing custom settings
-            thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
-            max_output_tokens = 1024
+            # Default config for dynamic max thinking and no thought summaries
+            thinking_config=types.ThinkingConfig(thinking_budget=-1)
+
+            # Config to obtain thought summaries for analysis/debugging
+            # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
+
+            # Config with thinking budget and max output tokens budget
+            # thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
+            # max_output_tokens = 1024
         )
         
         chat = client.chats.create(
@@ -1354,11 +1364,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             formatting_chat_config = types.GenerateContentConfig(
                 system_instruction=FORMATTING_SYSTEM_INSTRUCTION,
                 safety_settings=SAFETY_SETTINGS,
-                # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True),
 
-                # Testing custom settings
-                thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
-                max_output_tokens = 1024
+                # Default config for dynamic max thinking and no thought summaries
+                thinking_config=types.ThinkingConfig(thinking_budget=-1)
+
+                # Config to obtain thought summaries for analysis/debugging
+                # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
+
+                # Config with thinking budget and max output tokens budget
+                # thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
+                # max_output_tokens = 1024
             )
 
             formatting_chat = client.chats.create(
@@ -1523,11 +1538,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 tools=feedback_pass_tools,
                 response_modalities=["TEXT"],
                 safety_settings=SAFETY_SETTINGS,
-                # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True),
 
-                # Testing custom settings
-                thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
-                max_output_tokens = 1024
+                # Default config for dynamic max thinking and no thought summaries
+                thinking_config=types.ThinkingConfig(thinking_budget=-1)
+
+                # Config to obtain thought summaries for analysis/debugging
+                # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
+
+                # Config with thinking budget and max output tokens budget
+                # thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
+                # max_output_tokens = 1024
             )
 
             feedback_chat = client.chats.create(
@@ -1636,11 +1656,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     tools=removal_pass_tools,
                     response_modalities=["TEXT"],
                     safety_settings=SAFETY_SETTINGS,
-                    # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True),
+                    
+                    # Default config for dynamic max thinking and no thought summaries
+                    thinking_config=types.ThinkingConfig(thinking_budget=-1)
 
-                    # Testing custom settings
-                    thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
-                    max_output_tokens = 1024
+                    # Config to obtain thought summaries for analysis/debugging
+                    # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
+
+                    # Config with thinking budget and max output tokens budget
+                    # thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
+                    # max_output_tokens = 1024
                 )
 
                 removal_chat = client.chats.create(
