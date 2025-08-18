@@ -476,7 +476,7 @@ def _ensure_euphonic_intelligence_user_id(request):
 @csrf_protect
 @require_http_methods(["GET"])
 @never_cache
-def check_import_status(request):
+def check_import_status_api(request):
     user_id = request.session.get('euphonic_intelligence_user_id')
     if not user_id:
         return JsonResponse({'completed': False})

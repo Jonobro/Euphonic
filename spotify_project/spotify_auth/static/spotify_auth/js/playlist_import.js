@@ -172,11 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (response.ok) {
                 window.closeImportModal();
-                
-                const tooltipContainer = document.querySelector('.tooltip-container-import');
-                if (tooltipContainer) {
-                    tooltipContainer.style.display = 'none';
-                }
             } else {
                 throw new Error(result.error || 'Failed to import playlists');
             }
@@ -425,6 +420,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (importModal) {
                     if (importModal.style.display === 'block' && !isModalOpen) {
                         isModalOpen = true;
+                        importModal.addEventListener('click', (e) => {
+                            if (e.target.id === 'importModal') {
+                                e.stopPropagation();
+                            }
+                        }, true);
                         setTimeout(initialize, 100);
                     } else if (importModal.style.display !== 'block' && isModalOpen) {
                         isModalOpen = false;

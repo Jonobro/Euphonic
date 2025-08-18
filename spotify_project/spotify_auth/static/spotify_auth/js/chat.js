@@ -1034,12 +1034,45 @@ I've talked too much – let's get started! What can I do for you?`;
         });
 
         buttons.forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', async function() {
                 if (isAnimating || modeSwitchCooldown || this.classList.contains('active')) return;
                 if (document.querySelector('.thinking-message')) {
                     alert("Aria's still thinking! Let her finish.");
                     return;
                 }
+
+                try {
+                    const resp = await fetch('/check_import_status_api/', {
+                        method: 'GET',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (!data.completed) {
+                            if (typeof openImportModal === 'function') {
+                                openImportModal();
+                            } else {
+                                alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
+                            }
+                            return;
+                        }
+                    } else {
+                        if (typeof openImportModal === 'function') {
+                            openImportModal();
+                        } else {
+                            alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
+                        }
+                        return;
+                    }
+                } catch (e) {
+                    if (typeof openImportModal === 'function') {
+                        openImportModal();
+                    } else {
+                        alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
+                    }
+                    return;
+                }
+
                 const fromBtn = document.querySelector('.segment-button.active');
                 const toBtn = this;
                 modeSwitchCooldown = true;
