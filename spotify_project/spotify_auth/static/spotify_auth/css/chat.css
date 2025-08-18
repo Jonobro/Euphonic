@@ -17,7 +17,7 @@ body {
     background-color: #161616;
     border-radius: 15px;
     padding: 22.5px 17.5px 20px 20px;
-    box-shadow: 1px 4px 8px rgba(0, 0, 0, 0.4);
+    box-shadow: 1px 4px 8px rgba(0,0,0,0.4);
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
@@ -29,14 +29,13 @@ body {
 .container::before {
     content: "";
     position: absolute;
-    width: 200%;
-    height: 200%;
-    top: -50%;
-    left: -50%;
+    inset: 0;
     background-image: radial-gradient(ellipse 200% 60% at 50% 50%, #171717, #121212);
-    transform: rotate(-47.5deg);
-    z-index: -1;
+    transform: rotate(-47.5deg) scale(2);
+    transform-origin: 50% 50%;
     pointer-events: none;
+    will-change: transform;
+    z-index: -1;
 }
 
 .container.loaded {
