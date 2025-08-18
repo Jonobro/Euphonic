@@ -809,20 +809,28 @@ I've talked too much – let's get started! What can I do for you?`;
 
         const buttons = Array.from(control.querySelectorAll('.segment-button'));
 
+        const getStrokeWidth = () => {
+            const activeBtn = control.querySelector('.segment-button.active');
+            if (activeBtn) {
+                const w = parseFloat(getComputedStyle(activeBtn).borderWidth);
+                if (!isNaN(w) && w > 0) return w;
+            }
+            return 2;
+        };
+
         const cfg = {
-            strokeWidth: 2,
+            strokeWidth: getStrokeWidth(),
             glowColor: 'rgb(30,200,90)',
             dotRadius: 3.5,
-            eraseSpeed: 0.30,   // px per ms
+            eraseSpeed: 0.30,
             paintSpeed: 0.30,
-            travelSpeed: 0.60,  // px per ms
+            travelSpeed: 0.60,
             easingIn: t => t*t*t,
             easingOut: t => 1 - Math.pow(1 - t, 3)
         };
 
         let isAnimating = false;
 
-        // SVG setup
         function ensureSVGSize() {
             const r = control.getBoundingClientRect();
             svg.setAttribute('width', r.width);
@@ -836,13 +844,11 @@ I've talked too much – let's get started! What can I do for you?`;
             control.style.position = control.style.position || 'relative';
         }
 
-        // Elements
         const oldPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const newPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const containerPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const dotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
 
-        [oldPathEl, newPathEl, containerPathEl].forEach(p => {
+        [oldPathEl, newPathEl].forEach(p => {
             p.setAttribute('fill', 'none');
             p.setAttribute('stroke', cfg.glowColor);
             p.setAttribute('stroke-width', cfg.strokeWidth);
@@ -855,7 +861,6 @@ I've talked too much – let's get started! What can I do for you?`;
         dotEl.setAttribute('fill', cfg.glowColor);
         dotEl.style.visibility = 'hidden';
 
-        svg.appendChild(containerPathEl);
         svg.appendChild(oldPathEl);
         svg.appendChild(newPathEl);
         svg.appendChild(dotEl);
@@ -863,43 +868,57 @@ I've talked too much – let's get started! What can I do for you?`;
         function rectFor(el) {
             const parent = control.getBoundingClientRect();
             const r = el.getBoundingClientRect();
-            return {
+            const result = {
                 x: r.left - parent.left,
                 y: r.top - parent.top,
                 width: r.width,
                 height: r.height
             };
+            const idx = buttons.indexOf(el);
+            if (idx !== -1) {
+                const cs = getComputedStyle(control);
+                const borderLeft  = parseFloat(cs.borderLeftWidth) || 0;
+
+                if (idx === 0 && borderLeft) {
+                    result.x -= borderLeft;
+                } else if (idx === 1) {
+                    result.x -= borderLeft;
+                } else if (idx === buttons.length - 1 && borderLeft) {
+                    result.x -= borderLeft;
+                }
+            }
+            result.y = 0;
+            return result;
         }
 
         function buildPillPath(r, startAtBottomCenter = true) {
-            const { x, y, width, height } = r;
+            const strokeW = (typeof cfg !== 'undefined' && typeof cfg.strokeWidth === 'number') ? cfg.strokeWidth : 2;
+            const inset = strokeW / 2;
+
+            let { x, y, width, height } = r;
+            x += inset;
+            y += inset;
+            width -= inset * 2;
+            height -= inset * 2;
             const radius = height / 2;
-            if (!startAtBottomCenter) {
-                // Standard perimeter (not used here)
-            }
-            // Start at bottom center, traverse clockwise, return to bottom center (open path)
-            const sx = x + width / 2, sy = y + height;
-            const brA = x + width - radius; // bottom-right approach x
+
+            const sx = x + width / 2;
+            const sy = y + height;
+            const brA = x + width - radius;
+
             const path = [
                 `M ${sx} ${sy}`,
                 `L ${brA} ${y + height}`,
-                `A ${radius} ${radius} 0 0 1 ${x + width} ${y + height - radius}`,
+                `A ${radius} ${radius} 0 0 0 ${x + width} ${y + height - radius}`,
                 `L ${x + width} ${y + radius}`,
-                `A ${radius} ${radius} 0 0 1 ${x + width - radius} ${y}`,
+                `A ${radius} ${radius} 0 0 0 ${x + width - radius} ${y}`,
                 `L ${x + radius} ${y}`,
-                `A ${radius} ${radius} 0 0 1 ${x} ${y + radius}`,
+                `A ${radius} ${radius} 0 0 0 ${x} ${y + radius}`,
                 `L ${x} ${y + height - radius}`,
-                `A ${radius} ${radius} 0 0 1 ${x + radius} ${y + height}`,
+                `A ${radius} ${radius} 0 0 0 ${x + radius} ${y + height}`,
                 `L ${sx} ${sy}`
             ].join(' ');
             return path;
-        }
-
-        function updateContainerPath() {
-            const r = rectFor(control);
-            const path = buildPillPath(r, true);
-            containerPathEl.setAttribute('d', path);
-            containerPathEl.style.visibility = 'hidden'; // hidden; only used for length & travel
         }
 
         function pathInfo(pathEl) {
@@ -914,12 +933,10 @@ I've talked too much – let's get started! What can I do for you?`;
                 pathEl.setAttribute('stroke-dasharray', `${length}`);
                 let from, to;
                 if (type === 'erase') {
-                    // Start fully visible
                     pathEl.setAttribute('stroke-dashoffset', '0');
                     from = 0;
-                    to = direction === 'reverse' ? -length : length;
+                    to = direction === 'reverse' ? length : -length;
                 } else {
-                    // paint
                     from = direction === 'reverse' ? -length : length;
                     to = 0;
                     pathEl.setAttribute('stroke-dashoffset', `${from}`);
@@ -932,10 +949,12 @@ I've talked too much – let's get started! What can I do for you?`;
                     const eased = type === 'erase' ? cfg.easingIn(raw) : cfg.easingOut(raw);
                     const current = from + (to - from) * eased;
                     pathEl.setAttribute('stroke-dashoffset', `${current}`);
-                    // Move dot along
-                    const prog = type === 'erase'
-                        ? (direction === 'reverse' ? 1 - eased : eased)
-                        : (direction === 'reverse' ? 1 - eased : eased);
+                    let prog;
+                    if (type === 'erase') {
+                        prog = direction === 'reverse' ? 1 - eased : eased;
+                    } else {
+                        prog = direction === 'reverse' ? 1 - eased : eased;
+                    }
                     const posLen = prog * length;
                     const pt = pathEl.getPointAtLength(Math.max(0, Math.min(length, posLen)));
                     dotEl.setAttribute('cx', pt.x);
@@ -947,50 +966,24 @@ I've talked too much – let's get started! What can I do for you?`;
             });
         }
 
-        function progressOnContainer(point) {
-            const len = containerPathEl.getTotalLength();
-            // Rough sample search
-            const samples = 200;
-            let bestDist = Infinity;
-            let bestPos = 0;
-            for (let i = 0; i <= samples; i++) {
-                const d = (i / samples) * len;
-                const pt = containerPathEl.getPointAtLength(d);
-                const dx = pt.x - point.x;
-                const dy = pt.y - point.y;
-                const dist = dx*dx + dy*dy;
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    bestPos = d;
-                }
-            }
-            return bestPos / len;
-        }
-
-        function animateTravel(fromBtn, toBtn) {
+        function animateTravel(fromRect, toRect) {
             return new Promise(res => {
-                const cLen = containerPathEl.getTotalLength();
-                const fRect = rectFor(fromBtn);
-                const tRect = rectFor(toBtn);
-                const startPt = { x: fRect.x + fRect.width / 2, y: fRect.y + fRect.height };
-                const endPt   = { x: tRect.x + tRect.width / 2, y: tRect.y + tRect.height };
-                const startProg = progressOnContainer(startPt);
-                const endProg = progressOnContainer(endPt);
-                let forward = (endProg - startProg + 1) % 1;
-                let backward = (startProg - endProg + 1) % 1;
-                let travelFrac = Math.min(forward, backward);
-                let dir = forward <= backward ? 1 : -1;
-                const travelPx = travelFrac * cLen;
-                const duration = travelPx / cfg.travelSpeed;
+                const y = fromRect.y + fromRect.height;
+                const startX = fromRect.x + fromRect.width / 2;
+                const endX = toRect.x + toRect.width / 2;
+                const dx = endX - startX;
+                const dist = Math.abs(dx);
+                const duration = dist / cfg.travelSpeed;
+
                 let startTime = null;
                 dotEl.style.visibility = 'visible';
+                dotEl.setAttribute('cx', startX);
+                dotEl.setAttribute('cy', y);
+
                 function frame(ts) {
                     if (!startTime) startTime = ts;
                     const raw = Math.min((ts - startTime) / duration, 1);
-                    const prog = startProg + dir * travelFrac * raw;
-                    const pos = containerPathEl.getPointAtLength(((prog % 1)+1)%1 * cLen);
-                    dotEl.setAttribute('cx', pos.x);
-                    dotEl.setAttribute('cy', pos.y);
+                    dotEl.setAttribute('cx', startX + dx * raw);
                     if (raw < 1) requestAnimationFrame(frame); else res();
                 }
                 requestAnimationFrame(frame);
@@ -1001,16 +994,14 @@ I've talked too much – let's get started! What can I do for you?`;
             if (isAnimating || !fromBtn || !toBtn || fromBtn === toBtn) { done && done(); return; }
             isAnimating = true;
             control.classList.add('is-animating');
-
             ensureSVGSize();
-            updateContainerPath();
 
-            // Build paths
             const fromRect = rectFor(fromBtn);
             const toRect = rectFor(toBtn);
-
+            toRect.width = fromRect.width;
+            toRect.height = fromRect.height;
             const fromD = buildPillPath(fromRect, true);
-            const toD   = buildPillPath(toRect, true);
+            const toD = buildPillPath(toRect, true);
 
             oldPathEl.setAttribute('d', fromD);
             newPathEl.setAttribute('d', toD);
@@ -1025,12 +1016,11 @@ I've talked too much – let's get started! What can I do for you?`;
             fromBtn.classList.add('was-active');
 
             animateStroke(oldPathEl, 'erase', direction, cfg.eraseSpeed)
-                .then(() => animateTravel(fromBtn, toBtn))
+                .then(() => animateTravel(fromRect, toRect))
                 .then(() => animateStroke(newPathEl, 'paint', direction, cfg.paintSpeed))
                 .then(() => {
                     toBtn.classList.add('active');
                     oldPathEl.style.visibility = 'hidden';
-                    // Clean
                     setTimeout(() => {
                         dotEl.style.visibility = 'hidden';
                         control.classList.remove('is-animating');
@@ -1045,8 +1035,6 @@ I've talked too much – let's get started! What can I do for you?`;
             if (isAnimating) return;
             ensureSVGSize();
         });
-        ensureSVGSize();
-        updateContainerPath();
 
         buttons.forEach(btn => {
             btn.addEventListener('click', function() {
