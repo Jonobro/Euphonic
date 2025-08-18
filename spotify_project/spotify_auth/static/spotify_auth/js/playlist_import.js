@@ -156,6 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
             Importing...
         `;
 
+        const modalCloseEl = document.querySelector('#importModal .close-modal');
+        const modalCancelEl = document.querySelector('#importModal .import-cancel-button');
+        [modalCloseEl, modalCancelEl].forEach(el => { if (el) el.style.pointerEvents = 'none'; });
+
         try {
             const playlistUrls = validPlaylists.map(p => p.url);
             
@@ -186,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isImporting = false;
             importBtn.disabled = false;
             importBtn.textContent = originalText;
+            [modalCloseEl, modalCancelEl].forEach(el => { if (el) el.style.pointerEvents = ''; });
         }
     }
 
