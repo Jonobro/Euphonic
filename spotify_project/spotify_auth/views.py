@@ -2025,9 +2025,27 @@ def stream_initial_analysis(request):
                         except Exception as sess_err:
                             _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Unexpected error loading session {session_key}: {sess_err}")
                             session_data = request.session
+
                         final_history = session_data.get('final_analysis_chat_history', [])
+
                         if not final_history:
-                            _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: 'completed' received but final_analysis_chat_history missing or empty for session {session_key}.")
+                            _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: final_analysis_chat_history empty after 'completed'; retrying.")
+                            max_retries = 10
+                            for attempt in range(max_retries):
+                                time.sleep(0.05)
+                                try:
+                                    session_obj_retry = Session.objects.get(session_key=session_key)
+                                    session_data_retry = session_obj_retry.get_decoded()
+                                    final_history = session_data_retry.get('final_analysis_chat_history', [])
+                                    if final_history:
+                                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: final_analysis_chat_history loaded on retry {attempt+1}.")
+                                        break
+                                except Exception as retry_err:
+                                    _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: retry {attempt+1} error: {retry_err}")
+                            if not final_history:
+                                _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: final_analysis_chat_history still empty after retries; sending stream_error.")
+                                yield f"event: stream_error\ndata: {json.dumps({'message': 'Musical analysis not available.'})}\n\n"
+                                return
                         yield f"data: {json.dumps({'response': final_history})}\n\n"
                         return
                     elif payload == 'failed':
