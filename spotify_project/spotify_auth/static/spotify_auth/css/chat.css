@@ -384,7 +384,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     margin-bottom: 7px;
     margin-top: 5px;
     width: fit-content; /* 327px if you choose a fixed width */
-    transform: translateX(10px);
 }
 
 .message-container p + p {

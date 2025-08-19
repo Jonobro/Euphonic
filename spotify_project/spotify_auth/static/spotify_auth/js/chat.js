@@ -603,16 +603,10 @@ document.addEventListener('DOMContentLoaded', () => {
         while (messageList.firstChild) messageList.removeChild(messageList.firstChild);
         toggleChatInput(true);
 
-        let initialAnalysisTaskId = null;
         let loadingIndicator = null;
         let loadingInterval = null;
 
         if (mode === 'analysis') {
-            if (window.crypto?.randomUUID) {
-                initialAnalysisTaskId = window.crypto.randomUUID();
-            } else {
-                initialAnalysisTaskId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-            }
             const baseText = "Welcome! I'm preparing your musical analysis. This might take a moment";
             setTimeout(() => {
                 if (messageList.querySelectorAll('.message').length === 0) {
@@ -706,13 +700,13 @@ I've talked too much – let's get started! What can I do for you?`;
                     for (const msg of firstMsgs) addMessage(msg, 'ai', false, false);
                     toggleChatInput(false);
                     userInput.focus();
-                } else if (data.analysis_started && initialAnalysisTaskId) {
+                } else if (data.analysis_started) {
                     if (initialAnalysisEventSource) {
                         console.log('Initial analysis EventSource already open');
                         return;
                     }
 
-                    const es = new EventSource(`/stream_initial_analysis/${initialAnalysisTaskId}/`);
+                    const es = new EventSource(`/stream_initial_analysis/`);
                     initialAnalysisEventSource = es;
 
                     es.onmessage = (e) => {

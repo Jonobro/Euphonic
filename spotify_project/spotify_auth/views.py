@@ -549,8 +549,10 @@ def reset_view(request):
     if user_id:
         keys_to_delete = [
             f'spotify_user_tracks_{user_id}',
-            f'last_processed_playlist_{user_id}',
-            f'last_processed_playlist_details_{user_id}',
+            f'last_processed_playlist_saved_songs_{user_id}',
+            f'last_processed_playlist_new_songs_{user_id}',
+            f'last_processed_playlist_details_saved_songs_{user_id}',
+            f'last_processed_playlist_details_new_songs_{user_id}',
             f'analysis_in_progress_{user_id}'
         ]
         cache.delete_many(keys_to_delete)
@@ -559,6 +561,18 @@ def reset_view(request):
     return redirect(reverse('index'))
 
 def _generate_musical_analysis(session_data):
+    def _publish(status):
+        session_key = session_data.get('session_key')
+        if not session_key:
+            _log_to_file(GENERAL_LOG_FILE, f"Cannot publish analysis status '{status}': session_key missing in session_data.")
+            return
+        channel = f"{ANALYSIS_EVENT_CHANNEL_PREFIX}{session_key}"
+        try:
+            REDIS_CLIENT.publish(channel, status)
+            _log_to_file(GENERAL_LOG_FILE, f"Published analysis status '{status}' to channel {channel}")
+        except Exception as redis_error:
+            _log_to_file(GENERAL_LOG_FILE, f"Failed to publish analysis status '{status}' to Redis for session {session_key}: {redis_error}")
+
     class MockRequest:
         def __init__(self, session_dict):
             self.session = session_dict
@@ -566,28 +580,32 @@ def _generate_musical_analysis(session_data):
 
     mock_request = MockRequest(session_data)
     user_id = mock_request.user_id
+
     if not user_id:
         _log_to_file(GENERAL_LOG_FILE, "Analysis generation skipped: user_id not in session.")
+        _publish('failed')
         return
 
     if mock_request.session.get('final_analysis_chat_history'):
         _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: analysis already exists.")
+        _publish('completed')
         return
     
     analysis_in_progress_key = f"analysis_in_progress_{user_id}"
     if cache.get(analysis_in_progress_key):
         _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: analysis already in progress.")
+        _publish('completed')
         return
     
     cache.set(analysis_in_progress_key, True, timeout=600)
 
     try:
         cache_key_tracks = f'spotify_user_tracks_{user_id}'
-        
         tracks_list = cache.get(cache_key_tracks)
 
         if tracks_list is None:
             _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: library not found in cache.")
+            _publish('failed')
             return
 
         full_library_string = "User library is empty or could not be retrieved."
@@ -713,13 +731,13 @@ Here are a few questions you might find interesting:
             {'role': 'model', 'parts': [{'text': introductory_message_body_display}]},
             {'role': 'model', 'parts': [{'text': introductory_message_end}]}
         ]
-        
         mock_request.session['final_analysis_chat_history'] = final_history_list
         
         session_store = Session.get_session_store_class()
         session_key_from_data = mock_request.session.get('session_key')
         if not session_key_from_data:
             _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis for user {user_id}: session_key not found in session_data.")
+            _publish('failed')
             return
         
         session = session_store(session_key=session_key_from_data)
@@ -727,11 +745,12 @@ Here are a few questions you might find interesting:
         session['final_analysis_chat_history'] = mock_request.session.get('final_analysis_chat_history', [])
         session.save()
         _log_to_file(GENERAL_LOG_FILE, f"Successfully generated and saved musical analysis for user {user_id}")
+        _publish('completed')
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis for user {user_id}: {e}")
+        _publish('failed')
     finally:
         cache.delete(analysis_in_progress_key)
-        
         session_key_from_data = session_data.get('session_key')
         if session_key_from_data:
             try:
@@ -1022,7 +1041,10 @@ def reset_chat_history_api(request):
         chat_mode = data.get('chat_mode')
         user_action = data.get('user_action')
         if user_action == 'revise_playlist':
-            request.session['user_currently_revising_playlist'] = True
+            if chat_mode == 'saved_songs':
+                request.session['user_currently_revising_saved_songs_playlist'] = True
+            elif chat_mode == 'new_songs':
+                request.session['user_currently_revising_new_songs_playlist'] = True
         if chat_mode not in ['saved_songs', 'new_songs']:
             return JsonResponse({'error': 'Invalid chat mode for reset'}, status=400)
 
@@ -1058,7 +1080,7 @@ def reset_chat_history_api(request):
         if (chat_mode == 'saved_songs' and user_action == 'revise_playlist'):
             last_processed_playlist = ""
             if user_id:
-                last_processed_playlist = cache.get(f"last_processed_playlist_{user_id}")
+                last_processed_playlist = cache.get(f"last_processed_playlist_saved_songs_{user_id}")
             
             initial_prompt = f"""Please revise the playlist contained within the <playlist> tags below. I have included my Spotify library at the end of this message, with the tag <spotify_library>.
 
@@ -1076,7 +1098,7 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
         elif (chat_mode == 'new_songs' and user_action == 'revise_playlist'):
             last_processed_playlist = ""
             if user_id:
-                last_processed_playlist = cache.get(f"last_processed_playlist_{user_id}")
+                last_processed_playlist = cache.get(f"last_processed_playlist_new_songs_{user_id}")
             initial_prompt = f"""Please revise the following playlist:
 {last_processed_playlist}"""
             initial_response = "Okay, I will update the playlist – what changes did you have in mind?"
@@ -1234,11 +1256,18 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 
         client = get_gemini_client()
 
+        revising_flag_map = {
+            'saved_songs': 'user_currently_revising_saved_songs_playlist',
+            'new_songs': 'user_currently_revising_new_songs_playlist'
+        }
+        revising_flag_name = revising_flag_map.get(chat_mode)
+        is_revising = bool(revising_flag_name and mock_request.session.get(revising_flag_name))
+
         track_url_cache = {}
-        if mock_request.session.get('user_currently_revising_playlist'):
+        if is_revising:
             user_id = mock_request.session.get('euphonic_intelligence_user_id')
-            if user_id:
-                last_playlist_details = cache.get(f"last_processed_playlist_details_{user_id}", [])
+            if user_id and chat_mode in ['saved_songs', 'new_songs']:
+                last_playlist_details = cache.get(f"last_processed_playlist_details_{chat_mode}_{user_id}", [])
                 for track in last_playlist_details:
                     cache_key = (track['title'].lower(), track['artist'].lower())
                     track_url_cache[cache_key] = track['url']
@@ -1268,7 +1297,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             'new_songs': REVISE_NEW_SONGS_SYSTEM_INSTRUCTION
             }
         
-        if mock_request.session.get('user_currently_revising_playlist'):
+        if is_revising:
             system_instruction_for_mode = system_instruction_map_editing.get(chat_mode)
         else:
             system_instruction_for_mode = system_instruction_map_not_editing.get(chat_mode)
@@ -1342,8 +1371,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             ai_response_text = response.text
 
         if ai_response_text and any(ai_response_text[i:i+5].count('+') >= 4 for i in range(len(ai_response_text) - 4)) and chat_mode != 'analysis':
-            if mock_request.session.get('user_currently_revising_playlist'):
-                mock_request.session['user_currently_revising_playlist'] = False
+            if is_revising and revising_flag_name:
+                mock_request.session[revising_flag_name] = False
                 
             # # Sometimes Gemini duplicates the playlist, with the first part containing unnecessary information
             # # The below logic attempts to strip away everything that appears before the second playlist title
@@ -1448,9 +1477,13 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 
             result = {
                 'response': ai_response_text,
-                'session_data': mock_request.session
+                'analysis_chat_history': mock_request.session.get('analysis_chat_history', []),
+                'final_analysis_chat_history': mock_request.session.get('final_analysis_chat_history', []),
+                'chat_mode': 'analysis'
             }
+
             cache.set(task_id, result, timeout=600)
+
             try:
                 REDIS_CLIENT.publish(f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}", 'completed')
             except Exception as pub_err:
@@ -1770,9 +1803,9 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         processed_ai_response_text = re.sub(r"[\$@]{2,}", "", processed_ai_response_text)
 
         user_id = mock_request.session.get('euphonic_intelligence_user_id')
-        if user_id and playlist_for_cache:
+        if user_id and playlist_for_cache and chat_mode in ['saved_songs', 'new_songs']:
             playlist_string_for_cache = "* " + "\n* ".join([f"{p['title']} by {p['artist']}" for p in playlist_for_cache])
-            cache.set(f"last_processed_playlist_{user_id}", playlist_string_for_cache, timeout=3600)
+            cache.set(f"last_processed_playlist_{chat_mode}_{user_id}", playlist_string_for_cache, timeout=3600)
             
             detailed_playlist_for_cache = []
             for track in playlist_for_cache:
@@ -1785,7 +1818,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     })
             
             if detailed_playlist_for_cache:
-                cache.set(f"last_processed_playlist_details_{user_id}", detailed_playlist_for_cache, timeout=3600)
+                cache.set(f"last_processed_playlist_details_{chat_mode}_{user_id}", detailed_playlist_for_cache, timeout=3600)
 
         if (not isinstance(final_ai_text_to_process_for_user, str) or not final_ai_text_to_process_for_user.strip() or
             not isinstance(processed_ai_response_text, str) or not processed_ai_response_text.strip()):
@@ -1828,14 +1861,28 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 final_history_for_session.append({'role': 'model', 'parts': [{'text': processed_ai_response_text}]})
                 response_data = processed_ai_response_text
 
+        if is_revising and revising_flag_name and re.search(r"\+\+\+\+\+.*?\+\+\+\+\+", processed_ai_response_text):
+            mock_request.session[revising_flag_name] = False
+        
         if final_chat_history_placeholder:
             mock_request.session[final_chat_history_placeholder] = final_history_for_session
         
         result = {
             'response': response_data,
-            'session_data': mock_request.session,
             'chat_mode': chat_mode
         }
+
+        if chat_mode == 'saved_songs':
+            result['saved_songs_chat_history'] = mock_request.session.get('saved_songs_chat_history', [])
+            result['final_saved_songs_chat_history'] = mock_request.session.get('final_saved_songs_chat_history', [])
+            if revising_flag_name and revising_flag_name in mock_request.session:
+                result[revising_flag_name] = mock_request.session[revising_flag_name]
+        elif chat_mode == 'new_songs':
+            result['new_songs_chat_history'] = mock_request.session.get('new_songs_chat_history', [])
+            result['final_new_songs_chat_history'] = mock_request.session.get('final_new_songs_chat_history', [])
+            if revising_flag_name and revising_flag_name in mock_request.session:
+                result[revising_flag_name] = mock_request.session[revising_flag_name]
+
         cache.set(task_id, result, timeout=600)
         try:
             REDIS_CLIENT.publish(f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}", 'completed')
@@ -1913,66 +1960,94 @@ def chat_message_api(request):
 
 @require_http_methods(["GET"])
 @never_cache
-def stream_initial_analysis(request, task_id):
+def stream_initial_analysis(request):
     def event_stream():
         try:
-            channel = f"{ANALYSIS_EVENT_CHANNEL_PREFIX}{request.session.session_key}"
+            final_history = request.session.get('final_analysis_chat_history')
+            if final_history:
+                _log_to_file(GENERAL_LOG_FILE, "stream_initial_analysis: final_analysis_chat_history already present; sending session data.")
+                yield f"data: {json.dumps({'response': final_history})}\n\n"
+                return
+
+            session_key = request.session.session_key
+            if not session_key:
+                _log_to_file(GENERAL_LOG_FILE, "stream_initial_analysis: No valid session_key found; aborting SSE stream.")
+                yield f"event: stream_error\ndata: {json.dumps({'message': 'No valid session.'})}\n\n"
+                return
+
+            channel = f"{ANALYSIS_EVENT_CHANNEL_PREFIX}{session_key}"
             pubsub = REDIS_CLIENT.pubsub()
-            pubsub.subscribe(channel)
-            analysis_completed = False
+            try:
+                pubsub.subscribe(channel)
+                _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Subscribed to Redis channel '{channel}'.")
+            except Exception as sub_err:
+                _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Error subscribing to channel '{channel}': {sub_err}")
+                yield f"event: stream_error\ndata: {json.dumps({'message': 'Subscription error.'})}\n\n"
+                return
+
             start_time = time.time()
             last_keepalive = start_time
 
             try:
-                while not analysis_completed:
-                    current_time = time.time()
-                    
-                    if current_time - start_time > ANALYSIS_EVENT_TIMEOUT:
-                        _log_to_file(GENERAL_LOG_FILE, f"Timeout waiting for musical analysis for task {task_id}.")
-                        error_data = {'message': 'Timeout waiting for musical analysis. Please try again later.'}
-                        yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+                while True:
+                    now = time.time()
+                    if now - start_time > ANALYSIS_EVENT_TIMEOUT:
+                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Timeout ({ANALYSIS_EVENT_TIMEOUT}s) waiting for analysis on channel '{channel}'.")
+                        yield f"event: stream_error\ndata: {json.dumps({'message': 'Timeout waiting for musical analysis.'})}\n\n"
                         return
 
-                    if current_time - last_keepalive >= 29:
+                    if now - last_keepalive >= 29:
                         yield ":\n\n"
-                        last_keepalive = current_time
+                        last_keepalive = now
 
-                    message = pubsub.get_message(timeout=1.0)
-                    if message and message['type'] == 'message':
-                        data = message['data']
-                        if isinstance(data, bytes):
-                            data = data.decode('utf-8')
-                        if data == 'completed':
-                            analysis_completed = True
-                            break
+                    try:
+                        message = pubsub.get_message(timeout=1.0)
+                    except Exception as get_msg_err:
+                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Error retrieving Redis message on '{channel}': {get_msg_err}")
+                        continue
+
+                    if not message or message.get('type') != 'message':
+                        continue
+
+                    payload = message['data']
+                    if isinstance(payload, bytes):
+                        payload = payload.decode('utf-8')
+
+                    _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Received payload '{payload}' on '{channel}'.")
+
+                    if payload == 'completed':
+                        try:
+                            session_obj = Session.objects.get(session_key=session_key)
+                            session_data = session_obj.get_decoded()
+                        except Session.DoesNotExist:
+                            _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Session.DoesNotExist for key {session_key}; falling back to request.session.")
+                            session_data = request.session
+                        except Exception as sess_err:
+                            _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Unexpected error loading session {session_key}: {sess_err}")
+                            session_data = request.session
+                        final_history = session_data.get('final_analysis_chat_history', [])
+                        if not final_history:
+                            _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: 'completed' received but final_analysis_chat_history missing or empty for session {session_key}.")
+                        yield f"data: {json.dumps({'response': final_history})}\n\n"
+                        return
+                    elif payload == 'failed':
+                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Received 'failed' status for session {session_key}.")
+                        yield f"event: stream_error\ndata: {json.dumps({'message': 'Musical analysis failed.'})}\n\n"
+                        return
+                    else:
+                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Ignoring unknown payload '{payload}' on '{channel}'.")
             finally:
                 try:
                     pubsub.close()
-                except Exception as close_error:
-                    _log_to_file(GENERAL_LOG_FILE, f"Error closing pubsub for task {task_id}: {close_error}")
-
-            if analysis_completed:
-                session_obj = Session.objects.get(session_key=request.session.session_key)
-                session_data = session_obj.get_decoded()
-                final_history = session_data.get('final_analysis_chat_history', [])
-                
-                result = {
-                    'response': final_history,
-                    'session_data': session_data
-                }
-                cache.set(task_id, result, timeout=600)
-                yield f"data: {json.dumps(result)}\n\n"
-            else:
-                error_data = {'message': 'Failed to retrieve musical analysis.'}
-                yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
-
+                    _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Closed Redis pubsub for channel '{channel}'.")
+                except Exception as close_err:
+                    _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Error closing pubsub for channel '{channel}': {close_err}")
         except GeneratorExit:
-            _log_to_file(GENERAL_LOG_FILE, f"SSE stream for task {task_id} closed by client.")
+            _log_to_file(GENERAL_LOG_FILE, "stream_initial_analysis: GeneratorExit (client disconnected).")
             raise
         except Exception as e:
-            _log_to_file(GENERAL_LOG_FILE, f"Error in initial analysis SSE stream for task {task_id}: {e}")
-            error_data = {'message': 'A server error occurred during streaming.'}
-            yield f"event: stream_error\ndata: {json.dumps(error_data)}\n\n"
+            _log_to_file(GENERAL_LOG_FILE, f"SSE error in stream_initial_analysis outer handler: {e}")
+            yield f"event: stream_error\ndata: {json.dumps({'message': 'Server error during streaming.'})}\n\n"
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'
@@ -1994,7 +2069,15 @@ def stream_chat_response(request, task_id):
                 if 'error' in pre_result:
                     yield f"event: stream_error\ndata: {json.dumps({'message': pre_result['error']})}\n\n"
                 else:
-                    request.session.update(pre_result.get('session_data', {}))
+                    for k in [
+                        'analysis_chat_history','final_analysis_chat_history',
+                        'saved_songs_chat_history','final_saved_songs_chat_history',
+                        'new_songs_chat_history','final_new_songs_chat_history',
+                        'user_currently_revising_saved_songs_playlist',
+                        'user_currently_revising_new_songs_playlist'
+                    ]:
+                        if k in pre_result:
+                            request.session[k] = pre_result[k]
                     request.session.save()
                     data = {
                         'response': pre_result.get('response'),
@@ -2035,7 +2118,15 @@ def stream_chat_response(request, task_id):
                     if 'error' in result:
                         yield f"event: stream_error\ndata: {json.dumps({'message': result['error']})}\n\n"
                     else:
-                        request.session.update(result.get('session_data', {}))
+                        for k in [
+                            'analysis_chat_history','final_analysis_chat_history',
+                            'saved_songs_chat_history','final_saved_songs_chat_history',
+                            'new_songs_chat_history','final_new_songs_chat_history',
+                            'user_currently_revising_saved_songs_playlist',
+                            'user_currently_revising_new_songs_playlist'
+                        ]:
+                            if k in result:
+                                request.session[k] = result[k]
                         request.session.save()
                         data = {
                             'response': result.get('response'),
