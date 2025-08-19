@@ -581,6 +581,8 @@ def _generate_musical_analysis(session_data):
     mock_request = MockRequest(session_data)
     user_id = mock_request.user_id
 
+    status = 'failed'
+
     if not user_id:
         _log_to_file(GENERAL_LOG_FILE, "Analysis generation skipped: user_id not in session.")
         _publish('failed')
@@ -590,13 +592,13 @@ def _generate_musical_analysis(session_data):
         _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: analysis already exists.")
         _publish('completed')
         return
-    
+
     analysis_in_progress_key = f"analysis_in_progress_{user_id}"
     if cache.get(analysis_in_progress_key):
         _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: analysis already in progress.")
-        _publish('completed')
+        _publish('in_progress')
         return
-    
+
     cache.set(analysis_in_progress_key, True, timeout=600)
 
     try:
@@ -745,20 +747,13 @@ Here are a few questions you might find interesting:
         session['final_analysis_chat_history'] = mock_request.session.get('final_analysis_chat_history', [])
         session.save()
         _log_to_file(GENERAL_LOG_FILE, f"Successfully generated and saved musical analysis for user {user_id}")
-        _publish('completed')
+        status = 'completed'
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis for user {user_id}: {e}")
-        _publish('failed')
+        status = 'failed'
     finally:
         cache.delete(analysis_in_progress_key)
-        session_key_from_data = session_data.get('session_key')
-        if session_key_from_data:
-            try:
-                channel = f"{ANALYSIS_EVENT_CHANNEL_PREFIX}{session_key_from_data}"
-                REDIS_CLIENT.publish(channel, 'completed')
-                _log_to_file(GENERAL_LOG_FILE, f"Published analysis completion to channel {channel}")
-            except Exception as redis_error:
-                _log_to_file(GENERAL_LOG_FILE, f"Failed to publish analysis completion to Redis for session {session_key_from_data}: {redis_error}")
+        _publish(status)
 
 def _get_spotify_track_url_with_backoff(request, song_title, artist_name, chat_mode, max_retries=5):
     worker_id = threading.get_ident()
@@ -2048,6 +2043,10 @@ def stream_initial_analysis(request):
                                 return
                         yield f"data: {json.dumps({'response': final_history})}\n\n"
                         return
+                    elif payload == 'in_progress':
+                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Received 'in_progress' status for session {session_key}.")
+                        yield f"data: {json.dumps({'status': 'in_progress'})}\n\n"
+                        continue
                     elif payload == 'failed':
                         _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Received 'failed' status for session {session_key}.")
                         yield f"event: stream_error\ndata: {json.dumps({'message': 'Musical analysis failed.'})}\n\n"

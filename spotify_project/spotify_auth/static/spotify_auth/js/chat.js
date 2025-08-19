@@ -715,10 +715,16 @@ I've talked too much – let's get started! What can I do for you?`;
                             initialAnalysisEventSource = null;
                             return;
                         }
+
+                        const payload = JSON.parse(e.data);
+
+                        if (payload.status === 'in_progress') {
+                            return;
+                        }
+
                         if (loadingIndicator) loadingIndicator.remove();
                         if (loadingInterval) clearInterval(loadingInterval);
 
-                        const payload = JSON.parse(e.data);
                         const history = payload.response;
                         const FAILURE_MARKER = "Failed to generate analysis.";
                         if (Array.isArray(history) && history.some(message => message?.parts?.[0]?.text?.includes(FAILURE_MARKER))) {
