@@ -2087,26 +2087,44 @@ def stream_initial_analysis(request):
 def stream_chat_response(request, task_id):
     def event_stream():
         channel = f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}"
+        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Opening stream for task {task_id} on channel '{channel}'")
         pubsub = REDIS_CLIENT.pubsub()
         start_time = time.time()
         last_keepalive = start_time
         try:
-            pubsub.subscribe(channel)
-            pre_result = cache.get(task_id)
+            try:
+                pubsub.subscribe(channel)
+                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Subscribed to Redis channel '{channel}' (task {task_id})")
+            except Exception as sub_err:
+                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Failed to subscribe to channel '{channel}' (task {task_id}): {sub_err}")
+                yield f"event: stream_error\ndata: {json.dumps({'message': 'Subscription error.'})}\n\n"
+                return
+
+            try:
+                pre_result = cache.get(task_id)
+            except Exception as cache_err:
+                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error reading initial cache for task {task_id}: {cache_err}")
+                pre_result = None
+
             if pre_result:
+                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Found pre_result in cache for task {task_id} (keys: {list(pre_result.keys())})")
                 if 'error' in pre_result:
                     yield f"event: stream_error\ndata: {json.dumps({'message': pre_result['error']})}\n\n"
                 else:
-                    for k in [
-                        'analysis_chat_history','final_analysis_chat_history',
-                        'saved_songs_chat_history','final_saved_songs_chat_history',
-                        'new_songs_chat_history','final_new_songs_chat_history',
-                        'user_currently_revising_saved_songs_playlist',
-                        'user_currently_revising_new_songs_playlist'
-                    ]:
-                        if k in pre_result:
-                            request.session[k] = pre_result[k]
-                    request.session.save()
+                    try:
+                        for k in [
+                            'analysis_chat_history','final_analysis_chat_history',
+                            'saved_songs_chat_history','final_saved_songs_chat_history',
+                            'new_songs_chat_history','final_new_songs_chat_history',
+                            'user_currently_revising_saved_songs_playlist',
+                            'user_currently_revising_new_songs_playlist'
+                        ]:
+                            if k in pre_result:
+                                request.session[k] = pre_result[k]
+                        request.session.save()
+                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Session updated from pre_result for task {task_id}")
+                    except Exception as sess_err:
+                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error saving session (pre_result) for task {task_id}: {sess_err}")
                     data = {
                         'response': pre_result.get('response'),
                         'chat_mode': pre_result.get('chat_mode')
@@ -2117,6 +2135,7 @@ def stream_chat_response(request, task_id):
             while True:
                 now = time.time()
                 if now - start_time > CHAT_EVENT_TIMEOUT:
+                    _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Timeout ({CHAT_EVENT_TIMEOUT}s) for task {task_id}")
                     err = {'message': 'Request timed out.'}
                     yield f"event: stream_error\ndata: {json.dumps(err)}\n\n"
                     return
@@ -2125,33 +2144,51 @@ def stream_chat_response(request, task_id):
                     yield ":\n\n"
                     last_keepalive = now
 
-                message = pubsub.get_message(timeout=1.0)
+                try:
+                    message = pubsub.get_message(timeout=1.0)
+                except Exception as get_msg_err:
+                    _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error retrieving Redis message task {task_id}: {get_msg_err}")
+                    continue
+
                 if not message:
                     continue
                 if message['type'] != 'message':
                     continue
+                
                 payload = message['data']
                 if isinstance(payload, bytes):
                     payload = payload.decode('utf-8')
                 if payload == 'completed':
-                    result = cache.get(task_id)
-                    if not result:
-                        time.sleep(0.1)
+                    try:
                         result = cache.get(task_id)
+                        if not result:
+                            time.sleep(0.1)
+                            result = cache.get(task_id)
+                    except Exception as cache_err:
+                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Cache error retrieving result for task {task_id}: {cache_err}")
+                        result = None
+
                     if not result:
                         err = {'message': 'Result missing.'}
+                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Result missing after completion signal task {task_id}")
                         yield f"event: stream_error\ndata: {json.dumps(err)}\n\n"
                         return
-                    for k in [
-                        'analysis_chat_history','final_analysis_chat_history',
-                        'saved_songs_chat_history','final_saved_songs_chat_history',
-                        'new_songs_chat_history','final_new_songs_chat_history',
-                        'user_currently_revising_saved_songs_playlist',
-                        'user_currently_revising_new_songs_playlist'
-                    ]:
-                        if k in result:
-                            request.session[k] = result[k]
-                    request.session.save()
+
+                    try:
+                        for k in [
+                            'analysis_chat_history','final_analysis_chat_history',
+                            'saved_songs_chat_history','final_saved_songs_chat_history',
+                            'new_songs_chat_history','final_new_songs_chat_history',
+                            'user_currently_revising_saved_songs_playlist',
+                            'user_currently_revising_new_songs_playlist'
+                        ]:
+                            if k in result:
+                                request.session[k] = result[k]
+                        request.session.save()
+                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Session updated from completed result (task {task_id})")
+                    except Exception as sess_err:
+                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error saving session (completed) task {task_id}: {sess_err}")
+
                     data = {
                         'response': result.get('response'),
                         'chat_mode': result.get('chat_mode')
@@ -2159,24 +2196,32 @@ def stream_chat_response(request, task_id):
                     yield f"data: {json.dumps(data)}\n\n"
                     return
                 elif payload == 'failed':
-                    result = cache.get(task_id)
+                    try:
+                        result = cache.get(task_id)
+                    except Exception as cache_err:
+                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Cache error retrieving failed result task {task_id}: {cache_err}")
+                        result = None
                     if result and 'error' in result:
                         yield f"event: stream_error\ndata: {json.dumps({'message': result['error']})}\n\n"
                     else:
                         yield f"event: stream_error\ndata: {json.dumps({'message': 'Processing failed.'})}\n\n"
                     return
+                else:
+                    _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Unknown payload '{payload}' ignored (task {task_id})")
+
         except GeneratorExit:
-            _log_to_file(GENERAL_LOG_FILE, f"SSE chat stream closed by client (task {task_id}).")
+            _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Client disconnected (GeneratorExit) task {task_id}")
             raise
         except Exception as e:
-            _log_to_file(GENERAL_LOG_FILE, f"Error in chat SSE stream for task {task_id}: {e}")
+            _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Unhandled exception in stream for task {task_id}: {e}")
             err = {'message': 'A server error occurred during streaming.'}
             yield f"event: stream_error\ndata: {json.dumps(err)}\n\n"
         finally:
             try:
                 pubsub.close()
+                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Closed pubsub for task {task_id}")
             except Exception as close_err:
-                _log_to_file(GENERAL_LOG_FILE, f"Error closing chat pubsub for task {task_id}: {close_err}")
+                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error closing pubsub task {task_id}: {close_err}")
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'
