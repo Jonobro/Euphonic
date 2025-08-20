@@ -476,6 +476,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function switchChatMode(newMode) {
+        if (analysisLoadingInterval) {
+            clearInterval(analysisLoadingInterval);
+            analysisLoadingInterval = null;
+        }
+        if (analysisLoadingIndicator) {
+            analysisLoadingIndicator.remove();
+            analysisLoadingIndicator = null;
+        }
+        if (initialAnalysisEventSource && newMode !== 'analysis') {
+            initialAnalysisEventSource.close();
+            initialAnalysisEventSource = null;
+        }
         const chatMode = newMode;
         sessionStorage.setItem('chatMode', chatMode);
         setActiveSegment(chatMode);
