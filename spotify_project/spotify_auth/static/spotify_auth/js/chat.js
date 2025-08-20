@@ -48,6 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let initialAnalysisEventSource = null;
     let modeSwitchCooldown = false;
 
+    let analysisLoadingIndicator = null;
+    let analysisLoadingInterval = null;
+
     function shouldShowActionPlaceholder() {
         const aiMessages = document.querySelectorAll('.ai-message.has-playlist-button');
         for (const msg of aiMessages) {
@@ -603,21 +606,20 @@ document.addEventListener('DOMContentLoaded', () => {
         while (messageList.firstChild) messageList.removeChild(messageList.firstChild);
         toggleChatInput(true);
 
-        let loadingIndicator = null;
-        let loadingInterval = null;
-
         if (mode === 'analysis') {
             const baseText = "Welcome! I'm preparing your musical analysis. This might take a moment";
             setTimeout(() => {
-                if (messageList.querySelectorAll('.message').length === 0) {
+                if (messageList.querySelectorAll('.message').length === 0 && !analysisLoadingIndicator) {
                     const prev = suppressHistoryUpdate;
                     suppressHistoryUpdate = true;
-                    loadingIndicator = addMessage(baseText + "...", 'ai', true, false);
-                    loadingIndicator.classList.add('fade-in-analysis-message');
+                    analysisLoadingIndicator = addMessage(baseText + "...", 'ai', true, false);
+                    analysisLoadingIndicator.classList.add('fade-in-analysis-message');
                     let dotCount = 3;
-                    loadingInterval = setInterval(() => {
+                    analysisLoadingInterval = setInterval(() => {
                         dotCount = (dotCount % 3) + 1;
-                        if (loadingIndicator) loadingIndicator.textContent = baseText + '.'.repeat(dotCount);
+                        if (analysisLoadingIndicator) {
+                            analysisLoadingIndicator.textContent = baseText + '.'.repeat(dotCount);
+                        }
                     }, 400);
                     suppressHistoryUpdate = prev;
                 }
@@ -688,8 +690,8 @@ I've talked too much – let's get started! What can I do for you?`;
 
             if (mode === 'analysis') {
                 if (data.already_initialized) {
-                    if (loadingIndicator) loadingIndicator.remove();
-                    if (loadingInterval) clearInterval(loadingInterval);
+                    if (analysisLoadingIndicator) { analysisLoadingIndicator.remove(); analysisLoadingIndicator = null; }
+                    if (analysisLoadingInterval) { clearInterval(analysisLoadingInterval); analysisLoadingInterval = null; }
                     const firstMsgs = Array.isArray(data.first_ai_message) ? data.first_ai_message : [];
                     const FAILURE_MARKER = "Failed to generate analysis.";
                     if (firstMsgs.some(m => typeof m === 'string' && m.includes(FAILURE_MARKER))) {
@@ -722,8 +724,8 @@ I've talked too much – let's get started! What can I do for you?`;
                             return;
                         }
 
-                        if (loadingIndicator) loadingIndicator.remove();
-                        if (loadingInterval) clearInterval(loadingInterval);
+                        if (analysisLoadingIndicator) { analysisLoadingIndicator.remove(); analysisLoadingIndicator = null; }
+                        if (analysisLoadingInterval) { clearInterval(analysisLoadingInterval); analysisLoadingInterval = null; }
 
                         const history = payload.response;
                         const FAILURE_MARKER = "Failed to generate analysis.";
@@ -743,12 +745,13 @@ I've talked too much – let's get started! What can I do for you?`;
                         }
                         es.close();
                         initialAnalysisEventSource = null;
-
                         toggleChatInput(false);
                         userInput.focus();
                     };
 
                     es.addEventListener('stream_error', (e) => {
+                        if (analysisLoadingIndicator) { analysisLoadingIndicator.remove(); analysisLoadingIndicator = null; }
+                        if (analysisLoadingInterval) { clearInterval(analysisLoadingInterval); analysisLoadingInterval = null; }
                         if (getChatMode() !== 'analysis') {
                             es.close();
                             initialAnalysisEventSource = null;
@@ -764,6 +767,8 @@ I've talked too much – let's get started! What can I do for you?`;
                     });
 
                     es.onerror = () => {
+                        if (analysisLoadingIndicator) { analysisLoadingIndicator.remove(); analysisLoadingIndicator = null; }
+                        if (analysisLoadingInterval) { clearInterval(analysisLoadingInterval); analysisLoadingInterval = null; }
                         if (getChatMode() !== 'analysis') {
                             es.close();
                             initialAnalysisEventSource = null;
@@ -776,8 +781,8 @@ I've talked too much – let's get started! What can I do for you?`;
                         initialAnalysisEventSource = null;
                     };
                 } else {
-                    if (loadingIndicator) loadingIndicator.remove();
-                    if (loadingInterval) clearInterval(loadingInterval);
+                    if (analysisLoadingIndicator) { analysisLoadingIndicator.remove(); analysisLoadingIndicator = null; }
+                    if (analysisLoadingInterval) { clearInterval(analysisLoadingInterval); analysisLoadingInterval = null; }
                     addEphemeralMessage(`Sorry, something went wrong starting your analysis. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
                 }
             } else if (mode === 'saved_songs' || mode === 'new_songs') {
@@ -796,8 +801,8 @@ I've talked too much – let's get started! What can I do for you?`;
             }
         })
         .catch((error) => {
-            if (loadingIndicator) loadingIndicator.remove();
-            if (loadingInterval) clearInterval(loadingInterval);
+            if (analysisLoadingIndicator) { analysisLoadingIndicator.remove(); analysisLoadingIndicator = null; }
+            if (analysisLoadingInterval) { clearInterval(analysisLoadingInterval); analysisLoadingInterval = null; }
             console.error("Initialization error:", error);
             addEphemeralMessage(`Sorry, there was a problem initializing the chat. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
         });
