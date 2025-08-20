@@ -585,18 +585,21 @@ def _generate_musical_analysis(session_data):
 
     if not user_id:
         _log_to_file(GENERAL_LOG_FILE, "Analysis generation skipped: user_id not in session.")
-        _publish('failed')
+        status = 'failed'
+        _publish(status)
         return
 
     if mock_request.session.get('final_analysis_chat_history'):
         _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: analysis already exists.")
-        _publish('completed')
+        status = 'completed'
+        _publish(status)
         return
 
     analysis_in_progress_key = f"analysis_in_progress_{user_id}"
     if cache.get(analysis_in_progress_key):
         _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: analysis already in progress.")
-        _publish('in_progress')
+        status = 'in_progress'
+        _publish(status)
         return
 
     cache.set(analysis_in_progress_key, True, timeout=600)
@@ -607,7 +610,7 @@ def _generate_musical_analysis(session_data):
 
         if tracks_list is None:
             _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: library not found in cache.")
-            _publish('failed')
+            status = 'failed'
             return
 
         full_library_string = "User library is empty or could not be retrieved."
@@ -739,7 +742,7 @@ Here are a few questions you might find interesting:
         session_key_from_data = mock_request.session.get('session_key')
         if not session_key_from_data:
             _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis for user {user_id}: session_key not found in session_data.")
-            _publish('failed')
+            status = 'failed'
             return
         
         session = session_store(session_key=session_key_from_data)
@@ -1234,6 +1237,16 @@ def create_playlist_api(request):
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
 
 def _process_chat_message_thread(session_data, user_message, task_id, chat_mode):
+    def _publish(status):
+        channel = f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}"
+        try:
+            REDIS_CLIENT.publish(channel, status)
+            _log_to_file(GENERAL_LOG_FILE, f"Published chat status '{status}' to channel {channel} (task {task_id})")
+        except Exception as redis_error:
+            _log_to_file(GENERAL_LOG_FILE, f"Failed to publish chat status '{status}' for task {task_id}: {redis_error}")
+    
+    status = 'failed'
+
     try:
         class MockRequest:
             def __init__(self, session_dict):
@@ -1272,9 +1285,9 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             if cache_key in track_url_cache:
                 return track_url_cache[cache_key]
             
-            status, track_url = _get_spotify_track_url_with_backoff(mock_request, song_title, artist_name, chat_mode)
+            get_url_status, track_url = _get_spotify_track_url_with_backoff(mock_request, song_title, artist_name, chat_mode)
 
-            final_url = track_url if status == 'success' else None
+            final_url = track_url if get_url_status == 'success' else None
             track_url_cache[cache_key] = final_url
             return final_url
         
@@ -1285,12 +1298,12 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             'analysis': ANALYSIS_SYSTEM_INSTRUCTION,
             'saved_songs': SAVED_SONGS_SYSTEM_INSTRUCTION,
             'new_songs': NEW_SONGS_SYSTEM_INSTRUCTION
-            }
+        }
         
         system_instruction_map_editing = {
             'saved_songs': REVISE_SAVED_SONGS_SYSTEM_INSTRUCTION,
             'new_songs': REVISE_NEW_SONGS_SYSTEM_INSTRUCTION
-            }
+        }
         
         if is_revising:
             system_instruction_for_mode = system_instruction_map_editing.get(chat_mode)
@@ -1338,6 +1351,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 getattr(response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
                 _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS first pass Task {task_id}.")
                 cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                status = 'failed'
                 return
         except Exception as e_mt:
             _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (first pass): {e_mt}")
@@ -1422,6 +1436,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     getattr(formatting_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
                     _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS formatting pass Task {task_id}.")
                     cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                    status = 'failed'
                     return
             except Exception as e_fmt_mt:
                 _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (formatting pass): {e_fmt_mt}")
@@ -1458,6 +1473,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             if (not isinstance(ai_response_text, str) or not ai_response_text.strip()):
                 result = {'error': 'Invalid model response'}
                 cache.set(task_id, result, timeout=600)
+                status = 'failed'
                 return
             
             internal_history = list(history_list)
@@ -1478,11 +1494,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             }
 
             cache.set(task_id, result, timeout=600)
-
-            try:
-                REDIS_CLIENT.publish(f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}", 'completed')
-            except Exception as pub_err:
-                _log_to_file(GENERAL_LOG_FILE, f"Redis publish error (analysis message task {task_id}): {pub_err}")
+            status = 'completed'
             return
 
         unfound_tracks_for_feedback = []
@@ -1556,8 +1568,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 </user_library_tracks>
 """
             feedback_system_instruction_map = {
-            'saved_songs': SAVED_SONGS_FEEDBACK_SYSTEM_INSTRUCTION,
-            'new_songs': NEW_SONGS_FEEDBACK_SYSTEM_INSTRUCTION
+                'saved_songs': SAVED_SONGS_FEEDBACK_SYSTEM_INSTRUCTION,
+                'new_songs': NEW_SONGS_FEEDBACK_SYSTEM_INSTRUCTION
             }
             system_instruction_for_feedback = feedback_system_instruction_map.get(chat_mode)
             
@@ -1605,6 +1617,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     getattr(correction_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
                     _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS feedback pass Task {task_id}.")
                     cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                    status = 'failed'
                     return
             except Exception as e_fb_mt:
                 _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (feedback pass): {e_fb_mt}")
@@ -1723,6 +1736,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         getattr(final_removal_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
                         _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS removal pass Task {task_id}.")
                         cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                        status = 'failed'
                         return
                 except Exception as e_rm_mt:
                     _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (removal pass): {e_rm_mt}")
@@ -1819,6 +1833,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             not isinstance(processed_ai_response_text, str) or not processed_ai_response_text.strip()):
             result = {'error': 'Invalid model response'}
             cache.set(task_id, result, timeout=600)
+            status = 'failed'
             return
         
         chat_history_placeholder = None
@@ -1879,17 +1894,13 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 result[revising_flag_name] = mock_request.session[revising_flag_name]
 
         cache.set(task_id, result, timeout=600)
-        try:
-            REDIS_CLIENT.publish(f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}", 'completed')
-        except Exception as pub_err:
-            _log_to_file(GENERAL_LOG_FILE, f"Redis publish error (task {task_id}): {pub_err}")
+        status = 'completed'
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in chat processing thread for task {task_id}: {e}")
         cache.set(task_id, {'error': 'An unexpected error occurred processing your message.'}, timeout=600)
-        try:
-            REDIS_CLIENT.publish(f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}", 'completed')
-        except Exception as pub_err:
-            _log_to_file(GENERAL_LOG_FILE, f"Redis publish error after exception (task {task_id}): {pub_err}")
+        status = 'failed'
+    finally:
+        _publish(status)
 
 @csrf_protect
 @require_http_methods(["POST"])
@@ -2025,9 +2036,9 @@ def stream_initial_analysis(request):
 
                         if not final_history:
                             _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: final_analysis_chat_history empty after 'completed'; retrying.")
-                            max_retries = 10
+                            max_retries = 5
                             for attempt in range(max_retries):
-                                time.sleep(0.05)
+                                time.sleep(0.1)
                                 try:
                                     session_obj_retry = Session.objects.get(session_key=session_key)
                                     session_data_retry = session_obj_retry.get_decoded()
@@ -2125,31 +2136,34 @@ def stream_chat_response(request, task_id):
                 if payload == 'completed':
                     result = cache.get(task_id)
                     if not result:
-                        # Retry after slight delay to allow cache edit propagation
-                        time.sleep(0.05)
+                        time.sleep(0.1)
                         result = cache.get(task_id)
                     if not result:
                         err = {'message': 'Result missing.'}
                         yield f"event: stream_error\ndata: {json.dumps(err)}\n\n"
                         return
-                    if 'error' in result:
+                    for k in [
+                        'analysis_chat_history','final_analysis_chat_history',
+                        'saved_songs_chat_history','final_saved_songs_chat_history',
+                        'new_songs_chat_history','final_new_songs_chat_history',
+                        'user_currently_revising_saved_songs_playlist',
+                        'user_currently_revising_new_songs_playlist'
+                    ]:
+                        if k in result:
+                            request.session[k] = result[k]
+                    request.session.save()
+                    data = {
+                        'response': result.get('response'),
+                        'chat_mode': result.get('chat_mode')
+                    }
+                    yield f"data: {json.dumps(data)}\n\n"
+                    return
+                elif payload == 'failed':
+                    result = cache.get(task_id)
+                    if result and 'error' in result:
                         yield f"event: stream_error\ndata: {json.dumps({'message': result['error']})}\n\n"
                     else:
-                        for k in [
-                            'analysis_chat_history','final_analysis_chat_history',
-                            'saved_songs_chat_history','final_saved_songs_chat_history',
-                            'new_songs_chat_history','final_new_songs_chat_history',
-                            'user_currently_revising_saved_songs_playlist',
-                            'user_currently_revising_new_songs_playlist'
-                        ]:
-                            if k in result:
-                                request.session[k] = result[k]
-                        request.session.save()
-                        data = {
-                            'response': result.get('response'),
-                            'chat_mode': result.get('chat_mode')
-                        }
-                        yield f"data: {json.dumps(data)}\n\n"
+                        yield f"event: stream_error\ndata: {json.dumps({'message': 'Processing failed.'})}\n\n"
                     return
         except GeneratorExit:
             _log_to_file(GENERAL_LOG_FILE, f"SSE chat stream closed by client (task {task_id}).")
