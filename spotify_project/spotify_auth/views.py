@@ -2466,6 +2466,7 @@ def validate_playlist_api(request):
             return JsonResponse({'error': 'No playlist URL provided'}, status=400)
         
         if not re.match(r'^https://open\.spotify\.com/playlist/[a-zA-Z0-9]{22}(\?pt=[a-zA-Z0-9]{32})?$', playlist_url):
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"validate_playlist_api: Invalid playlist URL format received: '{playlist_url}' (input_id={input_id})")
             return JsonResponse({'error': 'Invalid Spotify playlist URL format'}, status=400)
         
         playlist_id = playlist_url.split('playlist/')[1].split('?')[0]
