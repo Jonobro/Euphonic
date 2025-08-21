@@ -2456,6 +2456,11 @@ def validate_playlist_api(request):
     try:
         data = json.loads(request.body)
         playlist_url = data.get('playlist_url', '').strip()
+        input_id = data.get('input_id', '').strip()
+
+        def _fallback_name():
+            m = re.match(r'^playlist-input-(\d+)$', input_id or '')
+            return f"Playlist #{m.group(1)} 🎧"
         
         if not playlist_url:
             return JsonResponse({'error': 'No playlist URL provided'}, status=400)
@@ -2506,7 +2511,9 @@ def validate_playlist_api(request):
                     max_meta_retries = 10
                     for retry in range(1, max_meta_retries):
                         try:
-                            delay = min(0.1 * retry, 2.0)
+                            # Increased backoff if necessary
+                            # delay = min(0.1 * retry, 2.0)
+                            delay = 0.1
                             time.sleep(delay)
                             _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}/{max_meta_retries - 1} fetching playlist {playlist_id} for meta description (delay {delay:.2f}s)")
                             with httpx.Client(http2=False, follow_redirects=False) as client:
@@ -2537,6 +2544,7 @@ def validate_playlist_api(request):
                                     break
                             else:
                                 _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}: Non-200 status {retry_response.status_code} while refetching playlist {playlist_id}")
+                                break
                         except Exception as retry_err:
                             _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}: Exception while refetching playlist {playlist_id}: {retry_err}")
 
@@ -2558,15 +2566,15 @@ def validate_playlist_api(request):
                                 track_count = 0
                         else:
                             _log_to_file(SPOTIFY_API_LOG_FILE, f"Unexpected description format: {description}")
-                            playlist_name = 'Mystery Playlist 🎧'
+                            playlist_name = _fallback_name()
                             track_count = 0
                     else:
                         _log_to_file(SPOTIFY_API_LOG_FILE, f"Description does not match expected format: {description}")
-                        playlist_name = 'Mystery Playlist 🎧'
+                        playlist_name = _fallback_name()
                         track_count = 0
                 else:
                     _log_to_file(SPOTIFY_API_LOG_FILE, f"Could not find meta description tag for playlist {playlist_id} after retries")
-                    playlist_name = 'Mystery Playlist 🎧'
+                    playlist_name = _fallback_name()
                     track_count = 0
                 
                 user_id = request.session.get('euphonic_intelligence_user_id')
