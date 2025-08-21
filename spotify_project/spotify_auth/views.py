@@ -2460,7 +2460,7 @@ def validate_playlist_api(request):
 
         def _fallback_name():
             m = re.match(r'^playlist-input-(\d+)$', input_id or '')
-            return f"Playlist #{m.group(1)} 🎧"
+            return f"Playlist {m.group(1)} 🎧"
         
         if not playlist_url:
             return JsonResponse({'error': 'No playlist URL provided'}, status=400)
@@ -2508,46 +2508,46 @@ def validate_playlist_api(request):
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
                 meta_tag = soup.find('meta', {'name': 'description'})
-                # if not (meta_tag and meta_tag.get('content')):
-                #     max_meta_retries = 10
-                #     for retry in range(1, max_meta_retries):
-                #         try:
-                #             # Increased backoff if necessary
-                #             # delay = min(0.1 * retry, 2.0)
-                #             delay = 0.1
-                #             time.sleep(delay)
-                #             _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}/{max_meta_retries - 1} fetching playlist {playlist_id} for meta description (delay {delay:.2f}s)")
-                #             with httpx.Client(http2=False, follow_redirects=False) as client:
-                #                 current_url_retry = playlist_url
-                #                 current_headers_retry = spotify_get_playlist_URL_headers.copy()
-                #                 retry_response = client.get(current_url_retry, headers=current_headers_retry, timeout=10)
-                #                 while retry_response.is_redirect:
-                #                     current_headers_retry['cookie'] += f"; Referer={current_url_retry}"
-                #                     if 'set-cookie' in retry_response.headers:
-                #                         sp_landing_cookie = None
-                #                         for set_cookie_str in retry_response.headers.get_list('set-cookie'):
-                #                             if set_cookie_str.strip().startswith('sp_landing='):
-                #                                 sp_landing_cookie = set_cookie_str.strip().split(';')[0]
-                #                                 break
-                #                         if sp_landing_cookie:
-                #                             if 'cookie' in current_headers_retry:
-                #                                 current_headers_retry['cookie'] += f"; {sp_landing_cookie}"
-                #                             else:
-                #                                 current_headers_retry['cookie'] = sp_landing_cookie
-                #                     redirect_url = retry_response.headers['location']
-                #                     current_url_retry = redirect_url
-                #                     retry_response = client.get(current_url_retry, headers=current_headers_retry, timeout=10)
-                #             if retry_response.status_code == 200:
-                #                 soup_retry = BeautifulSoup(retry_response.content, 'html.parser')
-                #                 meta_tag = soup_retry.find('meta', {'name': 'description'})
-                #                 if meta_tag and meta_tag.get('content'):
-                #                     _log_to_file(SPOTIFY_API_LOG_FILE, f"Meta description found on retry {retry} for playlist {playlist_id}")
-                #                     break
-                #             else:
-                #                 _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}: Non-200 status {retry_response.status_code} while refetching playlist {playlist_id}")
-                #                 break
-                #         except Exception as retry_err:
-                #             _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}: Exception while refetching playlist {playlist_id}: {retry_err}")
+                if not (meta_tag and meta_tag.get('content')):
+                    max_meta_retries = 10
+                    for retry in range(1, max_meta_retries):
+                        try:
+                            # Increased backoff if necessary
+                            # delay = min(0.1 * retry, 2.0)
+                            delay = 0.1
+                            time.sleep(delay)
+                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}/{max_meta_retries - 1} fetching playlist {playlist_id} for meta description (delay {delay:.2f}s)")
+                            with httpx.Client(http2=False, follow_redirects=False) as client:
+                                current_url_retry = playlist_url
+                                current_headers_retry = spotify_get_playlist_URL_headers.copy()
+                                retry_response = client.get(current_url_retry, headers=current_headers_retry, timeout=10)
+                                while retry_response.is_redirect:
+                                    current_headers_retry['cookie'] += f"; Referer={current_url_retry}"
+                                    if 'set-cookie' in retry_response.headers:
+                                        sp_landing_cookie = None
+                                        for set_cookie_str in retry_response.headers.get_list('set-cookie'):
+                                            if set_cookie_str.strip().startswith('sp_landing='):
+                                                sp_landing_cookie = set_cookie_str.strip().split(';')[0]
+                                                break
+                                        if sp_landing_cookie:
+                                            if 'cookie' in current_headers_retry:
+                                                current_headers_retry['cookie'] += f"; {sp_landing_cookie}"
+                                            else:
+                                                current_headers_retry['cookie'] = sp_landing_cookie
+                                    redirect_url = retry_response.headers['location']
+                                    current_url_retry = redirect_url
+                                    retry_response = client.get(current_url_retry, headers=current_headers_retry, timeout=10)
+                            if retry_response.status_code == 200:
+                                soup_retry = BeautifulSoup(retry_response.content, 'html.parser')
+                                meta_tag = soup_retry.find('meta', {'name': 'description'})
+                                if meta_tag and meta_tag.get('content'):
+                                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Meta description found on retry {retry} for playlist {playlist_id}")
+                                    break
+                            else:
+                                _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}: Non-200 status {retry_response.status_code} while refetching playlist {playlist_id}")
+                                break
+                        except Exception as retry_err:
+                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}: Exception while refetching playlist {playlist_id}: {retry_err}")
 
                 if meta_tag and meta_tag.get('content'):
                     description = meta_tag.get('content')
