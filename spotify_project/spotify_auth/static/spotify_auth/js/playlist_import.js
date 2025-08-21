@@ -305,15 +305,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     `;
                     break;
-                case 'success':
+                case 'success': {
+                    const hasTracks = Number(playlist.trackCount) > 0;
+                    const trackMarkup = hasTracks
+                        ? `
+                                    <div class="playlist-name">·</div>
+                                    <div class="playlist-track-count">${playlist.trackCount} tracks</div>
+                              `
+                        : '';
                     content = `
                         <div class="playlist-success-state">
                             <div class="playlist-success-content">
                                 <span class="icon">🎵</span>
                                 <div class="playlist-success-info">
                                     <div class="playlist-name">${playlist.name}</div>
-                                    <div class="playlist-name">·</div>
-                                    <div class="playlist-track-count">${playlist.trackCount} tracks</div>
+                                    ${trackMarkup}
                                 </div>
                             </div>
                             <button class="playlist-remove-btn" onclick="window.playlistImport.handleRemovePlaylist(${playlist.id})">
@@ -324,6 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     `;
                     break;
+                }
                 case 'error':
                     content = `
                         <div class="playlist-error-state">
