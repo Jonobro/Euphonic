@@ -1347,7 +1347,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             response = chat.send_message(user_message)
         except Exception as e_first:
             if 'RESOURCE_EXHAUSTED' in str(e_first):
-                _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (first pass) task {task_id}: {msg}")
+                _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (first pass) task {task_id}: {e_first}")
                 cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
                 status = 'failed'
                 _publish(status)
