@@ -977,10 +977,10 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 Here are some examples of what I can do:
 * Give me a playlist of all of my songs from the 90s
 * I'm on a road trip with my grandma – make a playlist of my songs that she might like
-* Create a playlist of all of the dream pop songs in my Spotify collection
-* Make a playlist of all my songs that are sung in Spanish
-* I'm feeling discouraged today – give me a playlist of my most uplifting songs
+* Create a playlist of all of the dream pop songs in my imported music
 * Make me a playlist of my most niche tracks
+* I'm feeling discouraged today – give me a playlist of my most uplifting songs
+* Make a playlist of all my imported songs that are sung in Spanish
 
 I've talked too much – let's get started! What can I do for you?"""
         
@@ -1118,10 +1118,10 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 Here are some examples of what I can do:
 * Give me a playlist of all of my songs from the 90s
 * I'm on a road trip with my grandma – make a playlist of my songs that she might like
-* Create a playlist of all of the dream pop songs in my Spotify collection
-* Make a playlist of all my songs that are sung in Spanish
-* I'm feeling discouraged today – give me a playlist of my most uplifting songs
+* Create a playlist of all of the dream pop songs in my imported music
 * Make me a playlist of my most niche tracks
+* I'm feeling discouraged today – give me a playlist of my most uplifting songs
+* Make a playlist of all my imported songs that are sung in Spanish
 
 I've talked too much – let's get started! What can I do for you?"""
 
