@@ -40,14 +40,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return parseSpotifyUrl(url) !== null;
     }
 
-    async function validatePlaylist(url) {
+    async function validatePlaylist(url, inputId) {
         const response = await fetch('/validate_playlist/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({playlist_url: url})
+            body: JSON.stringify({
+                playlist_url: url,
+                input_id: inputId
+            })
         });
         
         if (!response.ok) {
@@ -79,7 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePlaylistStatus(id, 'loading', '', parsedUrl, 0, '');
 
         try {
-            const playlistInfo = await validatePlaylist(parsedUrl);
+            const inputId = `playlist-input-${id}`;
+            const playlistInfo = await validatePlaylist(parsedUrl, inputId);
             updatePlaylistStatus(id, 'success', playlistInfo.name, parsedUrl, playlistInfo.track_count, playlistInfo.playlist_id);
         } catch (error) {
             updatePlaylistStatus(id, 'error', '', parsedUrl, 0, '');
