@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageList = document.getElementById('message-list');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const MAX_TOKENS_ERROR = "Aria thought so hard she lost her train of thought. Please resend your message.";
+    const HIGH_TRAFFIC_ERROR = "We are currently experiencing high volumes of traffic and were unable to process your message. Please try again in a bit.";
 
     let suppressHistoryUpdate = false;
     let initialAnalysisEventSource = null;
@@ -383,7 +384,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const fallback = `Sorry, I had a problem with your request. Please resend your message.`;
             removeLastUserMessageFromHistory();
-            addEphemeralMessage(serverMsg === MAX_TOKENS_ERROR ? serverMsg : fallback, 'ai');
+            if (serverMsg === MAX_TOKENS_ERROR || serverMsg === HIGH_TRAFFIC_ERROR) {
+                addEphemeralMessage(serverMsg, 'ai');
+            } else {
+                addEphemeralMessage(fallback, 'ai');
+            }
             cleanup();
         });
 

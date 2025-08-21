@@ -399,6 +399,7 @@ SAFETY_SETTINGS = [
 
 SPOTIFY_ID = settings.SPOTIFY_ID
 MAX_TOKENS_ERROR_MESSAGE = "Aria thought so hard she lost her train of thought. Please resend your message."
+HIGH_TRAFFIC_ERROR_MESSAGE = "We are currently experiencing high volumes of traffic and were unable to process your message. Please try again in a bit."
 
 def _log_to_file(log_file_path, message):
     try:
@@ -1332,7 +1333,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             history=history_list,
             config=chat_config
         )
-        
+
         log_message_prompt_first_pass = (
             f"Gemini API Call (chat_message_api - First Pass - Task {task_id}):\n"
             f"  User Message: {user_message}\n"
@@ -1342,7 +1343,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
         
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) (Task {task_id})")
-        response = chat.send_message(user_message)
+        try:
+            response = chat.send_message(user_message)
+        except Exception as e_first:
+            if 'RESOURCE_EXHAUSTED' in str(e_first):
+                _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (first pass) task {task_id}: {msg}")
+                cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
+                status = 'failed'
+                _publish(status)
+                return
+            raise
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
 
@@ -1427,7 +1437,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_formatting_pass}\n******************************\n")
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
-            formatting_response = formatting_chat.send_message(formatting_prompt)
+            try:
+                formatting_response = formatting_chat.send_message(formatting_prompt)
+            except Exception as e_fmt:
+                if 'RESOURCE_EXHAUSTED' in str(e_fmt):
+                    _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (formatting pass) task {task_id}: {e_fmt}")
+                    cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
+                    status = 'failed'
+                    _publish(status)
+                    return
+                raise
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Formatting Pass - Task {task_id}):\n{formatting_response}\n******************************\n")
 
@@ -1608,7 +1627,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) (Task {task_id})")
-            correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
+            try:
+                correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
+            except Exception as e_fb:
+                if 'RESOURCE_EXHAUSTED' in str(e_fb):
+                    _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (feedback pass) task {task_id}: {e_fb}")
+                    cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
+                    status = 'failed'
+                    _publish(status)
+                    return
+                raise
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
             
@@ -1727,7 +1755,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 )
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
                 _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({MODEL_NAME}) (Task {task_id})")
-                final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
+                try:
+                    final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
+                except Exception as e_rm:
+                    if 'RESOURCE_EXHAUSTED' in str(e_rm):
+                        _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (removal pass) task {task_id}: {e_rm}")
+                        cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
+                        status = 'failed'
+                        _publish(status)
+                        return
+                    raise
                 _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass - Task {task_id}):\n{final_removal_response}\n******************************\n")
 
