@@ -642,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 300);
         } else if (mode === 'saved_songs') {
-            const initialMessage = `Hi there! I'm Aria, your personal music curator. Let's craft some custom playlists from your Spotify collection. I can filter through your music using any criteria you can imagine.
+            const initialMessage = `Hi there! I'm Aria, your personal music curator. Let's craft some custom playlists using your imported tracks. I can filter through your music using any criteria you can imagine.
 
 Here are some examples of what I can do:
 * Give me a playlist of all of my songs from the 90s
