@@ -854,9 +854,9 @@ I've talked too much – let's get started! What can I do for you?`;
         };
 
         const referenceWidth = 600; // reference width in pixels
-        const referenceEraseSpeed  = 0.5; // px/ms at reference width
-        const referencePaintSpeed  = 0.5;
-        const referenceTravelSpeed = 1.5;
+        const referenceEraseSpeed  = 1; // px/ms at reference width
+        const referencePaintSpeed  = 1;
+        const referenceTravelSpeed = 3;
 
         const cfg = {
             strokeWidth: getStrokeWidth(),
