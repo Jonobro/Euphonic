@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (btn && !btn.classList.contains('active')) {
                             btn.click();
                         }
-                    }, 120);
+                    }, 200);
                 }
             } else {
                 throw new Error(result.error || 'Failed to import playlists');
