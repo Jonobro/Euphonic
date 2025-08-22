@@ -1361,7 +1361,6 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (first pass) task {task_id}: {e_first}")
                 cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
                 status = 'failed'
-                _publish(status)
                 return
             raise
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
@@ -1455,7 +1454,6 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (formatting pass) task {task_id}: {e_fmt}")
                     cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
                     status = 'failed'
-                    _publish(status)
                     return
                 raise
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
@@ -1645,7 +1643,6 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (feedback pass) task {task_id}: {e_fb}")
                     cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
                     status = 'failed'
-                    _publish(status)
                     return
                 raise
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
@@ -1773,7 +1770,6 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (removal pass) task {task_id}: {e_rm}")
                         cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
                         status = 'failed'
-                        _publish(status)
                         return
                     raise
                 _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({MODEL_NAME}) (Task {task_id})")
