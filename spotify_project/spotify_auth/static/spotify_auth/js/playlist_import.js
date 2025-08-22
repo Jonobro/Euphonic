@@ -180,10 +180,15 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (response.ok) {
                 window.closeImportModal();
-                if (window.pendingModeSwitch && window.switchChatMode) {
+                if (window.pendingModeSwitch) {
                     const target = window.pendingModeSwitch;
                     window.pendingModeSwitch = null;
-                    window.switchChatMode(target);
+                    setTimeout(() => {
+                        const btn = document.querySelector(`.segment-button[data-mode="${target}"]`);
+                        if (btn && !btn.classList.contains('active')) {
+                            btn.click();
+                        }
+                    }, 120);
                 }
             } else {
                 throw new Error(result.error || 'Failed to import playlists');

@@ -503,7 +503,6 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeChatMode(chatMode);
         }
     }
-    window.switchChatMode = switchChatMode;
 
     function isChatModeInitialized(mode) {
         const el = document.getElementById('chat-history-data');
@@ -624,7 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleChatInput(true);
 
         if (mode === 'analysis') {
-            const baseText = "Welcome! I'm preparing your musical analysis. This might take a moment";
+            const baseText = "I've got your tracks and I'm analyzing them. This might take a moment";
             setTimeout(() => {
                 if (messageList.querySelectorAll('.message').length === 0 && !analysisLoadingIndicator) {
                     const prev = suppressHistoryUpdate;
@@ -703,7 +702,7 @@ I've talked too much – let's get started! What can I do for you?`;
                 throw new Error(err);
             }
 
-            if (data.chat_mode !== getChatMode()) {
+            if (data.chat_mode && data.chat_mode !== getChatMode()) {
                 console.log(`Ignoring initialization response for '${data.chat_mode}' mode as current mode is '${getChatMode()}'.`);
                 return;
             }
