@@ -646,12 +646,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 Here are some examples of what I can do:
 
-Give me a playlist of all of my songs from the 90s
-I'm on a road trip with my grandma – make a playlist of my songs that she might like
-Create a playlist of all of the dream pop songs in my imported music
-Make me a playlist of my most niche tracks
-I'm feeling discouraged today – give me a playlist of my most uplifting songs
-Make a playlist of all my imported songs that are sung in Spanish
+* Give me a playlist of all of my songs from the 90s
+* I'm on a road trip with my grandma – make a playlist of my songs that she might like
+* Create a playlist of all of the dream pop songs in my imported music
+* Make me a playlist of my most niche tracks
+* I'm feeling discouraged today – give me a playlist of my most uplifting songs
+* Make a playlist of all my imported songs that are sung in Spanish
+
 I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
@@ -664,19 +665,20 @@ I've talked too much – let's get started! What can I do for you?`;
 
 Let's get to it. What kind of music are you feeling today? You can mention things like:
 
-Mood (e.g., chill, focused, elated, exhausted)
-Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
-Favorite artists (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
-A certain activity (e.g., music for studying history, road trip anthems, techno for bullet chess)
-A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven)
+* Mood (e.g., chill, focused, elated, exhausted)
+* Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
+* Favorite artists (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
+* A certain activity (e.g., music for studying history, road trip anthems, techno for bullet chess)
+* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven)
 
 What's cool about me, though, is that I can create custom playlists for you based on any criteria you can imagine. For example:
 
-Create a playlist of Katy Perry's worst songs
-Make a playlist of songs that were produced in another country but blew up in the US
-Give me a playlist of songs about monkeys
-Create a playlist of songs that were released in May of 2021
-Send me a playlist of songs about bowling
+* Create a playlist of Katy Perry's worst songs
+* Make a playlist of songs that were produced in another country but blew up in the US
+* Give me a playlist of songs about monkeys
+* Create a playlist of songs that were released in May of 2021
+* Send me a playlist of songs about bowling
+
 I've talked too much – let's get started! What can I do for you?`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');

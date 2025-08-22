@@ -943,6 +943,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 body[data-chat-mode="analysis"] .ai-message.analysis-first-message {
     margin-bottom: 8px;
     margin-top: 9px;
+    max-width: 93.5%;
 }
 
 body[data-chat-mode="analysis"] .ai-message.analysis-second-message {
