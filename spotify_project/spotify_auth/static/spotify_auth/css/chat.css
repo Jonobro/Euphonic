@@ -1170,6 +1170,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     border: 2px solid transparent;
     margin-top: -1px;
     margin-bottom: -1px;
+    opacity: 0.6;
 }
 
 .segment-button:hover {
@@ -1183,6 +1184,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     pointer-events: none;
     z-index: 1;
     box-shadow: 0 0 4px rgba(30,200,90,0.6);
+    opacity: 1;
 }
 
 .segment-button:focus {
