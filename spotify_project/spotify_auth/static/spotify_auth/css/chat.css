@@ -1148,6 +1148,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 .segment-button {
     transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 padding-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
@@ -1176,6 +1177,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .segment-button:hover {
     background-color: #1D1D1D;
     padding: 5px 0px;
+    opacity: 0.8;
 }
 
 .segment-button.active {

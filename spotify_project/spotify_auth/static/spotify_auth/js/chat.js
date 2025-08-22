@@ -623,7 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleChatInput(true);
 
         if (mode === 'analysis') {
-            const baseText = "I've got your tracks and I'm analyzing them. This might take a moment";
+            const baseText = "I have your tracks and I’m analyzing them. This might take a moment";
             setTimeout(() => {
                 if (messageList.querySelectorAll('.message').length === 0 && !analysisLoadingIndicator) {
                     const prev = suppressHistoryUpdate;
