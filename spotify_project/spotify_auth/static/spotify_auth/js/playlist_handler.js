@@ -86,12 +86,12 @@ function createSecondaryActionsContainer() {
     secondaryActionsContainer.className = 'additional-buttons-container';
 
     const reviseButton = document.createElement('button');
-    reviseButton.className = 'button secondary-button';
+    reviseButton.className = 'button secondary-playlist-button';
     reviseButton.textContent = 'Revise Playlist';
     reviseButton.addEventListener('click', () => handlePlaylistAction('revise_playlist'));
 
     const createAnotherButton = document.createElement('button');
-    createAnotherButton.className = 'button secondary-button';
+    createAnotherButton.className = 'button secondary-playlist-button';
     createAnotherButton.textContent = 'New Playlist';
     createAnotherButton.addEventListener('click', () => handlePlaylistAction('create_another_playlist'));
 

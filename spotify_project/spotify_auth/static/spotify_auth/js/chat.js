@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function shouldShowActionPlaceholder() {
         const aiMessages = document.querySelectorAll('.ai-message.has-playlist-button');
         for (const msg of aiMessages) {
-            if (msg.querySelector('.secondary-button')) return true;
+            if (msg.querySelector('.secondary-playlist-button')) return true;
         }
         return false;
     }

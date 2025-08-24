@@ -412,7 +412,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 .additional-buttons-container {
     display: flex;
     justify-content: center;
-    gap: 18px;
+    gap: 16px;
 }
 
 .save-playlist-error {
@@ -464,6 +464,27 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     display: flex;
     align-items: center;
     transform: translateY(-1.6px);
+}
+
+.secondary-playlist-button {
+    background-color: #121212;
+    border: 1px solid rgba(224,224,224,0.55);
+    color: rgba(224,224,224,0.9);
+    font-size: 0.9em;
+    font-weight: 400;
+    min-width: 120px;
+    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);
+    opacity: 0.95;
+    transition: 0.2 ease-in-out;
+    padding: 8px 0px;
+    margin-top: 10px;
+}
+
+.secondary-playlist-button:hover {
+    color: rgb(224,224,224);
+    background-color: #181818;
+    opacity: 1;
+    border: 1px solid rgba(224,224,224,0.8);
 }
 
 .secondary-button {
