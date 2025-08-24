@@ -1425,8 +1425,11 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 system_instruction=FORMATTING_SYSTEM_INSTRUCTION,
                 safety_settings=SAFETY_SETTINGS,
 
+                # Test with no thinking to speed things up
+                thinking_config=types.ThinkingConfig(thinking_budget=0)
+
                 # Default config for dynamic max thinking and no thought summaries
-                thinking_config=types.ThinkingConfig(thinking_budget=-1)
+                # thinking_config=types.ThinkingConfig(thinking_budget=-1)
 
                 # Config to obtain thought summaries for analysis/debugging
                 # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
@@ -1613,8 +1616,11 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 response_modalities=["TEXT"],
                 safety_settings=SAFETY_SETTINGS,
 
+                # Test with no thinking to speed things up
+                thinking_config=types.ThinkingConfig(thinking_budget=0)
+
                 # Default config for dynamic max thinking and no thought summaries
-                thinking_config=types.ThinkingConfig(thinking_budget=-1)
+                # thinking_config=types.ThinkingConfig(thinking_budget=-1)
 
                 # Config to obtain thought summaries for analysis/debugging
                 # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
@@ -1740,8 +1746,11 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     response_modalities=["TEXT"],
                     safety_settings=SAFETY_SETTINGS,
                     
+                    # Test with no thinking to speed things up
+                    thinking_config=types.ThinkingConfig(thinking_budget=0)
+                    
                     # Default config for dynamic max thinking and no thought summaries
-                    thinking_config=types.ThinkingConfig(thinking_budget=-1)
+                    # thinking_config=types.ThinkingConfig(thinking_budget=-1)
 
                     # Config to obtain thought summaries for analysis/debugging
                     # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)

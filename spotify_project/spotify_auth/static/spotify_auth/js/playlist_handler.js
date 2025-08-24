@@ -265,7 +265,6 @@ function processMessageForPlaylist(messageElement) {
                         const result = await response.json();
                         await new Promise(resolve => setTimeout(resolve, 1500)); /* Simulated delay for improved UX and to allow for Spotify propagation */
                         window.open(result.playlist_url, '_blank', 'noopener, noreferrer');
-                        openButton.remove();
                         
                         const messageContainer = document.createElement('div');
                         messageContainer.className = 'message-container';
@@ -281,7 +280,7 @@ function processMessageForPlaylist(messageElement) {
                         messageContainer.appendChild(successMessage);
                         messageContainer.appendChild(instructionMessage);
 
-                        playlistActionsContainer.insertBefore(messageContainer, playlistActionsContainer.firstChild);
+                        openButtonWrapper.replaceWith(messageContainer);
 
                         const savedPlaylists = JSON.parse(sessionStorage.getItem('savedPlaylists') || '{}');
                         savedPlaylists[playlistIdentifier] = result.playlist_url;

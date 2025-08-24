@@ -420,7 +420,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .save-playlist-button-wrapper {
-    max-height: 40.8px;
+    height: 55.8px;
     overflow: visible;
 }
 
