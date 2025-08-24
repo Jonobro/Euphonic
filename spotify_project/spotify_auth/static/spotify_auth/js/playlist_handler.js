@@ -2,6 +2,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageList = document.getElementById('message-list');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
+    window.playlistNames = window.playlistNames || [];
+    function getUniquePlaylistName(name) {
+        const base = name.trim();
+        if (!window.playlistNames.includes(base)) {
+            window.playlistNames.push(base);
+            return base;
+        }
+        let i = 2;
+        while (window.playlistNames.includes(`${base} ${i}`)) {
+            i++;
+        }
+        const unique = `${base} ${i}`;
+        window.playlistNames.push(unique);
+        return unique;
+    }
+
 async function handlePlaylistAction(userAction) {
     const chatMode = getChatMode();
     const messageList = document.getElementById('message-list');
@@ -115,7 +131,8 @@ function processMessageForPlaylist(messageElement) {
         
         const decoder = document.createElement('textarea');
         decoder.innerHTML = playlistNameHTML;
-        const playlistName = decoder.value;
+        let playlistName = decoder.value;
+        playlistName = getUniquePlaylistName(playlistName);
 
         const savedPlaylists = JSON.parse(sessionStorage.getItem('savedPlaylists') || '{}');
         const playlistIdentifier = playlistName;
