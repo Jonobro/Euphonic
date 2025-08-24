@@ -203,10 +203,15 @@ function processMessageForPlaylist(messageElement) {
             const playlistActionsContainer = document.createElement('div');
             playlistActionsContainer.className = 'save-playlist-container';
             
+            const openButtonWrapper = document.createElement('div');
+            openButtonWrapper.className = 'save-playlist-button-wrapper';
+
             const openButton = document.createElement('button');
             openButton.className = 'button save-playlist-button';
             openButton.textContent = `Open Playlist in Spotify`;
-            playlistActionsContainer.appendChild(openButton);
+
+            openButtonWrapper.appendChild(openButton);
+            playlistActionsContainer.appendChild(openButtonWrapper);
 
             if (!isBeforeLastDivider) {
                 const secondaryActionsContainer = createSecondaryActionsContainer();

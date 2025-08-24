@@ -419,6 +419,11 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     text-align: center;
 }
 
+.save-playlist-button-wrapper {
+    max-height: 40.8px;
+    overflow: visible;
+}
+
 .save-playlist-button {
     font-weight: 600;
     font-size: 13.5px;
@@ -730,18 +735,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     color: #e0e0e0;
     font-weight: 600;
     font-size: 13.5px;
-}
-
-.import-loading-indicator {
-    background-image: url('../images/LoadingIndicatorFinal.svg');
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
-    height: 24px;
-    border-radius: 2px;
-    margin: 10px 0;
-    width: 100%;
-    min-width: 150px;
 }
 
 .playlist-input-group {
@@ -1247,6 +1240,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     right: 0;
     overflow: hidden;
     margin-top: 0.8rem;
+    margin-right: 0.4rem;
 }
 
 .dropdown-panel.show {
