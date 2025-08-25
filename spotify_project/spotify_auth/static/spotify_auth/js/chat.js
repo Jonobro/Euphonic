@@ -53,48 +53,82 @@ document.addEventListener('DOMContentLoaded', () => {
     let analysisLoadingInterval = null;
 
     function showAriaIntroSplash(done) {
-        const introText = "Hey, I'm Aria. Here to help you turn your ideas into playlists.";
+        const introText1 = "Hey, I'm Aria.";
+        const introText2 = "Here to help you turn your ideas into playlists.";
         if (sessionStorage.getItem('ariaIntroShown')) {
             done && done();
             return;
         }
-
         sessionStorage.setItem('ariaIntroShown', '1');
 
-        // Temporarily hide the main interface
-        document.body.classList.add('aria-intro-active');
+        const splashContainer = document.createElement('div');
+        splashContainer.className = 'aria-intro-splash';
 
-        const overlay = document.createElement('div');
-        overlay.id = 'aria-intro-overlay';
-        overlay.setAttribute('aria-hidden', 'true');
+        const text1 = document.createElement('div');
+        text1.className = 'aria-intro-text';
+        text1.textContent = introText1;
 
-        const textEl = document.createElement('div');
-        textEl.id = 'aria-intro-text';
-        overlay.appendChild(textEl);
-        document.body.appendChild(overlay);
+        const text2 = document.createElement('div');
+        text2.className = 'aria-intro-text';
+        text2.textContent = introText2;
 
-        let i = 0;
-        const baseDelay = 45; // ms per character
-        function typeNext() {
-            if (i <= introText.length) {
-                textEl.textContent = introText.slice(0, i);
-                i++;
-                const jitter = Math.random() * 40;
-                setTimeout(typeNext, baseDelay + jitter);
-            } else {
-                // Pause, then fade out
+        splashContainer.appendChild(text1);
+        splashContainer.appendChild(text2);
+
+        const container = document.querySelector('.container');
+        container.appendChild(splashContainer);
+
+        const h = text1.getBoundingClientRect().height;
+        splashContainer.style.height = h + 'px';
+
+        const showText = (el, delay=0) => setTimeout(() => {
+            el.classList.add('show');
+            el.classList.remove('hide');
+        }, delay);
+
+        const hideText = (el, delay=0) => setTimeout(() => {
+            el.classList.remove('show');
+            el.classList.add('hide');
+        }, delay);
+
+        function startIntro() {
+            const base = 0;
+            const step1 = 1450;
+            const step2 = 2900;
+            const step3 = 7500;
+
+            showText(text1, step1);
+            setTimeout(() => {
+                hideText(text1, 0);
+                showText(text2, 1200);
+            }, step1 + step2);
+            setTimeout(() => {
+                hideText(text2, 0);
                 setTimeout(() => {
-                    overlay.classList.add('fade-out');
-                    overlay.addEventListener('transitionend', () => {
-                        overlay.remove();
-                        document.body.classList.remove('aria-intro-active');
-                        done && done();
-                    }, { once: true });
-                }, 650);
-            }
+                    splashContainer.remove();
+                    done && done();
+                }, 850);
+            }, step1 + step3);
         }
-        // Small initial delay for polish
-        setTimeout(typeNext, 200);
+
+        if (container.classList.contains('loaded')) {
+            startIntro();
+        } else {
+            const onTransitionEnd = (e) => {
+                if (e.target === container && container.classList.contains('loaded')) {
+                    container.removeEventListener('transitionend', onTransitionEnd);
+                    startIntro();
+                }
+            };
+            container.addEventListener('transitionend', onTransitionEnd);
+
+            setTimeout(() => {
+                if (!splashContainer.dataset.started) {
+                    splashContainer.dataset.started = '1';
+                    startIntro();
+                }
+            }, 2500);
+        }
     }
 
     function shouldShowActionPlaceholder() {
@@ -292,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (content) content.classList.add('focused');
             };
 
-            const delay = initialMessageDelayNeeded ? 1100 : 450;
+            const delay = initialMessageDelayNeeded ? 650 : 450;
             initialMessageDelayNeeded = false;
             
             const container = document.querySelector('.container');
@@ -714,7 +748,6 @@ I've talked too much – let's get started! What can I do for you?`;
                 }
             }, 0);
         } else if (mode === 'new_songs') {
-            // Modified: initial message now omits the Aria intro line (handled by splash)
             const initialMessage = `Let's get to it. What kind of music are you feeling today? You can mention things like:
 
 * Mood (e.g., chill, focused, elated, exhausted)
@@ -872,12 +905,6 @@ I've talked too much – let's get started! What can I do for you?`;
                 if (data.error) {
                     console.error(`Initialization failed: ${data.error}`);
                     addEphemeralMessage(`Sorry, there was a problem initializing the chat. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
-                } else if (Array.isArray(data.first_ai_message)) {
-                    // Only add intro message if it wasn't already rendered by the front end
-                    const aiMessages = messageList.querySelectorAll('.ai-message');
-                    if (aiMessages.length === 0 && data.first_ai_message.length > 0) {
-                        addMessage(data.first_ai_message[0], 'ai', false, false);
-                    }
                 }
                 toggleChatInput(false);
                 userInput.focus();

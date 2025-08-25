@@ -1046,42 +1046,52 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     }
 }
 
-body.aria-intro-active {
-    overflow: hidden;
+.aria-intro-splash {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    pointer-events: none;
+    text-align: center;
 }
 
-#aria-intro-overlay {
-    position: fixed;
+.aria-intro-splash .aria-intro-text {
+    position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.86), #000 65%);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 12000;
-    font-family: 'Poppins', 'Saira', sans-serif;
-    color: #1ec85a;
-    padding: 2rem;
-    text-align: center;
-    animation: ariaIntroFadeIn 300ms ease;
 }
 
-#aria-intro-overlay.fade-out {
+.aria-intro-text {
+    font-size: 1.4em;
+    color: #e0e0e0;
+    font-weight: 400;
     opacity: 0;
-    transition: opacity 400ms ease;
+    filter: blur(8px);
+    transform: scale(0.95);
+    transition:
+        opacity 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        filter 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: opacity, filter, transform;
 }
 
-#aria-intro-text {
-    font-size: clamp(2rem, 5.5vw, 3.5rem); /* 2–3x normal size */
-    font-weight: 600;
-    line-height: 1.15;
-    max-width: 900px;
-    filter: drop-shadow(0 0 6px rgba(30,200,90,0.45));
-    white-space: pre-wrap;
+.aria-intro-splash .aria-intro-text:first-child {
+    font-size: 1.6em;
 }
 
-@keyframes ariaIntroFadeIn {
-    from { opacity: 0; transform: scale(.97); }
-    to { opacity: 1; transform: scale(1); }
+.aria-intro-text.show {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
+}
+
+.aria-intro-text.hide {
+    opacity: 0;
+    filter: blur(8px);
+    transform: scale(0.95);
 }
 
 .burst-multilayer {
