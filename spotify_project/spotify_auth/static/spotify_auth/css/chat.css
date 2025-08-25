@@ -306,6 +306,23 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     color: #989898;
 }
 
+#send-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0px;
+}
+
+#send-button svg {
+    display: block;
+    pointer-events: none;
+    fill: #161616;
+    margin-left: 3px;
+    transform: scaleY(0.8);
+}
+
 .header-row {
     display: flex;
     align-items: center;
