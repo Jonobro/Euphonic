@@ -1348,13 +1348,14 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     display: block;
     padding: 0.5rem 0.75rem 0.6rem 0.75rem;
     font-size: 0.85rem;
-    color: #e0e0e0;
+    color: rgba(25.5,170,76.5,0.9);
     text-decoration: none;
     transition: all 0.2s ease-in-out;
     cursor: pointer;
     position: relative;
     font-family: 'Poppins', sans-serif, Arial;
     font-weight: 500;
+    background: radial-gradient(ellipse 100% 100% at 45% 50%,     rgba(255,255,255,0.03) 0%, transparent 80%);
 }
 
 .dropdown-link-text {
@@ -1365,7 +1366,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .dropdown-tooltip {
     display: block;
     font-size: 0.75rem;
-    color: #989898;
+    color: #AAAAAA;
     font-weight: 400;
     line-height: 1.3;
 }
