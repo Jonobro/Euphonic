@@ -289,6 +289,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { 
                 contentDiv.textContent = text; 
             }
+
+            contentDiv.addEventListener('transitionend', (e) => {
+                if (e.target === contentDiv &&
+                    e.propertyName === 'opacity' &&
+                    contentDiv.classList.contains('focused')) {
+                    toggleChatInput(false);
+                    userInput?.focus();
+                }
+            }, { once: true });
         } else {
             if (window.marked && window.DOMPurify) {
                 try {
@@ -773,8 +782,6 @@ I've talked too much – let's get started! What can I do for you?`;
                     if (existingMessages.length === 0) {
                         addMessage(initialMessage, 'ai', false, true);
                     }
-                    toggleChatInput(false);
-                    userInput.focus();
                 }, 0);
             };
 
