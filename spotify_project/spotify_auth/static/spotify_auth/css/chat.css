@@ -453,7 +453,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     font-size: 13.5px;
     margin-top: 10px;
     margin-bottom: 5px;
-    padding: 10px 20px;
     color: #0C0C0C;
     background: rgb(30, 200, 90);
     border: none;
@@ -468,13 +467,14 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     opacity: 0.9;
     display: flex;
     flex-direction: row;
-    gap: 7px;
+    gap: 8px;
     align-items: center;
+    padding: 10px 17px;
 }
 
 .save-playlist-button:hover {
     background: rgb(30, 200, 90);
-    padding: 11px 22px;
+    padding: 11px 19px;
     opacity: 1.0;
     box-shadow: inset 0 0 0px rgba(0, 0, 0, 0.0), 0px 0px 0px rgba(0, 0, 0, 0.0), 0 0 15px rgba(30, 200, 90, 0.4);
     margin-top: 9px;
