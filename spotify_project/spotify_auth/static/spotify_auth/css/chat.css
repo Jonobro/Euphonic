@@ -313,6 +313,13 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     width: 40px;
     height: 40px;
     padding: 0px;
+    opacity: 0.85;
+    margin-right: 5px;
+}
+
+#send-button.no-text {
+    cursor: default;
+    pointer-events: none;
 }
 
 #send-button svg {

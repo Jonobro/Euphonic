@@ -73,6 +73,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function updateSendButtonCursor() {
+        if (!sendButton || !userInput) return;
+        const hasText = userInput.value.trim().length > 0;
+        sendButton.classList.toggle('no-text', !hasText && !sendButton.disabled);
+    }
+    userInput.addEventListener('input', updateSendButtonCursor);
+    updateSendButtonCursor();
+
     function toggleChatInput(disable) {
         if (userInput) {
             userInput.disabled = disable;
@@ -86,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sendButton.classList.remove('disabled-no-hover');
             }
         }
+        updateSendButtonCursor();
     }
     window.toggleChatInput = toggleChatInput;
     window.updateChatInputPlaceholder = updateChatInputPlaceholder;
