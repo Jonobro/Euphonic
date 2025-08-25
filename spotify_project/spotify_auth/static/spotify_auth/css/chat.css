@@ -1355,7 +1355,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     position: relative;
     font-family: 'Poppins', sans-serif, Arial;
     font-weight: 500;
-    background: radial-gradient(ellipse 100% 100% at 45% 50%,     rgba(255,255,255,0.03) 0%, transparent 80%);
+    background: radial-gradient(ellipse 100% 100% at 43% 50%, rgba(255,255,255,0.03) 0%, transparent 90%);
 }
 
 .dropdown-link-text {
