@@ -907,8 +907,6 @@ I've talked too much – let's get started! What can I do for you?`;
                     console.error(`Initialization failed: ${data.error}`);
                     addEphemeralMessage(`Sorry, there was a problem initializing the chat. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
                 }
-                toggleChatInput(false);
-                userInput.focus();
             }
         })
         .catch((error) => {
