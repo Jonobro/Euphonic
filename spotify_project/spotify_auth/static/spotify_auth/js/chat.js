@@ -53,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let analysisLoadingInterval = null;
 
     function showAriaIntroSplash(done) {
-        toggleChatInput(true, false);
         const introText1 = "Hey, I'm Aria.";
         const introText2 = "Here to help you turn your ideas into playlists.";
         if (sessionStorage.getItem('ariaIntroShown')) {
@@ -161,12 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
     userInput.addEventListener('input', updateSendButtonCursor);
     updateSendButtonCursor();
 
-    function toggleChatInput(disable, toggleSendButton = true) {
+    function toggleChatInput(disable) {
         if (userInput) {
             userInput.disabled = disable;
             updateChatInputPlaceholder();
         }
-        if (toggleSendButton && sendButton) {
+        if (sendButton) {
             sendButton.disabled = disable;
             if (disable) {
                 sendButton.classList.add('disabled-no-hover');
