@@ -1115,6 +1115,7 @@ I've talked too much – let's get started! What can I do for you?`;
         function animateTransition(fromBtn, toBtn, done) {
             if (isAnimating || !fromBtn || !toBtn || fromBtn === toBtn) { done && done(); return; }
             isAnimating = true;
+            if (window.toggleChatInput) window.toggleChatInput(true);
             control.classList.add('is-animating');
             ensureSVGSize();
 
