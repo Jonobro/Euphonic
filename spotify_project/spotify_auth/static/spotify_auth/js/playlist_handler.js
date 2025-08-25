@@ -225,7 +225,7 @@ function processMessageForPlaylist(messageElement) {
 
             const openButton = document.createElement('button');
             openButton.className = 'button save-playlist-button';
-            openButton.textContent = `Open Playlist in Spotify`;
+            openButton.innerHTML = `Open Playlist in Spotify <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-external-link"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6"></path><path d="M11 13l9 -9"></path><path d="M15 4h5v5"></path></svg>`;
 
             openButtonWrapper.appendChild(openButton);
             playlistActionsContainer.appendChild(openButtonWrapper);
@@ -313,7 +313,7 @@ function processMessageForPlaylist(messageElement) {
                         throw new Error(errorText);
                     }
                 } catch (error) {
-                    openButton.textContent = `Open Playlist in Spotify`;
+                    openButton.innerHTML = `Open Playlist in Spotify <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-external-link"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6"></path><path d="M11 13l9 -9"></path><path d="M15 4h5v5"></path></svg>`;
                     openButton.disabled = false;
                     console.error("Error opening playlist:", error);
                     if (window.addMessageAndScroll) {

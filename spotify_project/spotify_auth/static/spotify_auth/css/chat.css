@@ -466,6 +466,10 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
                 margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     opacity: 0.9;
+    display: flex;
+    flex-direction: row;
+    gap: 7px;
+    align-items: center;
 }
 
 .save-playlist-button:hover {
