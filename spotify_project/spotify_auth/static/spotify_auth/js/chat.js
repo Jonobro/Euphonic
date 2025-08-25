@@ -52,6 +52,51 @@ document.addEventListener('DOMContentLoaded', () => {
     let analysisLoadingIndicator = null;
     let analysisLoadingInterval = null;
 
+    function showAriaIntroSplash(done) {
+        const introText = "Hey, I'm Aria. Here to help you turn your ideas into playlists.";
+        if (sessionStorage.getItem('ariaIntroShown')) {
+            done && done();
+            return;
+        }
+
+        sessionStorage.setItem('ariaIntroShown', '1');
+
+        // Temporarily hide the main interface
+        document.body.classList.add('aria-intro-active');
+
+        const overlay = document.createElement('div');
+        overlay.id = 'aria-intro-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+
+        const textEl = document.createElement('div');
+        textEl.id = 'aria-intro-text';
+        overlay.appendChild(textEl);
+        document.body.appendChild(overlay);
+
+        let i = 0;
+        const baseDelay = 45; // ms per character
+        function typeNext() {
+            if (i <= introText.length) {
+                textEl.textContent = introText.slice(0, i);
+                i++;
+                const jitter = Math.random() * 40;
+                setTimeout(typeNext, baseDelay + jitter);
+            } else {
+                // Pause, then fade out
+                setTimeout(() => {
+                    overlay.classList.add('fade-out');
+                    overlay.addEventListener('transitionend', () => {
+                        overlay.remove();
+                        document.body.classList.remove('aria-intro-active');
+                        done && done();
+                    }, { once: true });
+                }, 650);
+            }
+        }
+        // Small initial delay for polish
+        setTimeout(typeNext, 200);
+    }
+
     function shouldShowActionPlaceholder() {
         const aiMessages = document.querySelectorAll('.ai-message.has-playlist-button');
         for (const msg of aiMessages) {
@@ -669,9 +714,8 @@ I've talked too much – let's get started! What can I do for you?`;
                 }
             }, 0);
         } else if (mode === 'new_songs') {
-            const initialMessage = `Hey, I'm Aria. Here to help you turn your ideas into playlists.
-
-Let's get to it. What kind of music are you feeling today? You can mention things like:
+            // Modified: initial message now omits the Aria intro line (handled by splash)
+            const initialMessage = `Let's get to it. What kind of music are you feeling today? You can mention things like:
 
 * Mood (e.g., chill, focused, elated, exhausted)
 * Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
@@ -688,12 +732,23 @@ What's cool about me, though, is that I can create custom playlists for you base
 * Send me a playlist of songs about bowling
 
 I've talked too much – let's get started! What can I do for you?`;
-            setTimeout(() => {
-                const existingMessages = messageList.querySelectorAll('.message');
-                if (existingMessages.length === 0) {
-                    addMessage(initialMessage, 'ai', false, true);
-                }
-            }, 0);
+
+            const injectInitial = () => {
+                setTimeout(() => {
+                    const existingMessages = messageList.querySelectorAll('.message');
+                    if (existingMessages.length === 0) {
+                        addMessage(initialMessage, 'ai', false, true);
+                    }
+                    toggleChatInput(false);
+                    userInput.focus();
+                }, 0);
+            };
+
+            if (!sessionStorage.getItem('ariaIntroShown')) {
+                showAriaIntroSplash(injectInitial);
+            } else {
+                injectInitial();
+            }
         }
 
         fetch('/initialize_chat_data/', {
