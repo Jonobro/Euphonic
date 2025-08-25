@@ -287,17 +287,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 catch { contentDiv.textContent = text; }
             } else { 
-                contentDiv.textContent = text; 
+                contentDiv.textContent = text;
             }
 
-            contentDiv.addEventListener('transitionend', (e) => {
+            const handleTransitionEnd = (e) => {
                 if (e.target === contentDiv &&
                     e.propertyName === 'opacity' &&
                     contentDiv.classList.contains('focused')) {
                     toggleChatInput(false);
                     userInput?.focus();
+                    contentDiv.removeEventListener('transitionend', handleTransitionEnd);
                 }
-            }, { once: true });
+            };
+            contentDiv.addEventListener('transitionend', handleTransitionEnd);
         } else {
             if (window.marked && window.DOMPurify) {
                 try {
