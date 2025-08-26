@@ -616,7 +616,7 @@ def _generate_musical_analysis(session_data):
         full_library_string = "No imported tracks found."
         if tracks_list:
             song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
-            max_prompt_length = 90000
+            max_prompt_length = 40000
             full_library_string = "\n".join(song_strings)
             if len(full_library_string) > max_prompt_length:
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
@@ -763,38 +763,31 @@ Here are a few questions you might find interesting:
 def _get_spotify_track_url_with_backoff(request, song_title, artist_name, chat_mode, max_retries=5):
     worker_id = threading.get_ident()
     
-    NON_RETRYABLE_CODES = {400, 401, 403, 404, 422}
+    NON_RETRYABLE_HTTP_CODES = {400, 401, 403, 404, 422}
     
     for attempt in range(max_retries):
         status, url, response_obj = _get_spotify_track_url(request, song_title, artist_name, chat_mode)
         
-        if status in ['success', 'not_found', 'auth_error']:
+        if status in ['success', 'not_found', 'auth_error', 'app_error']:
             return status, url
         
         if status == 'error' and attempt < max_retries - 1:
             should_retry = True
             
-            if response_obj and response_obj.status_code in NON_RETRYABLE_CODES:
+            if response_obj and getattr(response_obj,"status_code",None) in NON_RETRYABLE_HTTP_CODES:
                 should_retry = False
-                _log_to_file(SPOTIFY_API_LOG_FILE, 
-                    f"Worker {worker_id}: Non-retryable error {response_obj.status_code} for '{song_title}' by '{artist_name}'. "
-                    f"Stopping retry attempts.")
-            
+                _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: Non-retryable HTTP {response_obj.status_code} for '{song_title}' by '{artist_name}'. Stopping retries.")
             if should_retry:
                 delay = 2 ** attempt + random.uniform(0, 1)
-                if response_obj is not None and response_obj.status_code == 429:
+                if response_obj is not None and getattr(response_obj,"status_code",None) == 429:
                     retry_after = int(response_obj.headers.get('Retry-After', delay))
                     delay = retry_after + random.uniform(0, 1)
-                
-                _log_to_file(SPOTIFY_API_LOG_FILE, 
-                    f"Worker {worker_id}: Rate limited for '{song_title}' by '{artist_name}'. "
-                    f"Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: Retryable error for '{song_title}' by '{artist_name}'. Waiting {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                 time.sleep(delay)
             else:
                 break
         else:
             break
-    
     return status, url
 
 def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
@@ -803,15 +796,15 @@ def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
     if chat_mode == 'saved_songs':
         user_id = request.session.get('euphonic_intelligence_user_id')
         if not user_id:
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [ERROR] User ID missing for saved songs search. Song: '{song_title}', Artist: '{artist_name}'")
-            return 'error', None, None
+            _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [APP_ERROR] User ID missing for saved songs search. Song: '{song_title}', Artist: '{artist_name}'")
+            return 'app_error', None, None
         
         cache_key_tracks = f'spotify_user_tracks_{user_id}'
         simplified_tracks = cache.get(cache_key_tracks)
 
         if simplified_tracks is None:
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [ERROR] Cached library not found for user {user_id}. Song: '{song_title}', Artist: '{artist_name}'")
-            return 'error', None, None
+            _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [APP_ERROR] Cached library not found for user {user_id}. Song: '{song_title}', Artist: '{artist_name}'")
+            return 'app_error', None, None
 
         search_title = song_title.strip().lower()
         search_artists = [a.strip().lower() for a in artist_name.split(',')]
@@ -830,8 +823,8 @@ def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
 
     access_token = get_spotify_access_token()
     if not access_token:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [ERROR] Access token missing for Spotify search. Song: '{song_title}', Artist: '{artist_name}'")
-        return 'error', None, None
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [APP_ERROR] Access token missing. Song: '{song_title}', Artist: '{artist_name}'")
+        return 'app_error', None, None
 
     search_url = 'https://api.spotify.com/v1/search'
     current_headers = {'Authorization': f'Bearer {access_token}'}
@@ -863,36 +856,42 @@ def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
         if response.status_code == 429:
             return 'error', None, response
 
+        if 500 <= response.status_code < 600:
+            return 'error', None, response
+
+        if response.status_code in {400, 403, 404, 422}:
+            _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [APP_ERROR_HTTP_{response.status_code}] Song: '{song_title}', Artist: '{artist_name}'.")
+            return 'app_error', None, response
+
         response.raise_for_status()
-        
         data = response.json()
-        if data['tracks']['items']:
+        if data.get('tracks', {}).get('items'):
             track_id = data['tracks']['items'][0]['id']
             _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [SEARCH_SUCCESS] Song: '{song_title}', Artist: '{artist_name}'. Track ID: {track_id}.")
             return 'success', f"https://open.spotify.com/track/{track_id}", response
         else:
-            log_message_no_results = (
-                f"Worker {worker_id}: [SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'. "
-                f"Search URL: {search_url}, Query: {query_string}, Params: {params}, "
-                f"Response Total: {data.get('tracks', {}).get('total')}"
-            )
-            _log_to_file(SPOTIFY_API_LOG_FILE, log_message_no_results)
+            _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'. Query: {query_string}")
             return 'not_found', None, response
-            
 
     except requests.exceptions.HTTPError as http_err:
-        err_response_text = http_err.response.text if http_err.response else 'No response text'
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [HTTP_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {http_err}, Response: {err_response_text}. Request URL: {prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else 'N/A'}")
-        return 'error', None, http_err.response
+        err_response = getattr(http_err, "response", None)
+        status_code = getattr(err_response, "status_code", None)
+        if status_code and 400 <= status_code < 500 and status_code not in {429}:
+            err_text = err_response.text if err_response else 'No response text'
+            _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [HTTP_ERROR_APP] Song: '{song_title}', Artist: '{artist_name}'. Error: {http_err}, Response: {err_text}")
+            return 'app_error', None, err_response
+        err_text = err_response.text if err_response else 'No response text'
+        _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [HTTP_ERROR_RETRYABLE] Song: '{song_title}', Artist: '{artist_name}'. Error: {http_err}, Response: {err_text}")
+        return 'error', None, err_response
     except requests.exceptions.RequestException as e:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [REQUEST_EXCEPTION] Song: '{song_title}', Artist: '{artist_name}'. Error: {e}. Request URL: {prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else 'N/A'}")
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [REQUEST_EXCEPTION_RETRYABLE] Song: '{song_title}', Artist: '{artist_name}'. Error: {e}")
         return 'error', None, None
     except Exception as e_unexp:
         log_url = prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else "N/A"
         log_headers = prepared_request_attempt1.headers if 'prepared_request_attempt1' in locals() else current_headers
-        response_text_on_unexp = response.text if response and hasattr(response, 'text') else "No response object or text."
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [UNEXPECTED_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {e_unexp}. Request URL: {log_url}, Headers: {log_headers}, Response (if available): {response_text_on_unexp}")
-        return 'error', None, response
+        response_text = response.text if response and hasattr(response, 'text') else "No response text."
+        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [UNEXPECTED_APP_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {e_unexp}. URL: {log_url}, Headers: {log_headers}, Response: {response_text}")
+        return 'app_error', None, response
 
 @csrf_protect
 @require_http_methods(["POST"])
@@ -962,7 +961,7 @@ def initialize_chat_data_view(request):
             full_library_string = "No imported tracks found."
             if tracks_list:
                 song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
-                max_prompt_length = 90000
+                max_prompt_length = 40000
                 full_library_string = "\n".join(song_strings)
                 if len(full_library_string) > max_prompt_length:
                     full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
@@ -1075,7 +1074,7 @@ def reset_chat_history_api(request):
             cache_key_tracks = f'spotify_user_tracks_{user_id}'
             tracks_list = cache.get(cache_key_tracks, [])
             song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
-            max_prompt_length = 90000
+            max_prompt_length = 40000
             full_library_string = "\n".join(song_strings)
             if len(full_library_string) > max_prompt_length:
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
@@ -1596,7 +1595,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 
 <imported_tracks>
 {"\n".join([f"- {t['name']} by {t['artists']}" for t in cache.get(f"spotify_user_tracks_{mock_request.session.get('euphonic_intelligence_user_id')}", [])])}
-</users_imported_tracks>
+</imported_tracks>
 """
             feedback_system_instruction_map = {
                 'saved_songs': SAVED_SONGS_FEEDBACK_SYSTEM_INSTRUCTION,
@@ -1974,7 +1973,7 @@ def chat_message_api(request):
         if not isinstance(user_message, str):
             return JsonResponse({'error': 'Message must be a string'}, status=400)
         user_message = user_message.strip()
-        if len(user_message) > 10000:
+        if len(user_message) > 8000:
             return JsonResponse({'error': 'Message too long'}, status=400)
         
         dangerous_patterns = [
@@ -2399,6 +2398,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
         
         while True:
             with track_counter['lock']:
+                # If you ever update this value, make sure to update each occurrence of max_prompt_length accordingly
                 if track_counter['count'] >= 500:
                     _log_to_file(GENERAL_LOG_FILE, f"Track limit of 500 reached, stopping playlist {playlist_id} processing")
                     break
