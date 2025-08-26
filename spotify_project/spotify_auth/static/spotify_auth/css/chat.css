@@ -1080,6 +1080,8 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 .aria-intro-splash .aria-intro-text:first-child {
     font-size: 1.6em;
+    letter-spacing: 0.25px;
+    word-spacing: 0.6px;
 }
 
 .aria-intro-text.show {
