@@ -623,7 +623,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .modal-header h2 {
-    color: rgb(30, 200, 90);
+    color: rgb(27, 180, 81);
     margin: 0;
 }
 
@@ -648,7 +648,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 .modal-body h3 {
     margin-top: 25px;
     margin-bottom: 15px;
-    color: rgb(30, 200, 90);
+    color: rgb(27, 180, 81);
     font-size: 1.1em;
 }
 
@@ -693,7 +693,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .beta-notice {
     background-color: #161616;
-    border: 1px solid rgb(30, 200, 90);
+    border: 1px solid rgb(24, 160, 72);
     border-radius: 8px;
     padding: 7px;
     text-align: center;
@@ -727,7 +727,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .beta-notice a {
-    color: rgb(30, 200, 90);
+    color: rgba(30, 200, 90, 0.95);
     text-decoration: none;
 }
 
@@ -1348,7 +1348,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     display: block;
     padding: 0.5rem 0.75rem 0.6rem 0.75rem;
     font-size: 0.85rem;
-    color: rgba(25.5,170,76.5,0.9);
+    color: rgba(27,180,81,0.95);
     text-decoration: none;
     transition: all 0.2s ease-in-out;
     cursor: pointer;
