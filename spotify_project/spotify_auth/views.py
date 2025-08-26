@@ -665,10 +665,10 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             safety_settings=SAFETY_SETTINGS,
 
             # Default config for dynamic max thinking and no thought summaries
-            thinking_config=types.ThinkingConfig(thinking_budget=-1)
+            # thinking_config=types.ThinkingConfig(thinking_budget=-1)
 
             # Config to obtain thought summaries for analysis/debugging
-            # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
+            thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
 
             # Config with thinking budget and max output tokens budget
             # thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
@@ -1328,10 +1328,10 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             safety_settings=SAFETY_SETTINGS,
 
             # Default config for dynamic max thinking and no thought summaries
-            thinking_config=types.ThinkingConfig(thinking_budget=-1)
+            # thinking_config=types.ThinkingConfig(thinking_budget=-1)
 
             # Config to obtain thought summaries for analysis/debugging
-            # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
+            thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
 
             # Config with thinking budget and max output tokens budget
             # thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
