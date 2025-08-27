@@ -672,7 +672,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
 
             # Config with thinking budget and max output tokens budget
             thinking_config=types.ThinkingConfig(thinking_budget=4096, include_thoughts=False),
-            max_output_tokens=2048
+            max_output_tokens=6144
         )
         chat = client.chats.create(
             model=MODEL_NAME,
@@ -1335,7 +1335,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 
             # Config with thinking budget and max output tokens budget
             thinking_config=types.ThinkingConfig(thinking_budget=4096, include_thoughts=False),
-            max_output_tokens=2048
+            max_output_tokens=6144
         )
         
         chat = client.chats.create(
