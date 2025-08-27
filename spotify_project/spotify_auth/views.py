@@ -22,6 +22,7 @@ import random
 from bs4 import BeautifulSoup
 import httpx
 from urllib.parse import urlparse
+from functools import wraps
 
 REDIS_CLIENT = settings.REDIS_CLIENT
 ANALYSIS_EVENT_CHANNEL_PREFIX = 'analysis_completion:'
@@ -32,6 +33,25 @@ CHAT_EVENT_TIMEOUT = 300
 ALLOWED_SSE_ORIGINS = {
     "https://euphonicintelligence.com",
     "https://www.euphonicintelligence.com",
+}
+
+RATE_LIMITS = {
+    # key_type, limit, window_seconds, block_seconds
+    'chat_message': [
+        # 100 messages allowed per IP/session per 24 hours with a 24-hour block if max is exceeded
+        ('ip', 100, 86400, 86400),
+        ('session', 100, 86400, 86400),
+    ],
+    'playlist_validate': [
+        # 24 playlists allowed to be validated per IP/session per minute with a 3-minute block if max is exceeded
+        ('ip', 24, 60, 180),
+        ('session', 24, 60, 180),
+    ],
+    'playlist_import': [
+        # Playlist import function may be invoked 10 times per IP/session per minute with a 3-minute block if max is exceeded
+        ('ip', 10, 60, 180),
+        ('session', 10, 60, 180),
+    ],
 }
 
 GEMINI_CLIENT = None
@@ -477,6 +497,79 @@ def _sse_same_origin_ok(request):
         except Exception:
             pass
     return False
+
+
+def _rl_now():
+    return int(time.time())
+
+def _rl_keys(request, scope, key_type):
+    ip = (request.META.get('HTTP_CF_CONNECTING_IP')
+          or request.META.get('HTTP_X_REAL_IP')
+          or request.META.get('REMOTE_ADDR')
+          or 'unknown')
+    session_key = request.session.session_key or 'no-session'
+    base_map = {
+        'ip': ip,
+        'session': session_key,
+    }
+    ident = base_map[key_type]
+    return f"rl:{scope}:{key_type}:{ident}", f"rlblk:{scope}:{key_type}:{ident}"
+
+def _redis_available():
+    try:
+        REDIS_CLIENT.ping()
+        return True
+    except Exception:
+        return False
+
+def _incr_with_expire(store, key, window):
+    if _redis_available() and store is REDIS_CLIENT:
+        lua_script = """
+        local current = redis.call('INCR', KEYS[1])
+        if current == 1 then
+            redis.call('EXPIRE', KEYS[1], ARGV[1])
+        end
+        return current
+        """
+        try:
+            return store.eval(lua_script, 1, key, window)
+        except Exception:
+            count = store.incr(key)
+            if count == 1:
+                store.expire(key, window)
+            return count
+    val = cache.get(key, 0) + 1
+    cache.set(key, val, timeout=window)
+    return val
+
+def rate_limit_scope(scope):
+    rules = RATE_LIMITS.get(scope, [])
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            now = _rl_now()
+            for key_type, limit, window, block in rules:
+                counter_key, block_key = _rl_keys(request, scope, key_type)
+                if REDIS_CLIENT.get(block_key):
+                    ttl = REDIS_CLIENT.ttl(block_key)
+                    retry_after = ttl if ttl and ttl > 0 else block
+                    return JsonResponse(
+                        {'error': 'Rate limit exceeded. Please wait before retrying.'},
+                        status=429,
+                        headers={'Retry-After': str(retry_after)}
+                    )
+                count = _incr_with_expire(REDIS_CLIENT, counter_key, window)
+                if count > limit:
+                    REDIS_CLIENT.set(block_key, 1, ex=block)
+                    _log_to_file(GENERAL_LOG_FILE,f"Rate limit exceeded ({scope}:{key_type}) key={counter_key} count={count} limit={limit}")
+                    return JsonResponse(
+                        {'error': 'Rate limit exceeded. Please wait before retrying.'},
+                        status=429,
+                        headers={'Retry-After': str(block)}
+                    )
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
 
 def _is_crawler(request):
     user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
@@ -1996,6 +2089,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 @csrf_protect
 @require_http_methods(["POST"])
 @never_cache
+@rate_limit_scope('chat_message')
 def chat_message_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     try:
@@ -2332,6 +2426,7 @@ def stream_chat_response(request, task_id):
 @csrf_protect
 @require_http_methods(["POST"])
 @never_cache
+@rate_limit_scope('playlist_import')
 def import_playlists_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     _ensure_euphonic_intelligence_user_id(request)
@@ -2552,6 +2647,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
 @csrf_protect
 @require_http_methods(["POST"])
 @never_cache
+@rate_limit_scope('playlist_validate')
 def validate_playlist_api(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     
