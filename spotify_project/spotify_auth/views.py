@@ -1084,7 +1084,7 @@ def reset_chat_history_api(request):
             tracks_list = cache.get(cache_key_tracks, [])
             song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
             max_prompt_length = 40000
-            full_library_string = "\n".join(song_strings)
+            full_library_string = "\n* ".join(song_strings)
             if len(full_library_string) > max_prompt_length:
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
 
@@ -1607,7 +1607,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 </tracks_to_correct>
 
 <imported_tracks>
-{"\n".join([f"- {t['name']} by {t['artists']}" for t in cache.get(f"spotify_user_tracks_{mock_request.session.get('euphonic_intelligence_user_id')}", [])])}
+{"\n".join([f"* $$$$${t['name']}$$$$$ by @@@@@{t['artists']}@@@@@" for t in cache.get(f"spotify_user_tracks_{mock_request.session.get('euphonic_intelligence_user_id')}", [])])}
 </imported_tracks>
 """
             feedback_system_instruction_map = {
