@@ -611,7 +611,7 @@ def _generate_musical_analysis(session_data):
         _publish(status)
         return
 
-    cache.set(analysis_in_progress_key, True, timeout=600)
+    cache.set(analysis_in_progress_key, True, timeout=300)
 
     try:
         cache_key_tracks = f'spotify_user_tracks_{user_id}'
@@ -1375,7 +1375,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         except Exception as e_first:
             if 'RESOURCE_EXHAUSTED' in str(e_first):
                 _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (first pass) task {task_id}: {e_first}")
-                cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
+                cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
                 status = 'failed'
                 return
             raise
@@ -1386,7 +1386,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             if (getattr(response, "candidates", None) and response.candidates and
                 getattr(response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
                 _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS first pass Task {task_id}.")
-                cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=300)
                 status = 'failed'
                 return
         except Exception as e_mt:
@@ -1471,7 +1471,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             except Exception as e_fmt:
                 if 'RESOURCE_EXHAUSTED' in str(e_fmt):
                     _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (formatting pass) task {task_id}: {e_fmt}")
-                    cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
+                    cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
                     status = 'failed'
                     return
                 raise
@@ -1482,7 +1482,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 if (getattr(formatting_response, "candidates", None) and formatting_response.candidates and
                     getattr(formatting_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
                     _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS formatting pass Task {task_id}.")
-                    cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                    cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=300)
                     status = 'failed'
                     return
             except Exception as e_fmt_mt:
@@ -1519,7 +1519,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         if chat_mode == 'analysis':
             if (not isinstance(ai_response_text, str) or not ai_response_text.strip()):
                 result = {'error': 'Invalid model response'}
-                cache.set(task_id, result, timeout=600)
+                cache.set(task_id, result, timeout=300)
                 status = 'failed'
                 return
             
@@ -1540,7 +1540,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 'chat_mode': 'analysis'
             }
 
-            cache.set(task_id, result, timeout=600)
+            cache.set(task_id, result, timeout=300)
             status = 'completed'
             return
 
@@ -1663,7 +1663,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             except Exception as e_fb:
                 if 'RESOURCE_EXHAUSTED' in str(e_fb):
                     _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (feedback pass) task {task_id}: {e_fb}")
-                    cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
+                    cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
                     status = 'failed'
                     return
                 raise
@@ -1674,7 +1674,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 if (getattr(correction_response, "candidates", None) and correction_response.candidates and
                     getattr(correction_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
                     _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS feedback pass Task {task_id}.")
-                    cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                    cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=300)
                     status = 'failed'
                     return
             except Exception as e_fb_mt:
@@ -1793,7 +1793,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 except Exception as e_rm:
                     if 'RESOURCE_EXHAUSTED' in str(e_rm):
                         _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (removal pass) task {task_id}: {e_rm}")
-                        cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=600)
+                        cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
                         status = 'failed'
                         return
                     raise
@@ -1804,7 +1804,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     if (getattr(final_removal_response, "candidates", None) and final_removal_response.candidates and
                         getattr(final_removal_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
                         _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS removal pass Task {task_id}.")
-                        cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=600)
+                        cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=300)
                         status = 'failed'
                         return
                 except Exception as e_rm_mt:
@@ -1901,7 +1901,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         if (not isinstance(final_ai_text_to_process_for_user, str) or not final_ai_text_to_process_for_user.strip() or
             not isinstance(processed_ai_response_text, str) or not processed_ai_response_text.strip()):
             result = {'error': 'Invalid model response'}
-            cache.set(task_id, result, timeout=600)
+            cache.set(task_id, result, timeout=300)
             status = 'failed'
             return
         
@@ -1962,11 +1962,11 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             if revising_flag_name and revising_flag_name in mock_request.session:
                 result[revising_flag_name] = mock_request.session[revising_flag_name]
 
-        cache.set(task_id, result, timeout=600)
+        cache.set(task_id, result, timeout=300)
         status = 'completed'
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error in chat processing thread for task {task_id}: {e}")
-        cache.set(task_id, {'error': 'An unexpected error occurred processing your message.'}, timeout=600)
+        cache.set(task_id, {'error': 'An unexpected error occurred processing your message.'}, timeout=300)
         status = 'failed'
     finally:
         _publish(status)
