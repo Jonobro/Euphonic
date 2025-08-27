@@ -547,25 +547,20 @@ def rate_limit_scope(scope):
     def decorator(view_func):
         @wraps(view_func)
         def wrapper(request, *args, **kwargs):
-            now = _rl_now()
             for key_type, limit, window, block in rules:
                 counter_key, block_key = _rl_keys(request, scope, key_type)
                 if REDIS_CLIENT.get(block_key):
-                    ttl = REDIS_CLIENT.ttl(block_key)
-                    retry_after = ttl if ttl and ttl > 0 else block
                     return JsonResponse(
-                        {'error': 'Rate limit exceeded. Please wait before retrying.'},
-                        status=429,
-                        headers={'Retry-After': str(retry_after)}
+                        {'error': 'Rate limit exceeded. Please try again later.'},
+                        status=429
                     )
                 count = _incr_with_expire(REDIS_CLIENT, counter_key, window)
                 if count > limit:
                     REDIS_CLIENT.set(block_key, 1, ex=block)
                     _log_to_file(GENERAL_LOG_FILE,f"Rate limit exceeded ({scope}:{key_type}) key={counter_key} count={count} limit={limit}")
                     return JsonResponse(
-                        {'error': 'Rate limit exceeded. Please wait before retrying.'},
-                        status=429,
-                        headers={'Retry-After': str(block)}
+                        {'error': 'Rate limit exceeded. Please try again later.'},
+                        status=429
                     )
             return view_func(request, *args, **kwargs)
         return wrapper
