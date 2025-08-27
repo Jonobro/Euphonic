@@ -21,12 +21,18 @@ from django.contrib.sessions.models import Session
 import random
 from bs4 import BeautifulSoup
 import httpx
+from urllib.parse import urlparse
 
 REDIS_CLIENT = settings.REDIS_CLIENT
 ANALYSIS_EVENT_CHANNEL_PREFIX = 'analysis_completion:'
 ANALYSIS_EVENT_TIMEOUT = 300
 CHAT_EVENT_CHANNEL_PREFIX = 'chat_completion:'
 CHAT_EVENT_TIMEOUT = 300
+
+ALLOWED_SSE_ORIGINS = {
+    "https://euphonicintelligence.com",
+    "https://www.euphonicintelligence.com",
+}
 
 GEMINI_CLIENT = None
 EXPENSIVE_MODEL_NAME = "gemini-2.5-flash"
@@ -455,6 +461,22 @@ def _get_token_line(tokens_file, line_number):
         _log_to_file(GENERAL_LOG_FILE, f"Error reading tokens file {tokens_file}: {e}")
     _log_to_file(GENERAL_LOG_FILE, f"_get_token_line returning None for file: {tokens_file}, line: {line_number}")
     return None
+
+def _sse_same_origin_ok(request):
+    origin = request.META.get("HTTP_ORIGIN")
+    referer = request.META.get("HTTP_REFERER")
+    if origin:
+        if origin.rstrip("/") in ALLOWED_SSE_ORIGINS:
+            return True
+    if referer:
+        try:
+            p = urlparse(referer)
+            base = f"{p.scheme}://{p.netloc}"
+            if base in ALLOWED_SSE_ORIGINS:
+                return True
+        except Exception:
+            pass
+    return False
 
 def _is_crawler(request):
     user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
@@ -2036,6 +2058,11 @@ def chat_message_api(request):
 @require_http_methods(["GET"])
 @never_cache
 def stream_initial_analysis(request):
+    if not _sse_same_origin_ok(request):
+        origin = request.META.get('HTTP_ORIGIN')
+        referer = request.META.get('HTTP_REFERER')
+        _log_to_file(GENERAL_LOG_FILE, f"Forbidden SSE request to stream_initial_analysis. Origin: {origin}, Referer: {referer}")
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     def event_stream():
         try:
             final_history = request.session.get('final_analysis_chat_history')
@@ -2154,6 +2181,11 @@ def stream_initial_analysis(request):
 @require_http_methods(["GET"])
 @never_cache
 def stream_chat_response(request, task_id):
+    if not _sse_same_origin_ok(request):
+        origin = request.META.get('HTTP_ORIGIN')
+        referer = request.META.get('HTTP_REFERER')
+        _log_to_file(GENERAL_LOG_FILE, f"Forbidden SSE request to stream_chat_response. Origin: {origin}, Referer: {referer}, Task: {task_id}")
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     def event_stream():
         channel = f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}"
         _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Opening stream for task {task_id} on channel '{channel}'")
