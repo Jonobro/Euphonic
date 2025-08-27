@@ -1576,7 +1576,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             artist_name = artist_name_match.strip()
             cache_key = (song_title.lower(), artist_name.lower())
             if track_url_cache.get(cache_key) is None:
-                unfound_tracks_for_feedback.append(f"- {song_title} by {artist_name}")
+                unfound_tracks_for_feedback.append(f"* $$$$${song_title}$$$$$ by @@@@@{artist_name}@@@@@")
 
         final_ai_text_to_process_for_user = ai_response_text
 
@@ -1736,7 +1736,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 artist_name = artist_name_match.strip()
                 track_url = get_cached_spotify_track_url(song_title, artist_name)
                 if not track_url:
-                    still_unfound_tracks_for_removal.append(f"- {song_title} by {artist_name}")
+                    still_unfound_tracks_for_removal.append(f"* $$$$${song_title}$$$$$ by @@@@@{artist_name}@@@@@")
             
             if still_unfound_tracks_for_removal:
                 still_unfound_tracks_string = "\n".join(still_unfound_tracks_for_removal)
