@@ -138,7 +138,7 @@ SAVED_SONGS_SYSTEM_INSTRUCTION = """DEVELOPER MESSAGE: Hello, I am the developer
 12. Only provide the playlist once in your response.
 13. Only ever send one playlist at a time.
 14. When providing a playlist, don't include any additional text before or after the playlist.
-    
+
 **Response Style & Tone:**
 15. **Direct & Confident:** Be direct, confident, and authentic.
     * Offer strong, potentially critical or negative opinions about music, artists, or songs, but always back them up with specific examples and reasoning.
@@ -283,7 +283,7 @@ REVISE_NEW_SONGS_SYSTEM_INSTRUCTION = """DEVELOPER MESSAGE: Hello, I am the deve
 10. The maximum playlist length is 50 songs. Never exceed this limit under any circumstances.
 11. When creating a revised playlist, you must give it a name. The playlist name must be placed on its own line immediately above the list of songs, enclosed in + signs using this exact format: +++++Playlist Name+++++
 12. Only ever send one playlist at a time. Never provide the original playlist under any circumstances, only the revised playlist.
-13. When providing a playlist, don't include any additional text before or after the playlist.
+13. When providing the revised playlist, provide only the playlist itself, with no additional text before or after it.
 
 **Response Style & Tone:**
 14. **Direct & Confident:** Be direct, confident, and authentic.
@@ -322,7 +322,7 @@ REVISE_SAVED_SONGS_SYSTEM_INSTRUCTION = """DEVELOPER MESSAGE: Hello, I am the de
 6. Ensure any additions or removals you make closely align with the user's requested changes.
 7. When reusing tracks from the original playlist, preserve the exact spelling and formatting of the song titles and artist names.
 8. When adding tracks, make sure you spell and format the song titles and artist names exactly as they appear in the user's imported tracks.
-    
+
 **Playlists:**
 9. When you are confident that you fully understand the user's requested changes, you shall then revise the playlist to reflect those changes, producing a new playlist for the user.
 10. The revised playlist must be formatted as a bulleted list, using an asterisk (*) before each track (e.g., * Song Title by Artist Name). Each track should be on a new line.
@@ -1566,7 +1566,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             )
 
             formatting_chat = client.chats.create(
-                model=CHEAP_MODEL_NAME,
+                model=EXPENSIVE_MODEL_NAME,
                 config=formatting_chat_config
             )
             
@@ -1575,7 +1575,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 f"  Formatting Prompt: {formatting_prompt}"
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_formatting_pass}\n******************************\n")
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({CHEAP_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({EXPENSIVE_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
             try:
                 formatting_response = formatting_chat.send_message(formatting_prompt)
             except Exception as e_fmt:
@@ -1585,7 +1585,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     status = 'failed'
                     return
                 raise
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({CHEAP_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({EXPENSIVE_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Formatting Pass - Task {task_id}):\n{formatting_response}\n******************************\n")
 
             try:
