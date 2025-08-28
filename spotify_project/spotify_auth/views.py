@@ -52,6 +52,11 @@ RATE_LIMITS = {
         ('ip', 10, 60, 180),
         ('session', 10, 60, 180),
     ],
+    'chat_initialize': [
+        # Limit chat initializations to protect resources and generate_musical_analysis invocation. 10 initializations/min per IP/session.
+        ('ip', 10, 60, 180),
+        ('session', 10, 60, 180),
+    ],
 }
 
 GEMINI_CLIENT = None
@@ -1019,6 +1024,7 @@ def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
 @csrf_protect
 @require_http_methods(["POST"])
 @never_cache
+@rate_limit_scope('chat_initialize')
 def initialize_chat_data_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     _ensure_euphonic_intelligence_user_id(request)
@@ -1485,6 +1491,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         except Exception as e_first:
             if 'RESOURCE_EXHAUSTED' in str(e_first):
                 _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (first pass) task {task_id}: {e_first}")
+                _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"f"Gemini API Error (chat_message_api - First Pass - Task {task_id}):\n"f"Quota / rate limit error: {e_first}\n""******************************\n")
                 cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
                 status = 'failed'
                 return
@@ -1581,6 +1588,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             except Exception as e_fmt:
                 if 'RESOURCE_EXHAUSTED' in str(e_fmt):
                     _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (formatting pass) task {task_id}: {e_fmt}")
+                    _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"f"Gemini API Error (chat_message_api - Formatting Pass - Task {task_id}):\n"f"Quota / rate limit error: {e_fmt}\n""******************************\n")
                     cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
                     status = 'failed'
                     return
@@ -1773,6 +1781,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             except Exception as e_fb:
                 if 'RESOURCE_EXHAUSTED' in str(e_fb):
                     _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (feedback pass) task {task_id}: {e_fb}")
+                    _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"f"Gemini API Error (chat_message_api - Feedback Pass - Task {task_id}):\n"f"Quota / rate limit error: {e_fb}\n""******************************\n")
                     cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
                     status = 'failed'
                     return
@@ -1903,6 +1912,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 except Exception as e_rm:
                     if 'RESOURCE_EXHAUSTED' in str(e_rm):
                         _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (removal pass) task {task_id}: {e_rm}")
+                        _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"f"Gemini API Error (chat_message_api - Removal Pass - Task {task_id}):\n"f"Quota / rate limit error: {e_rm}\n""******************************\n")
                         cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
                         status = 'failed'
                         return
