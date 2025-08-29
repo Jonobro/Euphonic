@@ -1523,7 +1523,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     prompt_token_count = getattr(usage_md, "prompt_token_count", None)
             except Exception as e_tok:
                 _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting prompt_token_count: {e_tok}")
-            context_window_exceeded = bool(prompt_token_count and prompt_token_count > 2000) # Revise this value back to 20000
+            context_window_exceeded = bool(prompt_token_count and prompt_token_count > 20000)
             if context_window_exceeded and context_flag_name:
                 _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Context window exceeded (prompt_token_count={prompt_token_count})")
 
