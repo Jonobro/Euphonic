@@ -75,6 +75,7 @@ async function handleNewContextAction(userAction) {
                     if (!terminationMessages.length) return;
                     const last = terminationMessages[terminationMessages.length - 1];
                     last.textContent = '~ New Conversation Started ~';
+                    last.classList.add('previous-termination-message');
                 })();
 
                 const dividerElement = document.createElement('div');
