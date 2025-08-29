@@ -558,7 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (thinkingMsgElement) thinkingMsgElement.remove();
                 const aiMsgEl = addMessage(LONG_CONVO_MSG, 'ai', true, false);
                 if (aiMsgEl && window.createSecondaryActionsContainer) {
-                    const actions = window.createSecondaryActionsContainer("Revise Last Playlist", "Create a New Playlist");
+                    const actions = window.createSecondaryActionsContainer("Revise Last Playlist", "Create New Playlist");
                     aiMsgEl.classList.add('long-convo-termination-options');
                     aiMsgEl.appendChild(actions);
                     toggleChatInput(true);
