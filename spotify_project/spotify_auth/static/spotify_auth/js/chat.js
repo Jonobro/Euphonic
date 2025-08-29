@@ -757,6 +757,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (Array.isArray(history) && history.length > 0) {
                     const lastDividerIndex = history.map(m => m.role).lastIndexOf('divider');
 
+                    const hasPlaylistInHistory = history.some(m =>
+                        m?.role === 'model' &&
+                        m?.parts?.[0]?.text &&
+                        m.parts[0].text.includes('+++++')
+                    );
+
                     suppressHistoryUpdate = true;
 
                     history.forEach((message, index) => {
@@ -774,8 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 message.parts[0].text === LONG_CONVO_MSG &&
                                 window.createSecondaryActionsContainer &&
                                 !messageElement.querySelector('.additional-buttons-container')) {
-                                const hasPlaylistInDom = !!document.querySelector('.ai-message.has-playlist-button');
-                                const firstButtonLabel = hasPlaylistInDom ? "Revise Last Playlist" : "";
+                                const firstButtonLabel = hasPlaylistInHistory ? "Revise Last Playlist" : "";
                                 const actions = window.createSecondaryActionsContainer(firstButtonLabel, "Create New Playlist");
                                 messageElement.classList.add('long-convo-termination-options');
                                 messageElement.appendChild(actions);
