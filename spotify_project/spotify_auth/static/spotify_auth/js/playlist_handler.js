@@ -106,10 +106,14 @@ function createSecondaryActionsContainer(reviseButtonText, createAnotherButtonTe
 window.createSecondaryActionsContainer = createSecondaryActionsContainer;
 
 function processMessageForPlaylist(messageElement) {
+    if (messageElement.dataset.playlistProcessed === '1') {
+        return;
+    }
     if (!messageElement.classList.contains('ai-message')) {
         return;
     }
-
+    messageElement.dataset.playlistProcessed = '1';
+    
     const messageList = messageElement.closest('#message-list');
     const allMessages = Array.from(messageList.children);
     const messageIndex = allMessages.indexOf(messageElement);
