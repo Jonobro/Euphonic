@@ -2186,6 +2186,7 @@ def chat_message_api(request):
                 fh_key = final_history_key_map.get(chat_mode)
                 if fh_key:
                     final_hist = request.session.get(fh_key, [])
+                    final_hist.append({'role': 'user', 'parts': [{'text': user_message}]})
                     final_hist.append({'role': 'model', 'parts': [{'text': long_convo_msg}]})
                     request.session[fh_key] = final_hist
                     request.session.save()
