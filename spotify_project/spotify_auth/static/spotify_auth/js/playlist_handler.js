@@ -74,8 +74,8 @@ function processMessageForPlaylist(messageElement) {
             } else {
                 const playlistActionsContainer = document.createElement('div');
                 playlistActionsContainer.className = 'save-playlist-container';
-                
-                const secondaryActionsContainer = window.createSecondaryActionsContainer();
+
+                const secondaryActionsContainer = window.createSecondaryActionsContainer('Revise Playlist', 'New Playlist');
 
                 const messageContainer = document.createElement('div');
                 messageContainer.className = 'message-container';
@@ -152,7 +152,7 @@ function processMessageForPlaylist(messageElement) {
             playlistActionsContainer.appendChild(openButtonWrapper);
 
             if (!isBeforeLastDivider) {
-                const secondaryActionsContainer = window.createSecondaryActionsContainer();
+                const secondaryActionsContainer = window.createSecondaryActionsContainer('Revise Playlist', 'New Playlist');
                 playlistActionsContainer.appendChild(secondaryActionsContainer);
             }
 

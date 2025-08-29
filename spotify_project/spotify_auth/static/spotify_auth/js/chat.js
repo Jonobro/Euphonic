@@ -101,24 +101,25 @@ async function handleNewContextAction(userAction) {
 }
 window.handleNewContextAction = handleNewContextAction;
 
-function createSecondaryActionsContainer(reviseButtonText, createAnotherButtonText) {
+function createSecondaryActionsContainer(buttonOne, buttonTwo) {
     const secondaryActionsContainer = document.createElement('div');
     secondaryActionsContainer.className = 'additional-buttons-container';
 
-    const useCustomTexts = typeof reviseButtonText === 'string' && typeof createAnotherButtonText === 'string';
+    if (typeof buttonOne === 'string' && buttonOne.trim() !== '') {
+        const firstButton = document.createElement('button');
+        firstButton.className = 'button secondary-playlist-button';
+        firstButton.textContent = buttonOne;
+        firstButton.addEventListener('click', () => handleNewContextAction('revise_playlist'));
+        secondaryActionsContainer.appendChild(firstButton);
+    }
 
-    const reviseButton = document.createElement('button');
-    reviseButton.className = 'button secondary-playlist-button';
-    reviseButton.textContent = useCustomTexts ? reviseButtonText : 'Revise Playlist';
-    reviseButton.addEventListener('click', () => handleNewContextAction('revise_playlist'));
-
-    const createAnotherButton = document.createElement('button');
-    createAnotherButton.className = 'button secondary-playlist-button';
-    createAnotherButton.textContent = useCustomTexts ? createAnotherButtonText : 'New Playlist';
-    createAnotherButton.addEventListener('click', () => handleNewContextAction('create_another_playlist'));
-
-    secondaryActionsContainer.appendChild(reviseButton);
-    secondaryActionsContainer.appendChild(createAnotherButton);
+    if (typeof buttonTwo === 'string' && buttonTwo.trim() !== '') {
+        const secondButton = document.createElement('button');
+        secondButton.className = 'button secondary-playlist-button';
+        secondButton.textContent = buttonTwo;
+        secondButton.addEventListener('click', () => handleNewContextAction('create_another_playlist'));
+        secondaryActionsContainer.appendChild(secondButton);
+    }
 
     return secondaryActionsContainer;
 }
@@ -645,7 +646,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (thinkingMsgElement) thinkingMsgElement.remove();
                 const aiMsgEl = addMessage(LONG_CONVO_MSG, 'ai', true, false);
                 if (aiMsgEl && window.createSecondaryActionsContainer) {
-                    const actions = window.createSecondaryActionsContainer("Revise Last Playlist", "Create New Playlist");
+                    const hasPlaylistInDom = !!document.querySelector('.ai-message.has-playlist-button');
+                    const firstButtonLabel = hasPlaylistInDom ? "Revise Last Playlist" : "";
+                    const actions = window.createSecondaryActionsContainer(firstButtonLabel, "Create New Playlist");
                     aiMsgEl.classList.add('long-convo-termination-options');
                     aiMsgEl.appendChild(actions);
                     toggleChatInput(true);
@@ -771,7 +774,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 message.parts[0].text === LONG_CONVO_MSG &&
                                 window.createSecondaryActionsContainer &&
                                 !messageElement.querySelector('.additional-buttons-container')) {
-                                const actions = window.createSecondaryActionsContainer("Revise Last Playlist", "Create New Playlist");
+                                const hasPlaylistInDom = !!document.querySelector('.ai-message.has-playlist-button');
+                                const firstButtonLabel = hasPlaylistInDom ? "Revise Last Playlist" : "";
+                                const actions = window.createSecondaryActionsContainer(firstButtonLabel, "Create New Playlist");
                                 messageElement.classList.add('long-convo-termination-options');
                                 messageElement.appendChild(actions);
                             }
