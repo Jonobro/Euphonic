@@ -687,8 +687,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const actions = window.createSecondaryActionsContainer("Revise Last Playlist", "Create New Playlist");
                                 messageElement.classList.add('long-convo-termination-options');
                                 messageElement.appendChild(actions);
-                                toggleChatInput(true);
-                                updateChatInputPlaceholder();
                             }
                             
                             if (lastDividerIndex !== -1 && index < lastDividerIndex) {
@@ -733,8 +731,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         }, 0);
                     }
 
-                    toggleChatInput(false);
-                    userInput.focus();
+                    const hasTerminationMessage = !!messageList.querySelector('.long-convo-termination-options');
+
+                    if (hasTerminationMessage) {
+                        toggleChatInput(true);
+                        updateChatInputPlaceholder();
+                    } else {
+                        toggleChatInput(false);
+                        userInput.focus();
+                    }
                 }
             } catch (e) {
                 console.error("Could not parse chat history:", e);
