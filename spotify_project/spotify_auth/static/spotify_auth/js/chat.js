@@ -789,6 +789,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 if (index < lastDividerIndex) {
                                     messageElement.innerHTML = '';
                                     messageElement.textContent = '~ New Conversation Started ~';
+                                    messageElement.classList.add('previous-termination-message');
                                 } else if (window.createSecondaryActionsContainer && !messageElement.querySelector('.additional-buttons-container')) {
                                     const firstButtonLabel = hasPlaylistInHistory ? "Revise Last Playlist" : "";
                                     const actions = window.createSecondaryActionsContainer(firstButtonLabel, "Create New Playlist");
