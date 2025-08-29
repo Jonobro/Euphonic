@@ -504,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!text) return;
 
         const wordCount = text.split(/\s+/).filter(Boolean).length;
-        const maxWords = 1000;
+        const maxWords = 500;
         if (wordCount > maxWords) {
             alert(`Your message is too long (${wordCount} words). Please keep it under ${maxWords} words.`);
             return;

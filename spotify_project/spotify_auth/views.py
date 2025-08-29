@@ -1498,6 +1498,24 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             raise
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({EXPENSIVE_MODEL_NAME}) (Task {task_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
+        
+        context_window_flag_map = {
+            'analysis': 'analysis_context_window_exceeded',
+            'saved_songs': 'saved_songs_context_window_exceeded',
+            'new_songs': 'new_songs_context_window_exceeded'
+        }
+        context_flag_name = context_window_flag_map.get(chat_mode)
+        prompt_token_count = None
+        
+        try:
+            usage_md = getattr(response, "usage_metadata", None)
+            if usage_md:
+                prompt_token_count = getattr(usage_md, "prompt_token_count", None)
+        except Exception as e_tok:
+            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting prompt_token_count: {e_tok}")
+        context_window_exceeded = bool(prompt_token_count and prompt_token_count > 20000)
+        if context_window_exceeded and context_flag_name:
+            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Context window exceeded (prompt_token_count={prompt_token_count})")
 
         try:
             if (getattr(response, "candidates", None) and response.candidates and
@@ -1657,6 +1675,9 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 'final_analysis_chat_history': mock_request.session.get('final_analysis_chat_history', []),
                 'chat_mode': 'analysis'
             }
+
+            if context_window_exceeded and context_flag_name:
+                result[context_flag_name] = True
 
             cache.set(task_id, result, timeout=300)
             status = 'completed'
@@ -2071,6 +2092,9 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             'chat_mode': chat_mode
         }
 
+        if context_window_exceeded and context_flag_name:
+            result[context_flag_name] = True
+
         if chat_mode == 'saved_songs':
             result['saved_songs_chat_history'] = mock_request.session.get('saved_songs_chat_history', [])
             result['final_saved_songs_chat_history'] = mock_request.session.get('final_saved_songs_chat_history', [])
@@ -2111,7 +2135,7 @@ def chat_message_api(request):
         if not isinstance(user_message, str):
             return JsonResponse({'error': 'Message must be a string'}, status=400)
         user_message = user_message.strip()
-        if len(user_message) > 8000:
+        if len(user_message) > 4000:
             return JsonResponse({'error': 'Message too long'}, status=400)
         
         dangerous_patterns = [
@@ -2317,7 +2341,10 @@ def stream_chat_response(request, task_id):
                             'saved_songs_chat_history','final_saved_songs_chat_history',
                             'new_songs_chat_history','final_new_songs_chat_history',
                             'user_currently_revising_saved_songs_playlist',
-                            'user_currently_revising_new_songs_playlist'
+                            'user_currently_revising_new_songs_playlist',
+                            'analysis_context_window_exceeded',
+                            'saved_songs_context_window_exceeded',
+                            'new_songs_context_window_exceeded'
                         ]:
                             if k in pre_result:
                                 request.session[k] = pre_result[k]
@@ -2380,7 +2407,10 @@ def stream_chat_response(request, task_id):
                             'saved_songs_chat_history','final_saved_songs_chat_history',
                             'new_songs_chat_history','final_new_songs_chat_history',
                             'user_currently_revising_saved_songs_playlist',
-                            'user_currently_revising_new_songs_playlist'
+                            'user_currently_revising_new_songs_playlist',
+                            'analysis_context_window_exceeded',
+                            'saved_songs_context_window_exceeded',
+                            'new_songs_context_window_exceeded'
                         ]:
                             if k in result:
                                 request.session[k] = result[k]
