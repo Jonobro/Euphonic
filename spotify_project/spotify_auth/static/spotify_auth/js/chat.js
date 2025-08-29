@@ -687,6 +687,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const actions = window.createSecondaryActionsContainer("Revise Last Playlist", "Create New Playlist");
                                 messageElement.classList.add('long-convo-termination-options');
                                 messageElement.appendChild(actions);
+                                toggleChatInput(true);
+                                updateChatInputPlaceholder();
                             }
                             
                             if (lastDividerIndex !== -1 && index < lastDividerIndex) {
