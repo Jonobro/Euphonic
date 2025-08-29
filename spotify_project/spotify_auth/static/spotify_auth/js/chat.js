@@ -69,6 +69,14 @@ async function handleNewContextAction(userAction) {
             if (data.success && data.initial_response) {
                 const allMessages = messageList.querySelectorAll('.message');
                 allMessages.forEach(message => { message.classList.add('previous-conversation'); });
+
+                (function replaceTerminationMessage() {
+                    const terminationMessages = Array.from(messageList.querySelectorAll('.ai-message.long-convo-termination-options'));
+                    if (!terminationMessages.length) return;
+                    const last = terminationMessages[terminationMessages.length - 1];
+                    last.textContent = '~ New Conversation Started ~';
+                })();
+
                 const dividerElement = document.createElement('div');
                 dividerElement.className = 'conversation-divider';
                 messageList.appendChild(dividerElement);
@@ -133,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_TOKENS_ERROR = "Aria thought so hard she lost her train of thought. Please resend your message.";
     const HIGH_TRAFFIC_ERROR = "We are currently experiencing high traffic and were unable to process your message. Please try again in a bit.";
     const LONG_CONVO_MSG = "Sorry, but this conversation is getting too long. Select one of the following options to give me a clean slate.";
+    window.LONG_CONVO_MSG = LONG_CONVO_MSG;
 
     let suppressHistoryUpdate = false;
     let initialAnalysisEventSource = null;
@@ -776,14 +785,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             const sender = message.role === 'model' ? 'ai' : 'user';
                             const messageElement = addMessage(message.parts[0].text, sender, false, false);
                             
-                            if (sender === 'ai' &&
-                                message.parts[0].text === LONG_CONVO_MSG &&
-                                window.createSecondaryActionsContainer &&
-                                !messageElement.querySelector('.additional-buttons-container')) {
-                                const firstButtonLabel = hasPlaylistInHistory ? "Revise Last Playlist" : "";
-                                const actions = window.createSecondaryActionsContainer(firstButtonLabel, "Create New Playlist");
-                                messageElement.classList.add('long-convo-termination-options');
-                                messageElement.appendChild(actions);
+                            if (sender === 'ai' && message.parts[0].text === LONG_CONVO_MSG) {
+                                if (index < lastDividerIndex) {
+                                    messageElement.innerHTML = '';
+                                    messageElement.textContent = '~ New Conversation Started ~';
+                                } else if (window.createSecondaryActionsContainer && !messageElement.querySelector('.additional-buttons-container')) {
+                                    const firstButtonLabel = hasPlaylistInHistory ? "Revise Last Playlist" : "";
+                                    const actions = window.createSecondaryActionsContainer(firstButtonLabel, "Create New Playlist");
+                                    messageElement.classList.add('long-convo-termination-options');
+                                    messageElement.appendChild(actions);
+                                }
                             }
                             
                             if (lastDividerIndex !== -1 && index < lastDividerIndex) {
