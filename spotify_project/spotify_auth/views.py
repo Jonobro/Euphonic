@@ -2173,10 +2173,26 @@ def chat_message_api(request):
             'saved_songs': 'saved_songs_context_window_exceeded',
             'new_songs': 'new_songs_context_window_exceeded'
         }
+        
         flag_name = context_flag_map.get(chat_mode)
         if flag_name and request.session.get(flag_name):
+            long_convo_msg = "Sorry, but this conversation is getting too long. Select one of the following options to give me a clean slate."
+            try:
+                final_history_key_map = {
+                    'analysis': 'final_analysis_chat_history',
+                    'saved_songs': 'final_saved_songs_chat_history',
+                    'new_songs': 'final_new_songs_chat_history'
+                }
+                fh_key = final_history_key_map.get(chat_mode)
+                if fh_key:
+                    final_hist = request.session.get(fh_key, [])
+                    final_hist.append({'role': 'model', 'parts': [{'text': long_convo_msg}]})
+                    request.session[fh_key] = final_hist
+                    request.session.save()
+            except Exception as persist_err:
+                _log_to_file(GENERAL_LOG_FILE, f"Error persisting long convo message: {persist_err}")
             return JsonResponse({
-                'message': 'Sorry, but this conversation is getting too long. Select one of the following options to give me a clean slate.'
+                'message': long_convo_msg
             })
 
         task_id = str(uuid.uuid4())
