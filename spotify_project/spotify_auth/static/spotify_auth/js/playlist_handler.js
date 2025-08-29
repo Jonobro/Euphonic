@@ -81,18 +81,20 @@ async function handlePlaylistAction(userAction) {
     }
 }
 
-function createSecondaryActionsContainer() {
+function createSecondaryActionsContainer(reviseButtonText, createAnotherButtonText) {
     const secondaryActionsContainer = document.createElement('div');
     secondaryActionsContainer.className = 'additional-buttons-container';
 
+    const useCustomTexts = typeof reviseButtonText === 'string' && typeof createAnotherButtonText === 'string';
+
     const reviseButton = document.createElement('button');
     reviseButton.className = 'button secondary-playlist-button';
-    reviseButton.textContent = 'Revise Playlist';
+    reviseButton.textContent = useCustomTexts ? reviseButtonText : 'Revise Playlist';
     reviseButton.addEventListener('click', () => handlePlaylistAction('revise_playlist'));
 
     const createAnotherButton = document.createElement('button');
     createAnotherButton.className = 'button secondary-playlist-button';
-    createAnotherButton.textContent = 'New Playlist';
+    createAnotherButton.textContent = useCustomTexts ? createAnotherButtonText : 'New Playlist';
     createAnotherButton.addEventListener('click', () => handlePlaylistAction('create_another_playlist'));
 
     secondaryActionsContainer.appendChild(reviseButton);

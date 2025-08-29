@@ -1291,6 +1291,14 @@ I’ve talked too much – let’s get started! What can I do for you?"""
         final_history_list.append({'role': 'model', 'parts': [{'text': initial_response}]})
         request.session[final_history_key] = final_history_list
 
+        context_flag_map = {
+            'saved_songs': 'saved_songs_context_window_exceeded',
+            'new_songs': 'new_songs_context_window_exceeded'
+        }
+        flag_name = context_flag_map.get(chat_mode)
+        if flag_name:
+            request.session[flag_name] = False
+
         request.session.save()
         return JsonResponse({'success': True, 'initial_response': initial_response, 'chat_mode': chat_mode})
 
@@ -1506,7 +1514,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         }
         context_flag_name = context_window_flag_map.get(chat_mode)
         prompt_token_count = None
-        
+
         try:
             usage_md = getattr(response, "usage_metadata", None)
             if usage_md:
@@ -2159,6 +2167,17 @@ def chat_message_api(request):
             return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
         if chat_mode == 'analysis' and not request.session.get('analysis_chat_history'):
             return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
+
+        context_flag_map = {
+            'analysis': 'analysis_context_window_exceeded',
+            'saved_songs': 'saved_songs_context_window_exceeded',
+            'new_songs': 'new_songs_context_window_exceeded'
+        }
+        flag_name = context_flag_map.get(chat_mode)
+        if flag_name and request.session.get(flag_name):
+            return JsonResponse({
+                'message': 'Sorry, but this conversation is getting too long. Select one of the two options below to give me a clean slate.'
+            })
 
         task_id = str(uuid.uuid4())
         

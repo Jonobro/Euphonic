@@ -552,7 +552,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(err);
             }
 
-            const {task_id} = await res.json();
+            const LONG_CONVO_MSG = "Sorry, but this conversation is getting too long. Select one of the two options below to give me a clean slate.";
+            const data = await res.json();
+            if (data && data.message === LONG_CONVO_MSG) {
+                if (thinkingMsgElement) thinkingMsgElement.remove();
+                const aiMsgEl = addMessage(LONG_CONVO_MSG, 'ai', true, false);
+                if (aiMsgEl && window.createSecondaryActionsContainer) {
+                    const actions = window.createSecondaryActionsContainer("Revise Last Playlist", "Create a New Playlist");
+                    aiMsgEl.classList.add('long-convo-termination-options');
+                    aiMsgEl.appendChild(actions);
+                    toggleChatInput(true);
+                    updateChatInputPlaceholder();
+                }
+                return;
+            }
+
+            const {task_id} = data;
             listenForResponse(task_id, thinkingMsgElement, userMessageElement);
 
         } catch (e) {
