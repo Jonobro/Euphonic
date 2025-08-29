@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const MAX_TOKENS_ERROR = "Aria thought so hard she lost her train of thought. Please resend your message.";
     const HIGH_TRAFFIC_ERROR = "We are currently experiencing high traffic and were unable to process your message. Please try again in a bit.";
+    const LONG_CONVO_MSG = "Sorry, but this conversation is getting too long. Select one of the following options to give me a clean slate.";
 
     let suppressHistoryUpdate = false;
     let initialAnalysisEventSource = null;
@@ -552,7 +553,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(err);
             }
 
-            const LONG_CONVO_MSG = "Sorry, but this conversation is getting too long. Select one of the two options below to give me a clean slate.";
             const data = await res.json();
             if (data && data.message === LONG_CONVO_MSG) {
                 if (thinkingMsgElement) thinkingMsgElement.remove();
@@ -679,7 +679,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                             const sender = message.role === 'model' ? 'ai' : 'user';
                             const messageElement = addMessage(message.parts[0].text, sender, false, false);
-
+                            
+                            if (sender === 'ai' &&
+                                message.parts[0].text === LONG_CONVO_MSG &&
+                                window.createSecondaryActionsContainer &&
+                                !messageElement.querySelector('.additional-buttons-container')) {
+                                const actions = window.createSecondaryActionsContainer("Revise Last Playlist", "Create New Playlist");
+                                messageElement.classList.add('long-convo-termination-options');
+                                messageElement.appendChild(actions);
+                            }
+                            
                             if (lastDividerIndex !== -1 && index < lastDividerIndex) {
                                 messageElement.classList.add('previous-conversation');
                             }
