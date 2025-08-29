@@ -1291,13 +1291,14 @@ I’ve talked too much – let’s get started! What can I do for you?"""
         final_history_list.append({'role': 'model', 'parts': [{'text': initial_response}]})
         request.session[final_history_key] = final_history_list
 
-        context_flag_map = {
-            'saved_songs': 'saved_songs_context_window_exceeded',
-            'new_songs': 'new_songs_context_window_exceeded'
-        }
-        flag_name = context_flag_map.get(chat_mode)
-        if flag_name:
-            request.session[flag_name] = False
+        if chat_mode in ('saved_songs', 'new_songs'):
+            context_flag_map = {
+                'saved_songs': 'saved_songs_context_window_exceeded',
+                'new_songs': 'new_songs_context_window_exceeded'
+            }
+            flag_name = context_flag_map.get(chat_mode)
+            if flag_name:
+                request.session[flag_name] = False
 
         request.session.save()
         return JsonResponse({'success': True, 'initial_response': initial_response, 'chat_mode': chat_mode})
@@ -1507,23 +1508,24 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({EXPENSIVE_MODEL_NAME}) (Task {task_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
         
-        context_window_flag_map = {
-            'analysis': 'analysis_context_window_exceeded',
-            'saved_songs': 'saved_songs_context_window_exceeded',
-            'new_songs': 'new_songs_context_window_exceeded'
-        }
-        context_flag_name = context_window_flag_map.get(chat_mode)
+        context_window_exceeded = False
         prompt_token_count = None
-
-        try:
-            usage_md = getattr(response, "usage_metadata", None)
-            if usage_md:
-                prompt_token_count = getattr(usage_md, "prompt_token_count", None)
-        except Exception as e_tok:
-            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting prompt_token_count: {e_tok}")
-        context_window_exceeded = bool(prompt_token_count and prompt_token_count > 2000) # Revise this value back to 20000
-        if context_window_exceeded and context_flag_name:
-            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Context window exceeded (prompt_token_count={prompt_token_count})")
+        context_flag_name = None
+        if chat_mode in ('saved_songs', 'new_songs'):
+            context_window_flag_map = {
+                'saved_songs': 'saved_songs_context_window_exceeded',
+                'new_songs': 'new_songs_context_window_exceeded'
+            }
+            context_flag_name = context_window_flag_map.get(chat_mode)
+            try:
+                usage_md = getattr(response, "usage_metadata", None)
+                if usage_md:
+                    prompt_token_count = getattr(usage_md, "prompt_token_count", None)
+            except Exception as e_tok:
+                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting prompt_token_count: {e_tok}")
+            context_window_exceeded = bool(prompt_token_count and prompt_token_count > 2000) # Revise this value back to 20000
+            if context_window_exceeded and context_flag_name:
+                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Context window exceeded (prompt_token_count={prompt_token_count})")
 
         try:
             if (getattr(response, "candidates", None) and response.candidates and
@@ -1683,9 +1685,6 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 'final_analysis_chat_history': mock_request.session.get('final_analysis_chat_history', []),
                 'chat_mode': 'analysis'
             }
-
-            if context_window_exceeded and context_flag_name:
-                result[context_flag_name] = True
 
             cache.set(task_id, result, timeout=300)
             status = 'completed'
@@ -2169,17 +2168,15 @@ def chat_message_api(request):
             return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
 
         context_flag_map = {
-            'analysis': 'analysis_context_window_exceeded',
             'saved_songs': 'saved_songs_context_window_exceeded',
             'new_songs': 'new_songs_context_window_exceeded'
         }
         
         flag_name = context_flag_map.get(chat_mode)
-        if flag_name and request.session.get(flag_name):
+        if chat_mode in ('saved_songs', 'new_songs') and flag_name and request.session.get(flag_name):
             long_convo_msg = "Sorry, but this conversation is getting too long. Select one of the following options to give me a clean slate."
             try:
                 final_history_key_map = {
-                    'analysis': 'final_analysis_chat_history',
                     'saved_songs': 'final_saved_songs_chat_history',
                     'new_songs': 'final_new_songs_chat_history'
                 }
@@ -2378,7 +2375,6 @@ def stream_chat_response(request, task_id):
                             'new_songs_chat_history','final_new_songs_chat_history',
                             'user_currently_revising_saved_songs_playlist',
                             'user_currently_revising_new_songs_playlist',
-                            'analysis_context_window_exceeded',
                             'saved_songs_context_window_exceeded',
                             'new_songs_context_window_exceeded'
                         ]:
@@ -2444,7 +2440,6 @@ def stream_chat_response(request, task_id):
                             'new_songs_chat_history','final_new_songs_chat_history',
                             'user_currently_revising_saved_songs_playlist',
                             'user_currently_revising_new_songs_playlist',
-                            'analysis_context_window_exceeded',
                             'saved_songs_context_window_exceeded',
                             'new_songs_context_window_exceeded'
                         ]:
