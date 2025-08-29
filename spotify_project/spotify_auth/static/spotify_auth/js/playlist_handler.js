@@ -18,93 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return unique;
     }
 
-async function handlePlaylistAction(userAction) {
-    const chatMode = getChatMode();
-    const messageList = document.getElementById('message-list');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-
-    const allMessages = messageList.querySelectorAll('.message');
-    allMessages.forEach(message => {
-        const existingSecondary = message.querySelector('.additional-buttons-container');
-        if (existingSecondary) { existingSecondary.remove(); }
-    });
-
-    try {
-        const response = await fetch('/reset_chat_history_api/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-            },
-            body: JSON.stringify({ chat_mode: chatMode, user_action: userAction })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-
-            if (data.chat_mode && data.chat_mode !== getChatMode()) {
-                console.log(`Ignoring playlist action response for '${data.chat_mode}' mode as current mode is '${getChatMode()}'.`);
-                return;
-            }
-
-            if (data.success && data.initial_response) {
-                const allMessages = messageList.querySelectorAll('.message');
-                allMessages.forEach(message => { message.classList.add('previous-conversation'); });
-                const dividerElement = document.createElement('div');
-                dividerElement.className = 'conversation-divider';
-                messageList.appendChild(dividerElement);
-
-                try {
-                    if (window.appendDividerToHistory) {
-                        window.appendDividerToHistory();
-                    }
-                } catch (e) {
-                    console.error('Error persisting divider to chat history:', e);
-                }
-
-                window.toggleChatInput?.(false);
-                window.updateChatInputPlaceholder?.();
-
-                if (window.addMessageAndScroll) {
-                    window.addMessageAndScroll(data.initial_response, 'ai');
-                }
-            }
-        } else {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to reset chat.');
-        }
-    } catch (error) {
-        console.error('Error resetting chat:', error);
-        alert("Sorry, something went wrong. Please try again.");
-        window.toggleChatInput?.(false);
-        window.updateChatInputPlaceholder?.();
-    }
-}
-
-function createSecondaryActionsContainer(reviseButtonText, createAnotherButtonText) {
-    const secondaryActionsContainer = document.createElement('div');
-    secondaryActionsContainer.className = 'additional-buttons-container';
-
-    const useCustomTexts = typeof reviseButtonText === 'string' && typeof createAnotherButtonText === 'string';
-
-    const reviseButton = document.createElement('button');
-    reviseButton.className = 'button secondary-playlist-button';
-    reviseButton.textContent = useCustomTexts ? reviseButtonText : 'Revise Playlist';
-    reviseButton.addEventListener('click', () => handlePlaylistAction('revise_playlist'));
-
-    const createAnotherButton = document.createElement('button');
-    createAnotherButton.className = 'button secondary-playlist-button';
-    createAnotherButton.textContent = useCustomTexts ? createAnotherButtonText : 'New Playlist';
-    createAnotherButton.addEventListener('click', () => handlePlaylistAction('create_another_playlist'));
-
-    secondaryActionsContainer.appendChild(reviseButton);
-    secondaryActionsContainer.appendChild(createAnotherButton);
-
-    return secondaryActionsContainer;
-}
-
-window.createSecondaryActionsContainer = createSecondaryActionsContainer;
-
 function processMessageForPlaylist(messageElement) {
     if (messageElement.dataset.playlistProcessed === '1') {
         return;
@@ -162,7 +75,7 @@ function processMessageForPlaylist(messageElement) {
                 const playlistActionsContainer = document.createElement('div');
                 playlistActionsContainer.className = 'save-playlist-container';
                 
-                const secondaryActionsContainer = createSecondaryActionsContainer();
+                const secondaryActionsContainer = window.createSecondaryActionsContainer();
 
                 const messageContainer = document.createElement('div');
                 messageContainer.className = 'message-container';
@@ -239,7 +152,7 @@ function processMessageForPlaylist(messageElement) {
             playlistActionsContainer.appendChild(openButtonWrapper);
 
             if (!isBeforeLastDivider) {
-                const secondaryActionsContainer = createSecondaryActionsContainer();
+                const secondaryActionsContainer = window.createSecondaryActionsContainer();
                 playlistActionsContainer.appendChild(secondaryActionsContainer);
             }
 
