@@ -2176,7 +2176,7 @@ def chat_message_api(request):
         flag_name = context_flag_map.get(chat_mode)
         if flag_name and request.session.get(flag_name):
             return JsonResponse({
-                'message': 'Sorry, but this conversation is getting too long. Select one of the two options below to give me a clean slate.'
+                'message': 'Sorry, but this conversation is getting too long. Select one of the following options to give me a clean slate.'
             })
 
         task_id = str(uuid.uuid4())

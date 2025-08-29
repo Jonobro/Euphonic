@@ -414,7 +414,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     flex-direction: column;
     align-items: center;
     margin-top: 10px;
-    transform: translateX(-3px); /* Adding this slight shift because the Spotify logo creates an optical illusion of misalignment */
+    transform: translateX(-1px); /* Adding this slight shift because the Spotify logo creates an optical illusion of misalignment */
 }
 
 .message-container {
