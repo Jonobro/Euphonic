@@ -103,6 +103,8 @@ function createSecondaryActionsContainer(reviseButtonText, createAnotherButtonTe
     return secondaryActionsContainer;
 }
 
+window.createSecondaryActionsContainer = createSecondaryActionsContainer;
+
 function processMessageForPlaylist(messageElement) {
     if (!messageElement.classList.contains('ai-message')) {
         return;
