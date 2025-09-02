@@ -89,10 +89,7 @@ async function handleNewContextAction(userAction) {
                 } catch (e) {
                     console.error('Error persisting divider to chat history:', e);
                 }
-
                 window.toggleChatInput?.(false);
-                window.updateChatInputPlaceholder?.();
-
                 if (window.addMessageAndScroll) {
                     window.addMessageAndScroll(data.initial_response, 'ai');
                 }
@@ -105,7 +102,6 @@ async function handleNewContextAction(userAction) {
         console.error('Error resetting chat:', error);
         alert("Sorry, something went wrong. Please try again.");
         window.toggleChatInput?.(false);
-        window.updateChatInputPlaceholder?.();
     }
 }
 window.handleNewContextAction = handleNewContextAction;
@@ -697,7 +693,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     aiMsgEl.classList.add('long-convo-termination-options');
                     aiMsgEl.appendChild(actions);
                     toggleChatInput(true);
-                    updateChatInputPlaceholder();
                 }
                 return;
             }
@@ -706,7 +701,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (thinkingMsgElement) thinkingMsgElement.remove();
                 addMessage(LONG_CONVO_DISPLAY_MSG, 'ai', true, false);
                 toggleChatInput(true, { persist: true });
-                updateChatInputPlaceholder();
                 return;
             }
 
@@ -888,7 +882,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (hasTerminationMessage || isModePersistentlyDisabled(mode)) {
                         toggleChatInput(true);
-                        updateChatInputPlaceholder();
                     } else {
                         toggleChatInput(false);
                         userInput.focus();
