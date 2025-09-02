@@ -143,6 +143,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const HIGH_TRAFFIC_ERROR = "We are currently experiencing high traffic and were unable to process your message. Please try again in a bit.";
     const LONG_CONVO_MSG = "Sorry, but this conversation is getting too long. Select one of the following options to give me a clean slate.";
     window.LONG_CONVO_MSG = LONG_CONVO_MSG;
+    const LONG_CONVO_DISPLAY_MSG = 'This conversation is dragging on for too long. Save your playlists and press the "Reset" button to give me a clean slate.';
+    window.LONG_CONVO_DISPLAY_MSG = LONG_CONVO_DISPLAY_MSG;
 
     let suppressHistoryUpdate = false;
     let initialAnalysisEventSource = null;
@@ -664,6 +666,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     toggleChatInput(true);
                     updateChatInputPlaceholder();
                 }
+                return;
+            }
+
+            if (data && data.message === LONG_CONVO_DISPLAY_MSG) {
+                if (thinkingMsgElement) thinkingMsgElement.remove();
+                addMessage(LONG_CONVO_DISPLAY_MSG, 'ai', true, false);
+                toggleChatInput(true);
+                updateChatInputPlaceholder();
                 return;
             }
 

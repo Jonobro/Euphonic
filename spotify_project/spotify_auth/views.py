@@ -439,6 +439,7 @@ SAFETY_SETTINGS = [
 SPOTIFY_ID = settings.SPOTIFY_ID
 MAX_TOKENS_ERROR_MESSAGE = "Aria thought so hard she lost her train of thought. Please resend your message."
 HIGH_TRAFFIC_ERROR_MESSAGE = "We are currently experiencing high traffic and were unable to process your message. Please try again in a bit."
+LENGTH_TERMINATION_MSG = 'This conversation is dragging on for too long. Save your playlists and press the "Reset" button to give me a clean slate.'
 
 def _log_to_file(log_file_path, message):
     try:
@@ -1507,7 +1508,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             raise
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({EXPENSIVE_MODEL_NAME}) (Task {task_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
-        
+
         context_window_exceeded = False
         prompt_token_count = None
         context_flag_name = None
@@ -2166,6 +2167,44 @@ def chat_message_api(request):
             return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
         if chat_mode == 'analysis' and not request.session.get('analysis_chat_history'):
             return JsonResponse({'error': 'Chat history not found. Please initialize chat first.'}, status=400)
+        
+        if request.session.get('max_display_history_reached'):
+            return JsonResponse({'message': LENGTH_TERMINATION_MSG})
+
+        display_length_thresholds = {
+            'saved_songs': 100000,
+            'new_songs': 100000,
+            'analysis': 20000
+        }
+        final_history_key_map_display = {
+            'saved_songs': 'final_saved_songs_chat_history',
+            'new_songs': 'final_new_songs_chat_history',
+            'analysis': 'final_analysis_chat_history'
+        }
+        length_limit = display_length_thresholds.get(chat_mode)
+        fh_key_display = final_history_key_map_display.get(chat_mode)
+        if length_limit and fh_key_display:
+            final_hist = request.session.get(fh_key_display, [])
+            total_chars = 0
+            for entry in final_hist:
+                parts = entry.get('parts') or []
+                for p in parts:
+                    txt = p.get('text')
+                    if isinstance(txt, str):
+                        total_chars += len(txt)
+            
+            if total_chars > length_limit:
+                length_termination_msg = LENGTH_TERMINATION_MSG
+                try:
+                    final_hist.append({'role': 'user', 'parts': [{'text': user_message}]})
+                    final_hist.append({'role': 'model', 'parts': [{'text': length_termination_msg}]})
+                    request.session[fh_key_display] = final_hist
+                    request.session['max_display_history_reached'] = True
+                    request.session.save()
+                except Exception as persist_len_err:
+                    _log_to_file(GENERAL_LOG_FILE, f"Error persisting length termination message: {persist_len_err}")
+                return JsonResponse({'message': length_termination_msg})
+
 
         context_flag_map = {
             'saved_songs': 'saved_songs_context_window_exceeded',
