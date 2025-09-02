@@ -439,7 +439,7 @@ SAFETY_SETTINGS = [
 SPOTIFY_ID = settings.SPOTIFY_ID
 MAX_TOKENS_ERROR_MESSAGE = "Aria thought so hard she lost her train of thought. Please resend your message."
 HIGH_TRAFFIC_ERROR_MESSAGE = "We are currently experiencing high traffic and were unable to process your message. Please try again in a bit."
-LENGTH_TERMINATION_MSG = 'This conversation is dragging on for too long. Save your playlists and press the "Reset" button to give me a clean slate.'
+LENGTH_TERMINATION_MSG = 'This conversation is dragging on for too long. Save your playlists and then click the three dots (...) and select "Reset" to give me a clean slate.'
 
 def _log_to_file(log_file_path, message):
     try:

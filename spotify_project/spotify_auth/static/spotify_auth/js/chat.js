@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const HIGH_TRAFFIC_ERROR = "We are currently experiencing high traffic and were unable to process your message. Please try again in a bit.";
     const LONG_CONVO_MSG = "Sorry, but this conversation is getting too long. Select one of the following options to give me a clean slate.";
     window.LONG_CONVO_MSG = LONG_CONVO_MSG;
-    const LONG_CONVO_DISPLAY_MSG = 'This conversation is dragging on for too long. Save your playlists and press the "Reset" button to give me a clean slate.';
+    const LONG_CONVO_DISPLAY_MSG = 'This conversation is dragging on for too long. Save your playlists and then click the three dots (...) and select "Reset" to give me a clean slate.';
     window.LONG_CONVO_DISPLAY_MSG = LONG_CONVO_DISPLAY_MSG;
 
     let suppressHistoryUpdate = false;
@@ -152,6 +152,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let analysisLoadingIndicator = null;
     let analysisLoadingInterval = null;
+
+    const DISABLED_STATE_KEY = 'chatInputDisabledModes';
+
+    function loadDisabledState() {
+        try { return JSON.parse(localStorage.getItem(DISABLED_STATE_KEY)) || {}; }
+        catch { return {}; }
+    }
+
+    function saveDisabledState(map) {
+        try { localStorage.setItem(DISABLED_STATE_KEY, JSON.stringify(map)); } catch {}
+    }
+    
+    function setModeDisabledPersist(mode, disabled) {
+        const map = loadDisabledState();
+        if (disabled) {
+            map[mode] = true;
+        } else {
+            delete map[mode];
+        }
+        saveDisabledState(map);
+    }
+
+    function isModePersistentlyDisabled(mode) {
+        const map = loadDisabledState();
+        return !!map[mode];
+    }
 
     function showAriaIntroSplash(done) {
         const introText1 = "Hey, I’m Aria.";
@@ -261,7 +287,10 @@ document.addEventListener('DOMContentLoaded', () => {
     userInput.addEventListener('input', updateSendButtonCursor);
     updateSendButtonCursor();
 
-    function toggleChatInput(disable) {
+    function toggleChatInput(disable, opts = {}) {
+        const { persist = false } = opts;
+        const mode = (() => { try { return getChatMode(); } catch { return null; } })();
+
         if (userInput) {
             userInput.disabled = disable;
             updateChatInputPlaceholder();
@@ -275,6 +304,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         updateSendButtonCursor();
+
+        if (persist && mode) {
+            setModeDisabledPersist(mode, disable);
+        }
     }
     window.toggleChatInput = toggleChatInput;
     window.updateChatInputPlaceholder = updateChatInputPlaceholder;
@@ -672,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data && data.message === LONG_CONVO_DISPLAY_MSG) {
                 if (thinkingMsgElement) thinkingMsgElement.remove();
                 addMessage(LONG_CONVO_DISPLAY_MSG, 'ai', true, false);
-                toggleChatInput(true);
+                toggleChatInput(true, { persist: true });
                 updateChatInputPlaceholder();
                 return;
             }
@@ -853,7 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const hasTerminationMessage = !!messageList.querySelector('.long-convo-termination-options');
 
-                    if (hasTerminationMessage) {
+                    if (hasTerminationMessage || isModePersistentlyDisabled(mode)) {
                         toggleChatInput(true);
                         updateChatInputPlaceholder();
                     } else {
