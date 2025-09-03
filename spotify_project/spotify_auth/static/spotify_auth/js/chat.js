@@ -711,7 +711,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (e) {
             if (thinkingMsgElement) thinkingMsgElement.remove();
-            addEphemeralMessage(`Sorry, something went wrong. Please try again.`, 'ai');
+            const errMsg = (e && (e.message || (typeof e === 'string' ? e : ''))) || '';
+            if (errMsg.includes(HIGH_TRAFFIC_ERROR)) {
+                addEphemeralMessage(HIGH_TRAFFIC_ERROR, 'ai');
+            } else {
+                addEphemeralMessage(`Sorry, something went wrong. Please try again.`, 'ai');
+            }
             console.error('Chat send error:', e);
             toggleChatInput(false);
             userInput.focus();
