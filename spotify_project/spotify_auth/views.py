@@ -53,7 +53,8 @@ RATE_LIMITS = {
         ('ip', 100, 86400, 86400),
         ('session', 100, 86400, 86400),
         # Global cap across all users. 2000 messages allowed globally per 24 hours.
-        ('global', 2000, 86400, None),
+        # ('global', 2000, 86400, None),
+        ('global', 20, 86400, None),
     ],
     'playlist_validate': [
         # 24 playlists allowed to be validated per IP/session per minute with a 3-minute block if max is exceeded
