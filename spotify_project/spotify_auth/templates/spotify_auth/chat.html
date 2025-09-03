@@ -129,6 +129,7 @@
     </div>
     
     {{chat_history|json_script:"chat-history-data"}}
+    {{clear_storage|json_script:"clear-storage-data"}}
 
     <script src="{% static 'spotify_auth/js/chat.js' %}"></script>
     <script src="{% static 'spotify_auth/js/playlist_handler.js' %}"></script>

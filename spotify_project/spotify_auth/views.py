@@ -331,6 +331,9 @@ def get_gemini_client():
 def index(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     _ensure_euphonic_intelligence_user_id(request)
+    if request.GET.get('clear_storage') == 'true':
+        chat_url = f"{reverse('chat')}?clear_storage=true"
+        return redirect(chat_url)
     return redirect(reverse('chat'))
 
 @csrf_protect
@@ -340,6 +343,8 @@ def chat_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     _ensure_euphonic_intelligence_user_id(request)
 
+    clear_storage = request.GET.get('clear_storage') == 'true'
+
     final_new_songs_chat_history = request.session.get('final_new_songs_chat_history', [])
     final_saved_songs_chat_history = request.session.get('final_saved_songs_chat_history', [])
     final_analysis_chat_history = request.session.get('final_analysis_chat_history', [])
@@ -347,7 +352,8 @@ def chat_view(request):
     final_chat_history = [final_new_songs_chat_history, final_saved_songs_chat_history, final_analysis_chat_history]
 
     return render(request, 'spotify_auth/chat.html', {
-        'chat_history': final_chat_history
+        'chat_history': final_chat_history,
+        'clear_storage': clear_storage
     })
 
 def reset_view(request):
@@ -365,7 +371,8 @@ def reset_view(request):
         cache.delete_many(keys_to_delete)
         _log_to_file(GENERAL_LOG_FILE, f"Cleared cache for user {user_id}")
     request.session.flush()
-    return redirect(reverse('index'))
+    reset_url = f"{reverse('index')}?clear_storage=true"
+    return redirect(reset_url)
 
 def _generate_musical_analysis(session_data):
     def _publish(status):

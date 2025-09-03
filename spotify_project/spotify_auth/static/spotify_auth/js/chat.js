@@ -142,6 +142,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const LONG_CONVO_DISPLAY_MSG = 'This conversation is dragging on for too long. Save your playlists and then click the three dots (...) and select "Reset" to give me a clean slate.';
     window.LONG_CONVO_DISPLAY_MSG = LONG_CONVO_DISPLAY_MSG;
 
+    const clearStorageDataElement = document.getElementById('clear-storage-data');
+        if (clearStorageDataElement) {
+            const shouldClearStorage = JSON.parse(clearStorageDataElement.textContent);
+            if (shouldClearStorage) {
+                try {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    console.log("Browser storage cleared during reset.");
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) {
+                    console.error("Failed to clear browser storage:", e);
+                }
+            }
+        }
+
     let suppressHistoryUpdate = false;
     let initialAnalysisEventSource = null;
     let modeSwitchCooldown = false;
