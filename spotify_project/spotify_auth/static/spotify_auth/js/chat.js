@@ -421,16 +421,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 contentDiv.textContent = text;
             }
 
+            let transitionFired = false;
             const handleTransitionEnd = (e) => {
                 if (e.target === contentDiv &&
                     e.propertyName === 'opacity' &&
                     contentDiv.classList.contains('focused')) {
+                    transitionFired = true;
                     toggleChatInput(false);
                     userInput?.focus();
                     contentDiv.removeEventListener('transitionend', handleTransitionEnd);
                 }
             };
             contentDiv.addEventListener('transitionend', handleTransitionEnd);
+
+            setTimeout(() => {
+                if (!transitionFired && contentDiv.classList.contains('focused') && userInput && userInput.disabled) {
+                    toggleChatInput(false);
+                    userInput.focus();
+                }
+            }, 1500);
         } else {
             if (window.marked && window.DOMPurify) {
                 try {
