@@ -52,6 +52,8 @@ RATE_LIMITS = {
         # 100 messages allowed per IP/session per 24 hours with a 24-hour block if max is exceeded
         ('ip', 100, 86400, 86400),
         ('session', 100, 86400, 86400),
+        # Global cap across all users. 2000 messages allowed globally per 24 hours.
+        ('global', 2000, 86400, None),
     ],
     'playlist_validate': [
         # 24 playlists allowed to be validated per IP/session per minute with a 3-minute block if max is exceeded
@@ -172,10 +174,6 @@ def _sse_same_origin_ok(request):
             pass
     return False
 
-
-def _rl_now():
-    return int(time.time())
-
 def _rl_keys(request, scope, key_type):
     ip = (request.META.get('HTTP_CF_CONNECTING_IP')
           or request.META.get('HTTP_X_REAL_IP')
@@ -185,6 +183,7 @@ def _rl_keys(request, scope, key_type):
     base_map = {
         'ip': ip,
         'session': session_key,
+        'global': 'global'
     }
     ident = base_map[key_type]
     return f"rl:{scope}:{key_type}:{ident}", f"rlblk:{scope}:{key_type}:{ident}"
@@ -223,19 +222,34 @@ def rate_limit_scope(scope):
         def wrapper(request, *args, **kwargs):
             for key_type, limit, window, block in rules:
                 counter_key, block_key = _rl_keys(request, scope, key_type)
-                if REDIS_CLIENT.get(block_key):
-                    return JsonResponse(
-                        {'error': 'Rate limit exceeded. Please try again later.'},
-                        status=429
-                    )
+                try:
+                    if REDIS_CLIENT.get(block_key):
+                        msg = (HIGH_TRAFFIC_ERROR_MESSAGE
+                               if key_type == 'global'
+                               else 'Rate limit exceeded. Please try again later.')
+                        return JsonResponse({'error': msg}, status=429)
+                except Exception:
+                    pass
                 count = _incr_with_expire(REDIS_CLIENT, counter_key, window)
                 if count > limit:
-                    REDIS_CLIENT.set(block_key, 1, ex=block)
+                    try:
+                        block_duration = block
+                        if block_duration is None:
+                            try:
+                                ttl = REDIS_CLIENT.ttl(counter_key)
+                            except Exception:
+                                ttl = -1
+                            if ttl is None or ttl < 0:
+                                ttl = window
+                            block_duration = ttl
+                        REDIS_CLIENT.set(block_key, 1, ex=block_duration)
+                    except Exception:
+                        pass
                     _log_to_file(GENERAL_LOG_FILE,f"Rate limit exceeded ({scope}:{key_type}) key={counter_key} count={count} limit={limit}")
-                    return JsonResponse(
-                        {'error': 'Rate limit exceeded. Please try again later.'},
-                        status=429
-                    )
+                    msg = (HIGH_TRAFFIC_ERROR_MESSAGE
+                           if key_type == 'global'
+                           else 'Rate limit exceeded. Please try again later.')
+                    return JsonResponse({'error': msg}, status=429)
             return view_func(request, *args, **kwargs)
         return wrapper
     return decorator
