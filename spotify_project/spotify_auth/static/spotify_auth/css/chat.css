@@ -1259,6 +1259,10 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     overflow: visible;
 }
 
+body.aria-intro-active .segmented-control {
+    pointer-events: none;
+}
+
 .segmented-control.is-animating .segment-button.active,
 .segmented-control.is-animating .segment-button.was-active {
     border-color: transparent;
@@ -1345,6 +1349,10 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 .hamburger-button:hover {
     background-color: #232323;
+}
+
+body.aria-intro-active .hamburger-menu-container {
+    pointer-events: none;
 }
 
 .hamburger-icon {

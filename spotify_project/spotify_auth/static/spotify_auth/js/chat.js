@@ -183,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         sessionStorage.setItem('ariaIntroShown', '1');
+        document.body.classList.add('aria-intro-active');
 
         const splashContainer = document.createElement('div');
         splashContainer.className = 'aria-intro-splash';
@@ -229,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideText(text2, 0);
                 setTimeout(() => {
                     splashContainer.remove();
+                    document.body.classList.remove('aria-intro-active');
                     done && done();
                 }, 850);
             }, step1 + step3);
