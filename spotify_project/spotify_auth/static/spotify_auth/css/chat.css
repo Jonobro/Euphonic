@@ -1226,12 +1226,10 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 }
 
 .import-help-icon {
-    height: 16px;
+    height: 100%;
+    width: 100%;
     display: inline-block;
-    margin: 0 0 2.25px 5px;
-    vertical-align: middle;
-	cursor: pointer;
-	opacity: 0.9;
+    opacity: 0.9;
 }
 
 .import-help-icon circle {
@@ -1248,6 +1246,21 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 .import-help-icon:hover text {
     fill: white;
+}
+
+.import-help-button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    margin: 0 0 2.25px 5px;
+    cursor: pointer;
+}
+
+.import-help-panel {
+	font-size: 0.825rem;
 }
 
 .playlist-limit-message {
