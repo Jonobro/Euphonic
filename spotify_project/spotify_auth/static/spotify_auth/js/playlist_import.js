@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             playlistStates[playlistIndex] = { id, status, name, url, trackCount, playlistId, justSucceeded };
             renderPlaylistInputs();
             updateImportButton();
+            updateModalInteractivity();
         }
     }
 
@@ -245,6 +246,28 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.remove('import-playlist-button--active');
             btn.textContent = '';
         }
+    }
+
+    function updateModalInteractivity() {
+        const anyLoading = playlistStates.some(p => p.status === 'loading');
+        const closeEl = document.querySelector('#importModal .close-modal');
+        const cancelEl = document.querySelector('#importModal .import-cancel-button');
+        const importBtn = document.getElementById('importPlaylistsBtn');
+
+        [closeEl, cancelEl, importBtn].forEach(el => {
+            if (!el) return;
+            if (anyLoading) {
+                if (el.dataset.prevPointerEvents === undefined) {
+                    el.dataset.prevPointerEvents = el.style.pointerEvents;
+                }
+                el.style.pointerEvents = 'none';
+            } else if (el.dataset.prevPointerEvents !== undefined) {
+                el.style.pointerEvents = el.dataset.prevPointerEvents;
+                delete el.dataset.prevPointerEvents;
+            } else {
+                el.style.pointerEvents = '';
+            }
+        });
     }
 
     function triggerBurstAnimation(targetContainer) {
@@ -421,6 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
         visibleCount = 3;
         renderPlaylistInputs();
         updateImportButton();
+        updateModalInteractivity();
         
         const importBtn = document.getElementById('importPlaylistsBtn');
         if (importBtn) {
