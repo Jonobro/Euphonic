@@ -1222,7 +1222,32 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .modal-body p.import-instructions {
     font-size: 0.825rem;
     margin-bottom: 15px;
-    max-width: 73%;
+    max-width: 77%;
+}
+
+.import-help-icon {
+    height: 16px;
+    display: inline-block;
+    margin: 0 0 2.25px 5px;
+    vertical-align: middle;
+	cursor: pointer;
+	opacity: 0.9;
+}
+
+.import-help-icon circle {
+    stroke: #e0e0e0;
+}
+
+.import-help-icon text {
+    fill: #e0e0e0;
+}
+
+.import-help-icon:hover circle {
+    stroke: white;
+}
+
+.import-help-icon:hover text {
+    fill: white;
 }
 
 .playlist-limit-message {
