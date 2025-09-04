@@ -630,10 +630,10 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     border-radius: 10px;
     width: 90%;
     max-width: 600px;
-    max-height: 80vh;
+    max-height: 84vh;
     overflow-y: auto;
     position: fixed;
-    top: 7%;
+    top: 6%;
     left: 50%;
     transform: translateX(-50%);
 }
@@ -1222,7 +1222,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .modal-body p.import-instructions {
     font-size: 0.825rem;
     margin-bottom: 15px;
-    max-width: 77%;
+    max-width: 79%;
 }
 
 .import-help-icon {
