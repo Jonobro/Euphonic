@@ -19,6 +19,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Flag to prevent multiple validations
     const validating = {};
 
+    (function() {
+        const helpBtn = document.getElementById('importHelpBtn');
+        const panel = document.getElementById('importHelpPanel');
+        if (!helpBtn || !panel) return;
+        helpBtn.addEventListener('click', () => {
+            panel.hidden = !panel.hidden;
+        });
+    })();
+
     function parseSpotifyUrl(url) {
         const baseUrlPattern = /https:\/\/open\.spotify\.com\/playlist\/([a-zA-Z0-9]{22})/;
         const ptPattern = /pt=([a-zA-Z0-9]{32})/;
