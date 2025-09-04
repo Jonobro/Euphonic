@@ -55,6 +55,9 @@ function openImportModal(switchToModeOnCompletion) {
 
 function closeImportModal() {
     document.getElementById('importModal').style.display = 'none';
+    if (window.playlistImport && typeof window.playlistImport.resetPlaylistData === 'function') {
+        window.playlistImport.resetPlaylistData();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

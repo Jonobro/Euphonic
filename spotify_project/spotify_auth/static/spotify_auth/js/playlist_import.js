@@ -149,7 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleImportAll() {
         if (isImporting) return;
-        
         const validPlaylists = playlistStates.filter(p => p.status === 'success');
         if (validPlaylists.length === 0) return;
 
@@ -214,18 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleCancel() {
-        playlistStates = playlistStates.map(playlist => ({ 
-            ...playlist, 
-            status: 'idle', 
-            name: '', 
-            url: '', 
-            trackCount: 0,
-            playlistId: ''
-        }));
-        isImporting = false;
-        visibleCount = 3;
-        renderPlaylistInputs();
-        updateImportButton();
+        resetPlaylistData();
     }
 
     function getValidPlaylistCount() {
@@ -255,6 +243,23 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.remove('import-playlist-button--active');
             btn.textContent = '';
         }
+    }
+    
+    function resetPlaylistData() {
+        playlistStates = playlistStates.map(p => ({
+            id: p.id,
+            url: '',
+            name: '',
+            status: 'idle',
+            trackCount: 0,
+            playlistId: '',
+            justSucceeded: false
+        }));
+        isImporting = false;
+        visibleCount = 3;
+        renderPlaylistInputs();
+        updateImportButton();
+        updateModalInteractivity();
     }
 
     function updateModalInteractivity() {
@@ -467,7 +472,8 @@ document.addEventListener('DOMContentLoaded', () => {
         handleRemovePlaylist,
         handleAddPlaylist,
         handleCancel,
-        initialize
+        initialize,
+        resetPlaylistData
     };
 
     let isModalOpen = false;
@@ -487,17 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         setTimeout(initialize, 100);
                     } else if (importModal.style.display !== 'block' && isModalOpen) {
                         isModalOpen = false;
-                        playlistStates = playlistStates.map(playlist => ({ 
-                            ...playlist, 
-                            status: 'idle', 
-                            name: '', 
-                            url: '', 
-                            trackCount: 0,
-                            playlistId: '',
-                            justSucceeded: false
-                        }));
-                        isImporting = false;
-                        visibleCount = 3;
+                        resetPlaylistData();
                     }
                 }
             }
@@ -508,4 +504,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (importModal) {
         observer.observe(importModal, { attributes: true });
     }
+
+    window.addEventListener('beforeunload', () => {
+        resetPlaylistData();
+    });
 });
