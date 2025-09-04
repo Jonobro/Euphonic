@@ -57,6 +57,48 @@ function closeImportModal() {
     document.getElementById('importModal').style.display = 'none';
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    const importMusicLink = document.getElementById('import-music-link');
+    if (importMusicLink) {
+        importMusicLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            openImportModal();
+        });
+    }
+
+    const eulaLink = document.getElementById('eula-link');
+    if (eulaLink) {
+        eulaLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            openModal('eula');
+        });
+    }
+
+    const privacyLink = document.getElementById('privacy-link');
+    if (privacyLink) {
+        privacyLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            openModal('privacy');
+        });
+    }
+
+    const legalModalClose = document.getElementById('legal-modal-close');
+    if (legalModalClose) {
+        legalModalClose.addEventListener('click', closeModal);
+    }
+
+    const importModalClose = document.getElementById('import-modal-close');
+    if (importModalClose) {
+        importModalClose.addEventListener('click', closeImportModal);
+    }
+
+    const importCancelBtn = document.getElementById('import-cancel-btn');
+    if (importCancelBtn) {
+        importCancelBtn.addEventListener('click', closeImportModal);
+    }
+});
+
+
 window.onclick = function(event) {
     const modal = document.getElementById('legalModal');
     const importModal = document.getElementById('importModal');

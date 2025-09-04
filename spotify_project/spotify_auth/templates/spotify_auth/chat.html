@@ -52,7 +52,7 @@
                         </button>
                         <div id="hamburger-dropdown" class="dropdown-panel">
                             <div id="importMenuGroup">
-                                <a href="#" class="dropdown-link" onclick="openImportModal(); return false;">
+                                <a href="#" id="import-music-link" class="dropdown-link">
                                     <span class="dropdown-link-text">Import My Music</span>
                                     <span class="dropdown-tooltip">Import your Spotify music collection to create personalized playlists and gain insights into your music</span>
                                 </a>
@@ -81,9 +81,9 @@
     
     <div class="spotify-footer">
         <div class="legal-links">
-            <a href="#" onclick="openModal('eula')">EULA</a>
+            <a href="#" id="eula-link">EULA</a>
             <span>|</span>
-            <a href="#" onclick="openModal('privacy')">Privacy Policy</a>
+            <a href="#" id="privacy-link">Privacy Policy</a>
             <span>|</span>
             <a href="https://buymeacoffee.com/euphonicintelligence" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a>
             <span>|</span>
@@ -99,7 +99,7 @@
         <div class="legal-modal-content">
             <div class="modal-header">
                 <h2 id="modalTitle">Legal Document</h2>
-                <span class="close-modal" onclick="closeModal()">&times;</span>
+                <span id="legal-modal-close" class="close-modal">&times;</span>
             </div>
             <div class="modal-body" id="modalBody">
             </div>
@@ -110,7 +110,7 @@
         <div class="import-modal-content">
             <div class="modal-header">
                 <h2>Import Your Spotify Playlists</h2>
-                <span class="close-modal" onclick="closeImportModal()">&times;</span>
+                <span id="import-modal-close" class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
                 <p class="import-instructions">
@@ -149,7 +149,7 @@
                 
                 <div class="import-buttons">
                     <button type="button" class="button secondary-button import-playlist-button" id="importPlaylistsBtn" disabled>Import Playlists</button>
-                    <button type="button" class="button secondary-button import-cancel-button" onclick="closeImportModal()">Cancel</button>
+                    <button type="button" id="import-cancel-btn" class="button secondary-button import-cancel-button">Cancel</button>
                 </div>
             </div>
         </div>
@@ -168,6 +168,6 @@
     <script src="{% static 'spotify_auth/js/chat.js' %}"></script>
     <script src="{% static 'spotify_auth/js/playlist_handler.js' %}"></script>
     <script src="{% static 'spotify_auth/js/playlist_import.js' %}"></script>
-    <script src="{% static 'spotify_auth/js/ui_modals.js' %}"></script>
+    <script src="{% static 'spotify_auth/js/misc_ui.js' %}"></script>
 </body>
 </html>
