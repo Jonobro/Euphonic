@@ -141,6 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.LONG_CONVO_MSG = LONG_CONVO_MSG;
     const LONG_CONVO_DISPLAY_MSG = 'This conversation is dragging on for too long. Save your playlists and then click the three dots (...) and select "Reset" to give me a clean slate.';
     window.LONG_CONVO_DISPLAY_MSG = LONG_CONVO_DISPLAY_MSG;
+    const EMPTY_PLAYLIST_ERROR = "Uh oh – I wasn't able to find any tracks that I felt sufficiently matched your criteria. Please revise your prompt and try again.";
+    window.EMPTY_PLAYLIST_ERROR = EMPTY_PLAYLIST_ERROR;
 
     const clearStorageDataElement = document.getElementById('clear-storage-data');
         if (clearStorageDataElement) {
@@ -639,7 +641,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const fallback = `Sorry, I had a problem with your request. Please resend your message.`;
             removeLastUserMessageFromHistory();
-            if (serverMsg === MAX_TOKENS_ERROR || serverMsg === HIGH_TRAFFIC_ERROR) {
+            const KNOWN_ERROR_MESSAGES = [MAX_TOKENS_ERROR, HIGH_TRAFFIC_ERROR, EMPTY_PLAYLIST_ERROR];
+            if (KNOWN_ERROR_MESSAGES.includes(serverMsg)) {
                 addEphemeralMessage(serverMsg, 'ai');
             } else {
                 addEphemeralMessage(fallback, 'ai');
