@@ -40,6 +40,26 @@ if (window.pendingModeSwitch === undefined) {
     window.pendingModeSwitch = null;
 }
 
+if (window.hasImportedPlaylists === undefined) {
+    window.hasImportedPlaylists = false;
+}
+
+function setImportUiState() {
+    const labelEl = document.querySelector('#import-music-link .dropdown-link-text');
+    const tooltipEl = document.querySelector('#import-music-link .dropdown-tooltip');
+    const headerEl = document.querySelector('#importModal .modal-header h2');
+
+    if (window.hasImportedPlaylists) {
+        if (labelEl) labelEl.textContent = 'Edit My Imported Playlists';
+        if (tooltipEl) tooltipEl.textContent = 'Manage your previously imported playlists';
+        if (headerEl) headerEl.textContent = 'Update Your Imported Playlists';
+    } else {
+        if (labelEl) labelEl.textContent = 'Import My Music';
+        if (tooltipEl) tooltipEl.textContent = 'Import your Spotify music collection to create personalized playlists and gain insights into your music';
+        if (headerEl) headerEl.textContent = 'Import Your Spotify Playlists';
+    }
+}
+
 function openImportModal(switchToModeOnCompletion) {
     if (hamburgerDropdown.classList.contains('show')) {
         hamburgerDropdown.classList.remove('show');
@@ -50,7 +70,10 @@ function openImportModal(switchToModeOnCompletion) {
     if (window.playlistImport && typeof window.playlistImport.resetPlaylistData === 'function') {
         window.playlistImport.resetPlaylistData();
     }
+
     document.getElementById('importModal').style.display = 'block';
+    setImportUiState();
+
     if (window.playlistImport) {
         if (typeof window.playlistImport.initialize === 'function') {
             window.playlistImport.initialize();
@@ -76,6 +99,20 @@ document.addEventListener('DOMContentLoaded', () => {
             openImportModal();
         });
     }
+
+    (async () => {
+        try {
+            const resp = await fetch('/get_submitted_playlists/', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                cache: 'no-store'
+            });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            window.hasImportedPlaylists = Array.isArray(data.playlists) && data.playlists.length > 0;
+            setImportUiState();
+        } catch (_) {}
+    })();
 
     const eulaLink = document.getElementById('eula-link');
     if (eulaLink) {

@@ -195,6 +195,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (response.ok) {
                 window.closeImportModal();
+                const labelEl = document.querySelector('#import-music-link .dropdown-link-text');
+                if (labelEl) labelEl.textContent = 'Edit My Imported Playlists';
+                const tooltipEl = document.querySelector('#import-music-link .dropdown-tooltip');
+                if (tooltipEl) tooltipEl.textContent = 'Manage your previously imported playlists';
+
+                window.hasImportedPlaylists = true;
+
                 if (window.pendingModeSwitch) {
                     const target = window.pendingModeSwitch;
                     window.pendingModeSwitch = null;
@@ -244,7 +251,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (validCount > 0) {
             btn.disabled = false;
             btn.classList.add('import-playlist-button--active');
-            btn.textContent = `Import ${validCount} Playlist${validCount !== 1 ? 's' : ''}`;
+            if (window.hasImportedPlaylists) {
+                btn.textContent = 'Update Playlists';
+            } else {
+                btn.textContent = `Import ${validCount} Playlist${validCount !== 1 ? 's' : ''}`;
+            }
         } else {
             btn.disabled = true;
             btn.classList.remove('import-playlist-button--active');
