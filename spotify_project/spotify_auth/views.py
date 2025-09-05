@@ -2234,34 +2234,45 @@ def import_playlists_api(request):
     
     try:
         data = json.loads(request.body)
-        playlist_urls = data.get('playlist_urls', [])
+        playlists = data.get('playlists', [])
         
-        if not playlist_urls or not isinstance(playlist_urls, list):
-            return JsonResponse({'error': 'No playlist URLs provided'}, status=400)
+        if not playlists or not isinstance(playlists, list):
+            return JsonResponse({'error': 'No playlists provided'}, status=400)
         
-        if len(playlist_urls) > 10:
+        if len(playlists) > 10:
             return JsonResponse({'error': 'Maximum of 10 playlists allowed'}, status=400)
         
+        valid_playlist_objs = []
         valid_urls = []
-        for url in playlist_urls:
-            if not isinstance(url, str):
+        for p in playlists:
+            if not isinstance(p, dict):
                 continue
-            url = url.strip()
+            url = (p.get('url') or '').strip()
             if not url:
                 continue
-            
             if 'https://open.spotify.com/playlist/' not in url:
                 return JsonResponse({'error': f'Invalid Spotify playlist URL: {url}'}, status=400)
-            
+            playlist_meta = {
+                'id': p.get('id'),
+                'url': url,
+                'name': p.get('name'),
+                'track_count': int(p.get('track_count') or 0),
+                'playlist_id': p.get('playlist_id')
+            }
+            valid_playlist_objs.append(playlist_meta)
             valid_urls.append(url)
         
         if not valid_urls:
-            return JsonResponse({'error': 'No valid playlist URLs provided'}, status=400)
+            return JsonResponse({'error': 'No valid playlists provided'}, status=400)
+        
+        request.session['submitted_playlists_meta'] = valid_playlist_objs
+        request.session.modified = True
+        request.session.save()
         
         user_id = request.session.get('euphonic_intelligence_user_id')
         session_key = request.session.session_key
         
-        _log_to_file(GENERAL_LOG_FILE, f"Starting synchronous playlist import for {len(valid_urls)} URLs for session {session_key}")
+        _log_to_file(GENERAL_LOG_FILE, f"Starting synchronous playlist import for {len(valid_urls)} playlists for session {session_key}")
         
         access_token = get_spotify_access_token()
         if not access_token:
@@ -2271,7 +2282,6 @@ def import_playlists_api(request):
         spotify_get_playlist_items_headers = {'Authorization': f'Bearer {access_token}'}
         
         all_tracks = []
-        
         track_counter = {
             'count': 0,
             'lock': threading.Lock()
@@ -2279,10 +2289,9 @@ def import_playlists_api(request):
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_to_url = {
-                executor.submit(_process_single_playlist, url, spotify_get_playlist_items_headers, track_counter): url 
+                executor.submit(_process_single_playlist, url, spotify_get_playlist_items_headers, track_counter): url
                 for url in valid_urls
             }
-            
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
@@ -2293,29 +2302,25 @@ def import_playlists_api(request):
                 except Exception as e:
                     _log_to_file(GENERAL_LOG_FILE, f"Exception occurred while processing playlist {url}: {e}")
         
-        if all_tracks:
-            if user_id:
-                cache_key_tracks = f'spotify_user_tracks_{user_id}'
-                cache.set(cache_key_tracks, all_tracks, timeout=3600)
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully cached {len(all_tracks)} total tracks for user {user_id}")
-                _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
-                
-                _log_to_file(GENERAL_LOG_FILE, f"Playlist processing complete for session {session_key}. Starting musical analysis in background.")
-                session_data = dict(request.session)
-                session_data['session_key'] = session_key
-                
-                thread = threading.Thread(
-                    target=_generate_musical_analysis,
-                    args=(session_data,)
-                )
-                thread.daemon = True
-                thread.start()
-                _log_to_file(GENERAL_LOG_FILE, f"Started musical analysis thread for session {session_key} from import_playlists_api")
+        if all_tracks and user_id:
+            cache_key_tracks = f'spotify_user_tracks_{user_id}'
+            cache.set(cache_key_tracks, all_tracks, timeout=3600)
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Cached {len(all_tracks)} total tracks for user {user_id}")
+            _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
+            
+            _log_to_file(GENERAL_LOG_FILE, f"Playlist processing complete for session {session_key}. Starting musical analysis in background.")
+            session_data = dict(request.session)
+            session_data['session_key'] = session_key
+            thread = threading.Thread(
+                target=_generate_musical_analysis,
+                args=(session_data,)
+            )
+            thread.daemon = True
+            thread.start()
+            _log_to_file(GENERAL_LOG_FILE, f"Started musical analysis thread for session {session_key} from import_playlists_api")
         
         response_data = {
-            'success': True, 
-            'message': f'Successfully imported {len(valid_urls)} playlists with {len(all_tracks)} tracks',
-            'track_count': len(all_tracks)
+            'success': True
         }
         
         _log_to_file(GENERAL_LOG_FILE, f"Completed synchronous playlist import for session {session_key}")
@@ -2327,6 +2332,19 @@ def import_playlists_api(request):
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in import_playlists_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+
+@csrf_protect
+@require_http_methods(["GET"])
+@never_cache
+def get_submitted_playlists_api(request):
+    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    _ensure_euphonic_intelligence_user_id(request)
+
+    meta = request.session.get('submitted_playlists_meta') or []
+    if not isinstance(meta, list):
+        meta = []
+        
+    return JsonResponse({'playlists': meta})
 
 def _process_single_playlist(url, spotify_get_playlist_items_headers, track_counter):
     try:

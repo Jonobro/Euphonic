@@ -174,7 +174,13 @@ document.addEventListener('DOMContentLoaded', () => {
         [modalCloseEl, modalCancelEl].forEach(el => { if (el) el.style.pointerEvents = 'none'; });
 
         try {
-            const playlistUrls = validPlaylists.map(p => p.url);
+            const playlistsPayload = validPlaylists.map(p => ({
+                id: p.id,
+                url: p.url,
+                name: p.name,
+                track_count: p.trackCount,
+                playlist_id: p.playlistId
+            }));
             
             const response = await fetch('/import_playlists/', {
                 method: 'POST',
@@ -182,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ playlist_urls: playlistUrls })
+                body: JSON.stringify({ playlists: playlistsPayload })
             });
             
             const result = await response.json();
@@ -203,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(result.error || 'Failed to import playlists');
             }
         } catch (error) {
+            console.error('Playlist import failed:', error);
             alert(`Error: ${error.message}`);
         } finally {
             isImporting = false;
@@ -466,6 +473,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function populatePlaylistStates() {
+        try {
+            const res = await fetch('/get_submitted_playlists/', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                cache: 'no-store'
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            const playlists = Array.isArray(data.playlists) ? data.playlists : [];
+            if (!playlists.length) return;
+
+            let filled = 0;
+            playlists.forEach(pl => {
+                if (filled >= playlistStates.length) return;
+                playlistStates[filled] = {
+                    ...playlistStates[filled],
+                    url: pl.url || '',
+                    name: pl.name || '',
+                    status: 'success',
+                    trackCount: Number(pl.track_count) || 0,
+                    playlistId: pl.playlist_id || '',
+                    justSucceeded: false
+                };
+                filled++;
+            });
+
+            if (filled > 0) {
+                visibleCount = Math.max(visibleCount, filled);
+                renderPlaylistInputs();
+                updateImportButton();
+                updateModalInteractivity();
+            }
+        } catch (e) {
+            console.error('populatePlaylistStates error:', e);
+        }
+    }
+
     window.playlistImport = {
         handlePlaylistBlur,
         handlePlaylistChange,
@@ -473,7 +521,8 @@ document.addEventListener('DOMContentLoaded', () => {
         handleAddPlaylist,
         handleCancel,
         initialize,
-        resetPlaylistData
+        resetPlaylistData,
+        populatePlaylistStates
     };
 
     let isModalOpen = false;

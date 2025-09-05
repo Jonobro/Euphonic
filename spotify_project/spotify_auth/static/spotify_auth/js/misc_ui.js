@@ -47,9 +47,17 @@ function openImportModal(switchToModeOnCompletion) {
     if (switchToModeOnCompletion) {
         window.pendingModeSwitch = switchToModeOnCompletion;
     }
+    if (window.playlistImport && typeof window.playlistImport.resetPlaylistData === 'function') {
+        window.playlistImport.resetPlaylistData();
+    }
     document.getElementById('importModal').style.display = 'block';
     if (window.playlistImport) {
-        window.playlistImport.initialize();
+        if (typeof window.playlistImport.initialize === 'function') {
+            window.playlistImport.initialize();
+        }
+        if (typeof window.playlistImport.populatePlaylistStates === 'function') {
+            window.playlistImport.populatePlaylistStates();
+        }
     }
 }
 

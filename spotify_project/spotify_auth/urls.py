@@ -13,5 +13,6 @@ urlpatterns = [
     path('reset_chat_history_api/', views.reset_chat_history_api, name='reset_chat_history_api'),
     path('import_playlists/', views.import_playlists_api, name='import_playlists'),
     path('check_import_status_api/', views.check_import_status_api, name='check_import_status_api'),
-    path('validate_playlist/', views.validate_playlist_api, name='validate_playlist')
+    path('validate_playlist/', views.validate_playlist_api, name='validate_playlist'),
+    path('get_submitted_playlists/', views.get_submitted_playlists_api, name='get_submitted_playlists')
 ]
