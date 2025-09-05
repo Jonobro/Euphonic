@@ -18,68 +18,92 @@ document.addEventListener('DOMContentLoaded', () => {
         return unique;
     }
 
-function processMessageForPlaylist(messageElement) {
-    if (messageElement.dataset.playlistProcessed === '1') {
-        return;
-    }
-    if (!messageElement.classList.contains('ai-message')) {
-        return;
-    }
-    messageElement.dataset.playlistProcessed = '1';
-    
-    const messageList = messageElement.closest('#message-list');
-    const allMessages = Array.from(messageList.children);
-    const messageIndex = allMessages.indexOf(messageElement);
-    
-    let lastDividerIndex = -1;
-    for (let i = allMessages.length - 1; i >= 0; i--) {
-        if (allMessages[i].classList.contains('conversation-divider')) {
-            lastDividerIndex = i;
-            break;
+    function processMessageForPlaylist(messageElement) {
+        if (messageElement.dataset.playlistProcessed === '1') {
+            return;
         }
-    }
-    
-    const isBeforeLastDivider = lastDividerIndex !== -1 && messageIndex < lastDividerIndex;
-
-    const content = messageElement;
-    if (!content) return;
-
-    const playlistNameRegex = /\+\+\+\+\+(.*?)\+\+\+\+\+/;
-    const match = content.innerHTML.match(playlistNameRegex);
-
-    if (match && match[1]) {
-        const playlistNameHTML = match[1].trim();
+        if (!messageElement.classList.contains('ai-message')) {
+            return;
+        }
+        messageElement.dataset.playlistProcessed = '1';
         
-        const decoder = document.createElement('textarea');
-        decoder.innerHTML = playlistNameHTML;
-        let playlistName = decoder.value;
-        playlistName = getUniquePlaylistName(playlistName);
-
-        const savedPlaylists = JSON.parse(sessionStorage.getItem('savedPlaylists') || '{}');
-        const playlistIdentifier = playlistName;
-
-        const titleElement = document.createElement('div');
-        titleElement.className = 'playlist-title';
-        titleElement.textContent = playlistName;
+        const messageList = messageElement.closest('#message-list');
+        const allMessages = Array.from(messageList.children);
+        const messageIndex = allMessages.indexOf(messageElement);
         
-        const removalRegex = /\+\+\+\+\+.*?\+\+\+\+\+(?:<br>)?/;
-        const cleanContent = content.innerHTML.replace(removalRegex, '').trim();
-        content.innerHTML = cleanContent;
-        content.prepend(titleElement);
+        let lastDividerIndex = -1;
+        for (let i = allMessages.length - 1; i >= 0; i--) {
+            if (allMessages[i].classList.contains('conversation-divider')) {
+                lastDividerIndex = i;
+                break;
+            }
+        }
+        
+        const isBeforeLastDivider = lastDividerIndex !== -1 && messageIndex < lastDividerIndex;
 
-        if (savedPlaylists[playlistIdentifier]) {
-            messageElement.classList.add('has-playlist-button');
-            if (isBeforeLastDivider) {
-                messageElement.classList.add('previous-conversation');
-            } else {
-                const playlistActionsContainer = document.createElement('div');
-                playlistActionsContainer.className = 'save-playlist-container';
+        const content = messageElement;
+        if (!content) return;
 
-                const secondaryActionsContainer = window.createSecondaryActionsContainer('Revise Playlist', 'New Playlist');
+        const playlistNameRegex = /\+\+\+\+\+(.*?)\+\+\+\+\+/;
+        const match = content.innerHTML.match(playlistNameRegex);
+
+        if (match && match[1]) {
+            const playlistNameHTML = match[1].trim();
+            
+            const decoder = document.createElement('textarea');
+            decoder.innerHTML = playlistNameHTML;
+            let playlistName = decoder.value;
+            playlistName = getUniquePlaylistName(playlistName);
+
+            const savedPlaylists = JSON.parse(sessionStorage.getItem('savedPlaylists') || '{}');
+            const playlistIdentifier = playlistName;
+
+            const titleElement = document.createElement('div');
+            titleElement.className = 'playlist-title';
+            titleElement.textContent = playlistName;
+            
+            const removalRegex = /\+\+\+\+\+.*?\+\+\+\+\+(?:<br>)?/;
+            const cleanContent = content.innerHTML.replace(removalRegex, '').trim();
+            content.innerHTML = cleanContent;
+            content.prepend(titleElement);
+
+            if (savedPlaylists[playlistIdentifier]) {
+                messageElement.classList.add('has-playlist-button');
+                if (isBeforeLastDivider) {
+                    messageElement.classList.add('previous-conversation');
+                } else {
+                    const playlistActionsContainer = document.createElement('div');
+                    playlistActionsContainer.className = 'save-playlist-container';
+
+                    const secondaryActionsContainer = window.createSecondaryActionsContainer('Revise Playlist', 'New Playlist');
+
+                    const messageContainer = document.createElement('div');
+                    messageContainer.className = 'message-container';
+                    
+                    const successMessage = document.createElement('p');
+                    successMessage.className = 'create-playlist-success';
+                    successMessage.innerHTML = `Playlist <a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a> created in Spotify!`;
+                    
+                    const instructionMessage = document.createElement('p');
+                    instructionMessage.className = 'create-playlist-instructions';
+                    instructionMessage.innerHTML = `Press <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="spotify-save-icon"><path d="M21 11.998a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" style="stroke:#969696;stroke-width:1.75;stroke-dasharray:none;stroke-opacity:1"/><path d="M12 7.05v9.9" style="fill:#969696;fill-opacity:1;stroke:#969696;stroke-width:1.9265;stroke-dasharray:none;stroke-opacity:1"/><path d="M12.505 7.05a.505.505 0 0 1-.505.505.505.505 0 0 1-.505-.505.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916"/><path d="M12.505 16.95a.505.505 0 0 1-.505.506.505.505 0 0 1-.505-.506.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916233"/><path d="M16.95 12h-9.9" style="stroke-width:1.92679;stroke:#969696;stroke-opacity:1"/><path d="M17.455 12a.505.505 0 0 1-.505.506.505.505 0 0 1-.505-.506.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505zm-9.9 0a.505.505 0 0 1-.505.505.505.505 0 0 1-.505-.505.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916233"/></svg> in Spotify to add it to your library`;
+
+                    messageContainer.appendChild(successMessage);
+                    messageContainer.appendChild(instructionMessage);
+
+                    playlistActionsContainer.appendChild(messageContainer);
+                    playlistActionsContainer.appendChild(secondaryActionsContainer);
+                    content.appendChild(playlistActionsContainer);
+                    setTimeout(() => {
+                        window.toggleChatInput?.(true);
+                        window.updateChatInputPlaceholder?.();
+                    }, 0);
+                    return;
+                }
 
                 const messageContainer = document.createElement('div');
                 messageContainer.className = 'message-container';
-                
+
                 const successMessage = document.createElement('p');
                 successMessage.className = 'create-playlist-success';
                 successMessage.innerHTML = `Playlist <a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a> created in Spotify!`;
@@ -91,162 +115,138 @@ function processMessageForPlaylist(messageElement) {
                 messageContainer.appendChild(successMessage);
                 messageContainer.appendChild(instructionMessage);
 
+                const playlistActionsContainer = document.createElement('div');
+                playlistActionsContainer.className = 'save-playlist-container';
                 playlistActionsContainer.appendChild(messageContainer);
-                playlistActionsContainer.appendChild(secondaryActionsContainer);
                 content.appendChild(playlistActionsContainer);
-                setTimeout(() => {
-                    window.toggleChatInput?.(true);
-                    window.updateChatInputPlaceholder?.();
-                }, 0);
                 return;
             }
 
-            const messageContainer = document.createElement('div');
-            messageContainer.className = 'message-container';
-
-            const successMessage = document.createElement('p');
-            successMessage.className = 'create-playlist-success';
-            successMessage.innerHTML = `Playlist <a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a> created in Spotify!`;
+            const trackLinks = Array.from(content.querySelectorAll('a[href^="https://open.spotify.com/track/"]'));
             
-            const instructionMessage = document.createElement('p');
-            instructionMessage.className = 'create-playlist-instructions';
-            instructionMessage.innerHTML = `Press <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="spotify-save-icon"><path d="M21 11.998a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" style="stroke:#969696;stroke-width:1.75;stroke-dasharray:none;stroke-opacity:1"/><path d="M12 7.05v9.9" style="fill:#969696;fill-opacity:1;stroke:#969696;stroke-width:1.9265;stroke-dasharray:none;stroke-opacity:1"/><path d="M12.505 7.05a.505.505 0 0 1-.505.505.505.505 0 0 1-.505-.505.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916"/><path d="M12.505 16.95a.505.505 0 0 1-.505.506.505.505 0 0 1-.505-.506.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916233"/><path d="M16.95 12h-9.9" style="stroke-width:1.92679;stroke:#969696;stroke-opacity:1"/><path d="M17.455 12a.505.505 0 0 1-.505.506.505.505 0 0 1-.505-.506.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505zm-9.9 0a.505.505 0 0 1-.505.505.505.505 0 0 1-.505-.505.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916233"/></svg> in Spotify to add it to your library`;
+            if (trackLinks.length > 0) {
+                messageElement.classList.add('has-playlist-button');
+                const isLastMessage = messageIndex === allMessages.length - 1;
+                
+                const existingErrorContainer = content.querySelector('.save-playlist-error');
+                if (existingErrorContainer) {
+                    return;
+                }
+                
+                const existingSaveButton = content.querySelector('.save-playlist-button');
+                if (existingSaveButton) {
+                    return;
+                }
+                
+                const playlistActionsContainer = document.createElement('div');
+                playlistActionsContainer.className = 'save-playlist-container';
+                
+                const openButtonWrapper = document.createElement('div');
+                openButtonWrapper.className = 'save-playlist-button-wrapper';
 
-            messageContainer.appendChild(successMessage);
-            messageContainer.appendChild(instructionMessage);
+                const openButton = document.createElement('button');
+                openButton.className = 'button save-playlist-button';
+                openButton.innerHTML = `Open Playlist in Spotify <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236.05 225.25" style="height: 20px; fill: #141414;"><path d="M122.37 3.31C61.99.91 11.1 47.91 8.71 108.29c-2.4 60.38 44.61 111.26 104.98 113.66 60.38 2.4 111.26-44.6 113.66-104.98C229.74 56.59 182.74 5.7 122.37 3.31m46.18 160.28a6.53 6.53 0 0 1-6.59 3.24c-.79-.11-1.58-.37-2.32-.79-14.46-8.23-30.22-13.59-46.84-15.93s-33.25-1.53-49.42 2.4a6.53 6.53 0 0 1-7.89-4.81 6.53 6.53 0 0 1 4.81-7.89c17.78-4.32 36.06-5.21 54.32-2.64s35.58 8.46 51.49 17.51a6.544 6.544 0 0 1 2.45 8.91Zm14.38-28.72c-2.23 4.12-7.39 5.66-11.51 3.43-16.92-9.15-35.24-15.16-54.45-17.86s-38.47-1.97-57.26 2.16c-1.02.22-2.03.26-3.01.12-3.41-.48-6.33-3.02-7.11-6.59-1.01-4.58 1.89-9.11 6.47-10.12 20.77-4.57 42.06-5.38 63.28-2.4 21.21 2.98 41.46 9.62 60.16 19.74 4.13 2.23 5.66 7.38 3.43 11.51Zm15.94-32.38c-2.1 4.04-6.47 6.13-10.73 5.53a10.5 10.5 0 0 1-3.37-1.08c-19.7-10.25-40.92-17.02-63.07-20.13s-44.42-2.45-66.18 1.97c-5.66 1.15-11.17-2.51-12.32-8.16-1.15-5.66 2.51-11.17 8.16-12.32 24.1-4.89 48.74-5.62 73.25-2.18s47.99 10.94 69.81 22.29c5.12 2.66 7.11 8.97 4.45 14.09Z" style="stroke-width:0"></path></svg>`;
 
-            const playlistActionsContainer = document.createElement('div');
-            playlistActionsContainer.className = 'save-playlist-container';
-            playlistActionsContainer.appendChild(messageContainer);
-            content.appendChild(playlistActionsContainer);
-            return;
-        }
+                openButtonWrapper.appendChild(openButton);
+                playlistActionsContainer.appendChild(openButtonWrapper);
 
-        const trackLinks = Array.from(content.querySelectorAll('a[href^="https://open.spotify.com/track/"]'));
-        
-        if (trackLinks.length > 0) {
-            messageElement.classList.add('has-playlist-button');
-            const isLastMessage = messageIndex === allMessages.length - 1;
-            
-            const existingErrorContainer = content.querySelector('.save-playlist-error');
-            if (existingErrorContainer) {
-                return;
-            }
-            
-            const existingSaveButton = content.querySelector('.save-playlist-button');
-            if (existingSaveButton) {
-                return;
-            }
-            
-            const playlistActionsContainer = document.createElement('div');
-            playlistActionsContainer.className = 'save-playlist-container';
-            
-            const openButtonWrapper = document.createElement('div');
-            openButtonWrapper.className = 'save-playlist-button-wrapper';
+                if (!isBeforeLastDivider) {
+                    const secondaryActionsContainer = window.createSecondaryActionsContainer('Revise Playlist', 'New Playlist');
+                    playlistActionsContainer.appendChild(secondaryActionsContainer);
+                }
 
-            const openButton = document.createElement('button');
-            openButton.className = 'button save-playlist-button';
-            openButton.innerHTML = `Open Playlist in Spotify <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236.05 225.25" style="height: 20px; fill: #141414;"><path d="M122.37 3.31C61.99.91 11.1 47.91 8.71 108.29c-2.4 60.38 44.61 111.26 104.98 113.66 60.38 2.4 111.26-44.6 113.66-104.98C229.74 56.59 182.74 5.7 122.37 3.31m46.18 160.28a6.53 6.53 0 0 1-6.59 3.24c-.79-.11-1.58-.37-2.32-.79-14.46-8.23-30.22-13.59-46.84-15.93s-33.25-1.53-49.42 2.4a6.53 6.53 0 0 1-7.89-4.81 6.53 6.53 0 0 1 4.81-7.89c17.78-4.32 36.06-5.21 54.32-2.64s35.58 8.46 51.49 17.51a6.544 6.544 0 0 1 2.45 8.91Zm14.38-28.72c-2.23 4.12-7.39 5.66-11.51 3.43-16.92-9.15-35.24-15.16-54.45-17.86s-38.47-1.97-57.26 2.16c-1.02.22-2.03.26-3.01.12-3.41-.48-6.33-3.02-7.11-6.59-1.01-4.58 1.89-9.11 6.47-10.12 20.77-4.57 42.06-5.38 63.28-2.4 21.21 2.98 41.46 9.62 60.16 19.74 4.13 2.23 5.66 7.38 3.43 11.51Zm15.94-32.38c-2.1 4.04-6.47 6.13-10.73 5.53a10.5 10.5 0 0 1-3.37-1.08c-19.7-10.25-40.92-17.02-63.07-20.13s-44.42-2.45-66.18 1.97c-5.66 1.15-11.17-2.51-12.32-8.16-1.15-5.66 2.51-11.17 8.16-12.32 24.1-4.89 48.74-5.62 73.25-2.18s47.99 10.94 69.81 22.29c5.12 2.66 7.11 8.97 4.45 14.09Z" style="stroke-width:0"></path></svg>`;
+                content.appendChild(playlistActionsContainer);
 
-            openButtonWrapper.appendChild(openButton);
-            playlistActionsContainer.appendChild(openButtonWrapper);
+                if (isLastMessage) {
+                    setTimeout(() => {
+                        window.toggleChatInput?.(true);
+                        window.updateChatInputPlaceholder?.();
+                    }, 0);
+                }
 
-            if (!isBeforeLastDivider) {
-                const secondaryActionsContainer = window.createSecondaryActionsContainer('Revise Playlist', 'New Playlist');
-                playlistActionsContainer.appendChild(secondaryActionsContainer);
-            }
+                openButton.addEventListener('click', async () => {
+                    openButton.disabled = true;
+                    openButton.innerHTML = `
+                        <span class="spinner-small" aria-hidden="true">
+                            <svg class="spinner-small-svg" viewBox="0 0 23.813 23.813">
+                                <g class="spinner-rotator">
+                                    <path class="spinner-dot" d="M2.97 11.905a1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1 1 1 0 0 0-1 1"/>
+                                    <path class="spinner-ring" d="M4.97 11.906v.017a7.53 7.53 0 0 0 2.185 5.257 7.53 7.53 0 0 0 5.262 2.172 7.53 7.53 0 0 0 5.256-2.185 7.53 7.53 0 0 0 2.17-5.069 8.55 8.55 0 0 1-2.469 5.775 8.54 8.54 0 0 1-5.967 2.472c-2.21 0-4.405-.91-5.968-2.472a8.54 8.54 0 0 1-2.472-5.967Z"/>
+                                </g>
+                            </svg>
+                        </span>
+                        Working on it...
+                    `;
 
-            content.appendChild(playlistActionsContainer);
-
-            if (isLastMessage) {
-                setTimeout(() => {
-                    window.toggleChatInput?.(true);
-                    window.updateChatInputPlaceholder?.();
-                }, 0);
-            }
-
-            openButton.addEventListener('click', async () => {
-                openButton.disabled = true;
-                openButton.innerHTML = `
-                    <span class="spinner-small" aria-hidden="true">
-                        <svg class="spinner-small-svg" viewBox="0 0 23.813 23.813">
-                            <g class="spinner-rotator">
-                                <path class="spinner-dot" d="M2.97 11.905a1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1 1 1 0 0 0-1 1"/>
-                                <path class="spinner-ring" d="M4.97 11.906v.017a7.53 7.53 0 0 0 2.185 5.257 7.53 7.53 0 0 0 5.262 2.172 7.53 7.53 0 0 0 5.256-2.185 7.53 7.53 0 0 0 2.17-5.069 8.55 8.55 0 0 1-2.469 5.775 8.54 8.54 0 0 1-5.967 2.472c-2.21 0-4.405-.91-5.968-2.472a8.54 8.54 0 0 1-2.472-5.967Z"/>
-                            </g>
-                        </svg>
-                    </span>
-                    Working on it...
-                `;
-
-                const trackUris = trackLinks.map(link => {
-                    const url = new URL(link.href);
-                    const trackId = url.pathname.split('/').pop();
-                    return `spotify:track:${trackId}`;
-                });
-
-                try {
-                    const response = await fetch(`/create_playlist_api/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken,
-                        },
-                        body: JSON.stringify({
-                            name: playlistName,
-                            track_uris: trackUris,
-                            description: `A playlist named "${playlistName}" created by Aria.`
-                        })
+                    const trackUris = trackLinks.map(link => {
+                        const url = new URL(link.href);
+                        const trackId = url.pathname.split('/').pop();
+                        return `spotify:track:${trackId}`;
                     });
 
-                    if (response.ok) {
-                        const result = await response.json();
-                        await new Promise(resolve => setTimeout(resolve, 1500)); /* Simulated delay for improved UX and to allow for Spotify propagation */
-                        window.open(result.playlist_url, '_blank', 'noopener, noreferrer');
-                        
-                        const messageContainer = document.createElement('div');
-                        messageContainer.className = 'message-container';
+                    try {
+                        const response = await fetch(`/create_playlist_api/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                            body: JSON.stringify({
+                                name: playlistName,
+                                track_uris: trackUris,
+                                description: `A playlist named "${playlistName}" created by Aria.`
+                            })
+                        });
 
-                        const successMessage = document.createElement('p');
-                        successMessage.className = 'create-playlist-success';
-                        successMessage.innerHTML = `Playlist <a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a> created in Spotify!`;
+                        if (response.ok) {
+                            const result = await response.json();
+                            await new Promise(resolve => setTimeout(resolve, 1500)); /* Simulated delay for improved UX and to allow for Spotify propagation */
+                            window.open(result.playlist_url, '_blank', 'noopener, noreferrer');
+                            
+                            const messageContainer = document.createElement('div');
+                            messageContainer.className = 'message-container';
 
-                        const instructionMessage = document.createElement('p');
-                        instructionMessage.className = 'create-playlist-instructions';
-                        instructionMessage.innerHTML = `Press <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="spotify-save-icon"><path d="M21 11.998a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" style="stroke:#969696;stroke-width:1.75;stroke-dasharray:none;stroke-opacity:1"/><path d="M12 7.05v9.9" style="fill:#969696;fill-opacity:1;stroke:#969696;stroke-width:1.9265;stroke-dasharray:none;stroke-opacity:1"/><path d="M12.505 7.05a.505.505 0 0 1-.505.505.505.505 0 0 1-.505-.505.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916"/><path d="M12.505 16.95a.505.505 0 0 1-.505.506.505.505 0 0 1-.505-.506.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916233"/><path d="M16.95 12h-9.9" style="stroke-width:1.92679;stroke:#969696;stroke-opacity:1"/><path d="M17.455 12a.505.505 0 0 1-.505.506.505.505 0 0 1-.505-.506.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505zm-9.9 0a.505.505 0 0 1-.505.505.505.505 0 0 1-.505-.505.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916233"/></svg> in Spotify to add it to your library`;
+                            const successMessage = document.createElement('p');
+                            successMessage.className = 'create-playlist-success';
+                            successMessage.innerHTML = `Playlist <a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a> created in Spotify!`;
 
-                        messageContainer.appendChild(successMessage);
-                        messageContainer.appendChild(instructionMessage);
+                            const instructionMessage = document.createElement('p');
+                            instructionMessage.className = 'create-playlist-instructions';
+                            instructionMessage.innerHTML = `Press <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="spotify-save-icon"><path d="M21 11.998a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" style="stroke:#969696;stroke-width:1.75;stroke-dasharray:none;stroke-opacity:1"/><path d="M12 7.05v9.9" style="fill:#969696;fill-opacity:1;stroke:#969696;stroke-width:1.9265;stroke-dasharray:none;stroke-opacity:1"/><path d="M12.505 7.05a.505.505 0 0 1-.505.505.505.505 0 0 1-.505-.505.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916"/><path d="M12.505 16.95a.505.505 0 0 1-.505.506.505.505 0 0 1-.505-.506.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916233"/><path d="M16.95 12h-9.9" style="stroke-width:1.92679;stroke:#969696;stroke-opacity:1"/><path d="M17.455 12a.505.505 0 0 1-.505.506.505.505 0 0 1-.505-.506.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505zm-9.9 0a.505.505 0 0 1-.505.505.505.505 0 0 1-.505-.505.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916233"/></svg> in Spotify to add it to your library`;
 
-                        openButtonWrapper.replaceWith(messageContainer);
+                            messageContainer.appendChild(successMessage);
+                            messageContainer.appendChild(instructionMessage);
 
-                        const savedPlaylists = JSON.parse(sessionStorage.getItem('savedPlaylists') || '{}');
-                        savedPlaylists[playlistIdentifier] = result.playlist_url;
-                        sessionStorage.setItem('savedPlaylists', JSON.stringify(savedPlaylists));
-                    } else {
-                        let errorText = `Server error: ${response.status}`;
-                        try {
-                            const errorResult = await response.json();
-                            errorText = errorResult.error || errorText;
-                        } catch (e) {
-                            console.error("Could not parse error response as JSON.");
+                            openButtonWrapper.replaceWith(messageContainer);
+
+                            const savedPlaylists = JSON.parse(sessionStorage.getItem('savedPlaylists') || '{}');
+                            savedPlaylists[playlistIdentifier] = result.playlist_url;
+                            sessionStorage.setItem('savedPlaylists', JSON.stringify(savedPlaylists));
+                        } else {
+                            let errorText = `Server error: ${response.status}`;
+                            try {
+                                const errorResult = await response.json();
+                                errorText = errorResult.error || errorText;
+                            } catch (e) {
+                                console.error("Could not parse error response as JSON.");
+                            }
+                            throw new Error(errorText);
                         }
-                        throw new Error(errorText);
+                    } catch (error) {
+                        openButton.innerHTML = `Open Playlist in Spotify <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236.05 225.25" style="height: 20px; fill: #141414;"><path d="M122.37 3.31C61.99.91 11.1 47.91 8.71 108.29c-2.4 60.38 44.61 111.26 104.98 113.66 60.38 2.4 111.26-44.6 113.66-104.98C229.74 56.59 182.74 5.7 122.37 3.31m46.18 160.28a6.53 6.53 0 0 1-6.59 3.24c-.79-.11-1.58-.37-2.32-.79-14.46-8.23-30.22-13.59-46.84-15.93s-33.25-1.53-49.42 2.4a6.53 6.53 0 0 1-7.89-4.81 6.53 6.53 0 0 1 4.81-7.89c17.78-4.32 36.06-5.21 54.32-2.64s35.58 8.46 51.49 17.51a6.544 6.544 0 0 1 2.45 8.91Zm14.38-28.72c-2.23 4.12-7.39 5.66-11.51 3.43-16.92-9.15-35.24-15.16-54.45-17.86s-38.47-1.97-57.26 2.16c-1.02.22-2.03.26-3.01.12-3.41-.48-6.33-3.02-7.11-6.59-1.01-4.58 1.89-9.11 6.47-10.12 20.77-4.57 42.06-5.38 63.28-2.4 21.21 2.98 41.46 9.62 60.16 19.74 4.13 2.23 5.66 7.38 3.43 11.51Zm15.94-32.38c-2.1 4.04-6.47 6.13-10.73 5.53a10.5 10.5 0 0 1-3.37-1.08c-19.7-10.25-40.92-17.02-63.07-20.13s-44.42-2.45-66.18 1.97c-5.66 1.15-11.17-2.51-12.32-8.16-1.15-5.66 2.51-11.17 8.16-12.32 24.1-4.89 48.74-5.62 73.25-2.18s47.99 10.94 69.81 22.29c5.12 2.66 7.11 8.97 4.45 14.09Z" style="stroke-width:0"></path></svg>`;
+                        openButton.disabled = false;
+                        console.error("Error opening playlist:", error);
+                        if (window.addMessageAndScroll) {
+                            window.addMessageAndScroll("Sorry, there was an error opening the playlist. Please try again.", 'ai');
+                        } else {
+                            alert("Sorry, there was an error opening the playlist. Please try again.");
+                        }
                     }
-                } catch (error) {
-                    openButton.innerHTML = `Open Playlist in Spotify <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236.05 225.25" style="height: 20px; fill: #141414;"><path d="M122.37 3.31C61.99.91 11.1 47.91 8.71 108.29c-2.4 60.38 44.61 111.26 104.98 113.66 60.38 2.4 111.26-44.6 113.66-104.98C229.74 56.59 182.74 5.7 122.37 3.31m46.18 160.28a6.53 6.53 0 0 1-6.59 3.24c-.79-.11-1.58-.37-2.32-.79-14.46-8.23-30.22-13.59-46.84-15.93s-33.25-1.53-49.42 2.4a6.53 6.53 0 0 1-7.89-4.81 6.53 6.53 0 0 1 4.81-7.89c17.78-4.32 36.06-5.21 54.32-2.64s35.58 8.46 51.49 17.51a6.544 6.544 0 0 1 2.45 8.91Zm14.38-28.72c-2.23 4.12-7.39 5.66-11.51 3.43-16.92-9.15-35.24-15.16-54.45-17.86s-38.47-1.97-57.26 2.16c-1.02.22-2.03.26-3.01.12-3.41-.48-6.33-3.02-7.11-6.59-1.01-4.58 1.89-9.11 6.47-10.12 20.77-4.57 42.06-5.38 63.28-2.4 21.21 2.98 41.46 9.62 60.16 19.74 4.13 2.23 5.66 7.38 3.43 11.51Zm15.94-32.38c-2.1 4.04-6.47 6.13-10.73 5.53a10.5 10.5 0 0 1-3.37-1.08c-19.7-10.25-40.92-17.02-63.07-20.13s-44.42-2.45-66.18 1.97c-5.66 1.15-11.17-2.51-12.32-8.16-1.15-5.66 2.51-11.17 8.16-12.32 24.1-4.89 48.74-5.62 73.25-2.18s47.99 10.94 69.81 22.29c5.12 2.66 7.11 8.97 4.45 14.09Z" style="stroke-width:0"></path></svg>`;
-                    openButton.disabled = false;
-                    console.error("Error opening playlist:", error);
-                    if (window.addMessageAndScroll) {
-                        window.addMessageAndScroll("Sorry, there was an error opening the playlist. Please try again.", 'ai');
-                    } else {
-                        alert("Sorry, there was an error opening the playlist. Please try again.");
-                    }
-                }
-            });
+                });
+            }
         }
     }
-}
 
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {

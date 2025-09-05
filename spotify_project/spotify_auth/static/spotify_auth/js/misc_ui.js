@@ -50,7 +50,7 @@ function setImportUiState() {
     const headerEl = document.querySelector('#importModal .modal-header h2');
 
     if (window.hasImportedPlaylists) {
-        if (labelEl) labelEl.textContent = 'Edit My Imported Playlists';
+        if (labelEl) labelEl.textContent = 'Edit Imported Playlists';
         if (tooltipEl) tooltipEl.textContent = 'Manage your previously imported playlists';
         if (headerEl) headerEl.textContent = 'Update Your Imported Playlists';
     } else {

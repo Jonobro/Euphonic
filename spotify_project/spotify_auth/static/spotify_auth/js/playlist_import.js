@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 window.closeImportModal();
                 const labelEl = document.querySelector('#import-music-link .dropdown-link-text');
-                if (labelEl) labelEl.textContent = 'Edit My Imported Playlists';
+                if (labelEl) labelEl.textContent = 'Edit Imported Playlists';
                 const tooltipEl = document.querySelector('#import-music-link .dropdown-tooltip');
                 if (tooltipEl) tooltipEl.textContent = 'Manage your previously imported playlists';
 
@@ -535,35 +535,6 @@ document.addEventListener('DOMContentLoaded', () => {
         resetPlaylistData,
         populatePlaylistStates
     };
-
-    let isModalOpen = false;
-
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                const importModal = document.getElementById('importModal');
-                if (importModal) {
-                    if (importModal.style.display === 'block' && !isModalOpen) {
-                        isModalOpen = true;
-                        importModal.addEventListener('click', (e) => {
-                            if (e.target.id === 'importModal') {
-                                e.stopPropagation();
-                            }
-                        }, true);
-                        setTimeout(initialize, 100);
-                    } else if (importModal.style.display !== 'block' && isModalOpen) {
-                        isModalOpen = false;
-                        resetPlaylistData();
-                    }
-                }
-            }
-        });
-    });
-
-    const importModal = document.getElementById('importModal');
-    if (importModal) {
-        observer.observe(importModal, { attributes: true });
-    }
 
     window.addEventListener('beforeunload', () => {
         resetPlaylistData();
