@@ -291,8 +291,7 @@ def check_import_status_api(request):
     if not user_id:
         return JsonResponse({'completed': False})
     
-    cache_key_tracks = f'spotify_user_tracks_{user_id}'
-    tracks_list = cache.get(cache_key_tracks)
+    tracks_list = request.session.get('spotify_user_tracks')
     
     return JsonResponse({'completed': bool(tracks_list)})
 
@@ -362,7 +361,6 @@ def reset_view(request):
     user_id = request.session.get('euphonic_intelligence_user_id')
     if user_id:
         keys_to_delete = [
-            f'spotify_user_tracks_{user_id}',
             f'last_processed_playlist_saved_songs_{user_id}',
             f'last_processed_playlist_new_songs_{user_id}',
             f'last_processed_playlist_details_saved_songs_{user_id}',
@@ -420,8 +418,7 @@ def _generate_musical_analysis(session_data):
     cache.set(analysis_in_progress_key, True, timeout=300)
 
     try:
-        cache_key_tracks = f'spotify_user_tracks_{user_id}'
-        tracks_list = cache.get(cache_key_tracks)
+        tracks_list = mock_request.session.get('spotify_user_tracks')
 
         if tracks_list is None:
             _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: library not found in cache.")
@@ -618,8 +615,7 @@ def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
             _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [APP_ERROR] User ID missing for saved songs search. Song: '{song_title}', Artist: '{artist_name}'")
             return 'app_error', None, None
         
-        cache_key_tracks = f'spotify_user_tracks_{user_id}'
-        simplified_tracks = cache.get(cache_key_tracks)
+        simplified_tracks = request.session.get('spotify_user_tracks')
 
         if simplified_tracks is None:
             _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [APP_ERROR] Cached library not found for user {user_id}. Song: '{song_title}', Artist: '{artist_name}'")
@@ -774,10 +770,7 @@ def initialize_chat_data_view(request):
         
         # If statement for saved songs mode
         if chat_mode == 'saved_songs':
-            user_id = request.session.get('euphonic_intelligence_user_id')
-            cache_key_tracks = f'spotify_user_tracks_{user_id}'
-            tracks_list = cache.get(cache_key_tracks)
-
+            tracks_list = request.session.get('spotify_user_tracks')
             full_library_string = "No imported tracks found."
             if tracks_list:
                 song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
@@ -891,8 +884,7 @@ def reset_chat_history_api(request):
         user_id = request.session.get('euphonic_intelligence_user_id')
         full_library_string = ""
         if user_id:
-            cache_key_tracks = f'spotify_user_tracks_{user_id}'
-            tracks_list = cache.get(cache_key_tracks, [])
+            tracks_list = request.session.get('spotify_user_tracks', [])
             song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
             max_prompt_length = 40000
             full_library_string = "\n* ".join(song_strings)
@@ -1254,19 +1246,6 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         if ai_response_text and any(ai_response_text[i:i+5].count('+') >= 4 for i in range(len(ai_response_text) - 4)) and chat_mode != 'analysis':
             if is_revising and revising_flag_name:
                 mock_request.session[revising_flag_name] = False
-                
-            # # Sometimes Gemini duplicates the playlist, with the first part containing unnecessary information
-            # # The below logic attempts to strip away everything that appears before the second playlist title
-            # # Currently unnecessary due to updates to system instructions, but kept for potential future use
-            # playlist_title_pattern = r'\+{3,}.*?\+{3,}'
-            # matches = list(re.finditer(playlist_title_pattern, ai_response_text))
-            # if len(matches) >= 2:
-            #     second_match_start_index = matches[1].start()
-            #     eliminated_text = ai_response_text[:second_match_start_index]
-            #     log_message_eliminated = f"The following text part(s) from Gemini were discarded (Duplicate Playlist Cleanup - Task {task_id}): {json.dumps(eliminated_text)}"
-            #     _log_to_file(GEMINI_API_LOG_FILE, log_message_eliminated)
-            #     playlist_part = ai_response_text[second_match_start_index:]
-            #     ai_response_text = f"<text_to_edit>\n{playlist_part}"
 
             formatting_prompt = f"""Revise the below text per your system instructions:
 <text_to_edit>
@@ -1448,7 +1427,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 </tracks_to_correct>
 
 <imported_tracks>
-{"\n".join([f"* $$$$${t['name']}$$$$$ by @@@@@{t['artists']}@@@@@" for t in cache.get(f"spotify_user_tracks_{mock_request.session.get('euphonic_intelligence_user_id')}", [])])}
+{"\n".join([f"* $$$$${t['name']}$$$$$ by @@@@@{t['artists']}@@@@@" for t in mock_request.session.get('spotify_user_tracks', [])])}
 </imported_tracks>
 """
             feedback_system_instruction_map = {
@@ -1536,32 +1515,6 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     )
             except Exception as e:
                 _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (feedback pass): {e}")
-
-            # # Logic to strip away "thinking" text that Gemini sometimes adds (in violation of the system instructions)
-            # # Currently unnecessary due to updates to system instructions, but kept for potential future use
-            # initial_content_parts = (response.candidates[0].content.parts if response.candidates and response.candidates[0].content and response.candidates[0].content.parts else []) or []
-            # correction_content_parts = (correction_response.candidates[0].content.parts if correction_response.candidates and correction_response.candidates[0].content and correction_response.candidates[0].content.parts else []) or []
-            # if initial_content_parts and correction_content_parts and len(correction_content_parts) > len(initial_content_parts):
-            #     num_to_potentially_remove = len(correction_content_parts) - len(initial_content_parts)
-                
-            #     split_index = num_to_potentially_remove
-            #     for i, part in enumerate(correction_content_parts[:num_to_potentially_remove]):
-            #         if hasattr(part, 'text') and '+++' in part.text:
-            #             split_index = i
-            #             break
-                
-            #     if split_index > 0:
-            #         parts_to_discard = correction_content_parts[:split_index]
-            #         discarded_text = [p.text for p in parts_to_discard if hasattr(p, 'text')]
-
-            #         log_message = f"Correction response has extra parts. Removing first {split_index} parts."
-            #         _log_to_file(GEMINI_API_LOG_FILE, log_message)
-
-            #         if discarded_text:
-            #             log_message_discarded = f"The following text part(s) from Gemini were discarded (Feedback Pass - Task {task_id}): {json.dumps(discarded_text)}"
-            #             _log_to_file(GEMINI_API_LOG_FILE, log_message_discarded)
-
-            #     correction_content_parts = correction_content_parts[split_index:]
             
             correction_content_parts = (correction_response.candidates[0].content.parts if correction_response.candidates and correction_response.candidates[0].content and correction_response.candidates[0].content.parts else []) or []
             final_ai_text_to_process_for_user = " ".join([p.text for p in correction_content_parts if hasattr(p, 'text')])
@@ -2262,12 +2215,31 @@ def import_playlists_api(request):
             valid_playlist_objs.append(playlist_meta)
             valid_urls.append(url)
         
-        if not valid_urls:
-            return JsonResponse({'error': 'No valid playlists provided'}, status=400)
-        
+        existing_meta = request.session.get('submitted_playlists_meta') or []
+        if not isinstance(existing_meta, list):
+            existing_meta = []
+        try:
+            existing_urls = {
+                str(p.get('url'))
+                for p in existing_meta
+                if (p.get('url'))
+            }
+        except Exception:
+            existing_urls = set()
+        new_urls = {
+            str(p.get('url'))
+            for p in valid_playlist_objs
+            if (p.get('url'))
+        }
+        playlist_removals = sorted(list(existing_urls - new_urls))
+        playlist_additions = sorted(list(new_urls - existing_urls))
+
         request.session['submitted_playlists_meta'] = valid_playlist_objs
         request.session.modified = True
         request.session.save()
+
+        if not valid_urls:
+            return JsonResponse({'error': 'No valid playlists provided'}, status=400)
         
         user_id = request.session.get('euphonic_intelligence_user_id')
         session_key = request.session.session_key
@@ -2303,12 +2275,14 @@ def import_playlists_api(request):
                     _log_to_file(GENERAL_LOG_FILE, f"Exception occurred while processing playlist {url}: {e}")
         
         if all_tracks and user_id:
-            cache_key_tracks = f'spotify_user_tracks_{user_id}'
-            cache.set(cache_key_tracks, all_tracks, timeout=3600)
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"Cached {len(all_tracks)} total tracks for user {user_id}")
+            request.session['spotify_user_tracks'] = all_tracks
+            request.session.modified = True
+            request.session.save()
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Stored {len(all_tracks)} total tracks in session for user {user_id}")
             _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
             
             _log_to_file(GENERAL_LOG_FILE, f"Playlist processing complete for session {session_key}. Starting musical analysis in background.")
+
             session_data = dict(request.session)
             session_data['session_key'] = session_key
             thread = threading.Thread(
