@@ -2196,7 +2196,6 @@ def import_playlists_api(request):
             return JsonResponse({'error': 'Maximum of 10 playlists allowed'}, status=400)
         
         valid_playlist_objs = []
-        valid_urls = []
         for p in playlists:
             if not isinstance(p, dict):
                 continue
@@ -2213,11 +2212,15 @@ def import_playlists_api(request):
                 'playlist_id': p.get('playlist_id')
             }
             valid_playlist_objs.append(playlist_meta)
-            valid_urls.append(url)
         
         existing_meta = request.session.get('submitted_playlists_meta') or []
         if not isinstance(existing_meta, list):
             existing_meta = []
+        
+        request.session['submitted_playlists_meta'] = valid_playlist_objs
+        request.session.modified = True
+        request.session.save()
+
         try:
             existing_urls = {
                 str(p.get('url'))
@@ -2231,20 +2234,39 @@ def import_playlists_api(request):
             for p in valid_playlist_objs
             if (p.get('url'))
         }
+
         playlist_removals = sorted(list(existing_urls - new_urls))
         playlist_additions = sorted(list(new_urls - existing_urls))
 
-        request.session['submitted_playlists_meta'] = valid_playlist_objs
-        request.session.modified = True
-        request.session.save()
+        try:
+            existing_tracks_session = request.session.get('spotify_user_tracks') or []
+            if existing_tracks_session and playlist_removals:
+                removals_set = set(playlist_removals)
+                pruned_tracks = []
+                modified = False
 
-        if not valid_urls:
-            return JsonResponse({'error': 'No valid playlists provided'}, status=400)
+                for track in existing_tracks_session:
+                    urls = track.get('playlist_urls') or []
+                    kept_urls = [u for u in urls if u not in removals_set]
+                    if kept_urls:
+                        if len(kept_urls) != len(urls):
+                            track['playlist_urls'] = kept_urls
+                            modified = True
+                        pruned_tracks.append(track)
+                    else:
+                        modified = True
+
+                if modified:
+                    request.session['spotify_user_tracks'] = pruned_tracks
+                    request.session.modified = True
+                    request.session.save()
+            else:
+                _log_to_file(GENERAL_LOG_FILE, f"No existing tracks to prune or no removals (session {request.session.session_key})")
+        except Exception as e:
+            _log_to_file(GENERAL_LOG_FILE, f"Error pruning removed playlist tracks from session {request.session.session_key}: {e}")
         
         user_id = request.session.get('euphonic_intelligence_user_id')
         session_key = request.session.session_key
-        
-        _log_to_file(GENERAL_LOG_FILE, f"Starting synchronous playlist import for {len(valid_urls)} playlists for session {session_key}")
         
         access_token = get_spotify_access_token()
         if not access_token:
@@ -2253,33 +2275,76 @@ def import_playlists_api(request):
         
         spotify_get_playlist_items_headers = {'Authorization': f'Bearer {access_token}'}
         
-        all_tracks = []
+        all_tracks = request.session.get('spotify_user_tracks', [])
+        if not isinstance(all_tracks, list):
+            all_tracks = []
+
+        existing_by_id = {}
+        for t in all_tracks:
+            tid = t.get('id')
+            if not tid:
+                continue
+            name = t.get('name')
+            artists = t.get('artists')
+            urls = t.get('playlist_urls') or []
+            if tid not in existing_by_id:
+                existing_by_id[tid] = {
+                    'id': tid,
+                    'name': name,
+                    'artists': artists,
+                    'playlist_urls': urls
+                }
+            else:
+                merged_urls = existing_by_id[tid]['playlist_urls']
+                for u in urls:
+                    if u not in merged_urls:
+                        merged_urls.append(u)
+
+        MAX_TRACKS = 500
+        remaining_capacity = max(0, MAX_TRACKS - len(existing_by_id))
+
         track_counter = {
             'count': 0,
             'lock': threading.Lock()
         }
-        
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_to_url = {
-                executor.submit(_process_single_playlist, url, spotify_get_playlist_items_headers, track_counter): url
-                for url in valid_urls
+                executor.submit(_process_single_playlist, url, spotify_get_playlist_items_headers, track_counter, remaining_capacity): url
+                for url in playlist_additions
             }
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
                     tracks = future.result()
-                    for track in tracks:
-                        if track not in all_tracks:
-                            all_tracks.append(track)
+                    for trk in tracks:
+                        tid = trk.get('id')
+                        if not tid:
+                            continue
+                        name = trk.get('name')
+                        artists = trk.get('artists')
+                        urls = trk.get('playlist_urls') or []
+                        if tid in existing_by_id:
+                            current_urls = existing_by_id[tid]['playlist_urls']
+                            for u in urls:
+                                if u not in current_urls:
+                                    current_urls.append(u)
+                        else:
+                            existing_by_id[tid] = {
+                                'id': tid,
+                                'name': name,
+                                'artists': artists,
+                                'playlist_urls': urls
+                            }
                 except Exception as e:
                     _log_to_file(GENERAL_LOG_FILE, f"Exception occurred while processing playlist {url}: {e}")
         
-        if all_tracks and user_id:
-            request.session['spotify_user_tracks'] = all_tracks
+        merged_tracks_list = list(existing_by_id.values())
+        if merged_tracks_list and user_id:
+            request.session['spotify_user_tracks'] = merged_tracks_list
             request.session.modified = True
             request.session.save()
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"Stored {len(all_tracks)} total tracks in session for user {user_id}")
-            _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(valid_urls)} playlists for session {session_key}")
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Stored {len(merged_tracks_list)} unique tracks in session for user {user_id}")
+            _log_to_file(GENERAL_LOG_FILE, f"Successfully processed {len(playlist_additions)} playlists for session {session_key}")
             
             _log_to_file(GENERAL_LOG_FILE, f"Playlist processing complete for session {session_key}. Starting musical analysis in background.")
 
@@ -2320,7 +2385,7 @@ def get_submitted_playlists_api(request):
         
     return JsonResponse({'playlists': meta})
 
-def _process_single_playlist(url, spotify_get_playlist_items_headers, track_counter):
+def _process_single_playlist(url, spotify_get_playlist_items_headers, track_counter, max_total_new_tracks):
     try:
         if 'open.spotify.com/playlist/' in url:
             playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
@@ -2335,9 +2400,8 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
         
         while True:
             with track_counter['lock']:
-                # If you ever update this value, make sure to update each occurrence of max_prompt_length accordingly
-                if track_counter['count'] >= 500:
-                    _log_to_file(GENERAL_LOG_FILE, f"Track limit of 500 reached, stopping playlist {playlist_id} processing")
+                if track_counter['count'] >= max_total_new_tracks:
+                    _log_to_file(GENERAL_LOG_FILE, f"Track limit of {max_total_new_tracks} reached, stopping playlist {playlist_id} processing")
                     break
             
             playlist_api_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
@@ -2408,17 +2472,18 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
                         track_info = {
                             'id': track['id'],
                             'name': track['name'],
-                            'artists': ', '.join(artist_names)
+                            'artists': ', '.join(artist_names),
+                            'playlist_urls': [url]
                         }
                         batch_tracks.append(track_info)
             
             with track_counter['lock']:
-                if track_counter['count'] + len(batch_tracks) > 500:
-                    remaining_slots = 500 - track_counter['count']
-                    batch_tracks = batch_tracks[:remaining_slots]
+                if track_counter['count'] + len(batch_tracks) > max_total_new_tracks:
+                    remaining_slots = max_total_new_tracks - track_counter['count']
+                    batch_tracks = batch_tracks[:max(0, remaining_slots)]
                     tracks.extend(batch_tracks)
                     track_counter['count'] += len(batch_tracks)
-                    _log_to_file(GENERAL_LOG_FILE, f"Reached 500 track limit while processing playlist {playlist_id}")
+                    _log_to_file(GENERAL_LOG_FILE, f"Reached {max_total_new_tracks} track limit while processing playlist {playlist_id}")
                     break
                 else:
                     tracks.extend(batch_tracks)
