@@ -360,15 +360,7 @@ def reset_view(request):
     _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     user_id = request.session.get('euphonic_intelligence_user_id')
     if user_id:
-        keys_to_delete = [
-            f'last_processed_playlist_saved_songs_{user_id}',
-            f'last_processed_playlist_new_songs_{user_id}',
-            f'last_processed_playlist_details_saved_songs_{user_id}',
-            f'last_processed_playlist_details_new_songs_{user_id}',
-            f'analysis_in_progress_{user_id}'
-        ]
-        cache.delete_many(keys_to_delete)
-        _log_to_file(GENERAL_LOG_FILE, f"Cleared cache for user {user_id}")
+        cache.delete(f'analysis_in_progress_{user_id}')
     request.session.flush()
     reset_url = f"{reverse('index')}?clear_storage=true"
     return redirect(reset_url)
@@ -892,9 +884,7 @@ def reset_chat_history_api(request):
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
 
         if (chat_mode == 'saved_songs' and user_action == 'revise_playlist'):
-            last_processed_playlist = ""
-            if user_id:
-                last_processed_playlist = cache.get(f"last_processed_playlist_saved_songs_{user_id}")
+            last_processed_playlist = request.session.get('last_processed_playlist_saved_songs', '')
             
             initial_prompt = f"""Please revise the playlist contained within the <playlist> tags below. I have included my imported tracks at the end of this message, with the tag <imported_tracks>.
 
@@ -912,9 +902,7 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 Just a heads up - I'm working with a clean slate and can't see the messages before the playlist, so let me know exactly what you're looking for with the updates."""
 
         elif (chat_mode == 'new_songs' and user_action == 'revise_playlist'):
-            last_processed_playlist = ""
-            if user_id:
-                last_processed_playlist = cache.get(f"last_processed_playlist_new_songs_{user_id}")
+            last_processed_playlist = request.session.get('last_processed_playlist_new_songs', '')
             initial_prompt = f"""Please revise the following playlist:
 {last_processed_playlist}"""
             initial_response = """Okay, I will update the playlist – what changes did you have in mind?
@@ -1107,10 +1095,10 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         if is_revising:
             user_id = mock_request.session.get('euphonic_intelligence_user_id')
             if user_id and chat_mode in ['saved_songs', 'new_songs']:
-                last_playlist_details = cache.get(f"last_processed_playlist_details_{chat_mode}_{user_id}", [])
+                last_playlist_details = mock_request.session.get(f"last_processed_playlist_details_{chat_mode}", [])
                 for track in last_playlist_details:
                     cache_key = (track['title'].lower(), track['artist'].lower())
-                    track_url_cache[cache_key] = track['url']
+                    track_url_cache[cache_key] = track.get('url')
 
         def get_cached_spotify_track_url(song_title, artist_name):
             cache_key = (song_title.strip().lower(), artist_name.strip().lower())
@@ -1681,7 +1669,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         user_id = mock_request.session.get('euphonic_intelligence_user_id')
         if user_id and playlist_for_cache and chat_mode in ['saved_songs', 'new_songs']:
             playlist_string_for_cache = "* " + "\n* ".join([f"{p['title']} by {p['artist']}" for p in playlist_for_cache])
-            cache.set(f"last_processed_playlist_{chat_mode}_{user_id}", playlist_string_for_cache, timeout=3600)
+            mock_request.session[f"last_processed_playlist_{chat_mode}"] = playlist_string_for_cache
             
             detailed_playlist_for_cache = []
             for track in playlist_for_cache:
@@ -1694,7 +1682,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     })
             
             if detailed_playlist_for_cache:
-                cache.set(f"last_processed_playlist_details_{chat_mode}_{user_id}", detailed_playlist_for_cache, timeout=3600)
+                mock_request.session[f"last_processed_playlist_details_{chat_mode}"] = detailed_playlist_for_cache
 
         if (not isinstance(final_ai_text_to_process_for_user, str) or not final_ai_text_to_process_for_user.strip() or
             not isinstance(processed_ai_response_text, str) or not processed_ai_response_text.strip()):
@@ -1748,6 +1736,14 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             'response': response_data,
             'chat_mode': chat_mode
         }
+
+        if chat_mode in ['saved_songs', 'new_songs']:
+            last_processed_playlist_key = f"last_processed_playlist_{chat_mode}"
+            last_processed_playlist_details_key = f"last_processed_playlist_details_{chat_mode}"
+            if last_processed_playlist_key in mock_request.session:
+                result[last_processed_playlist_key] = mock_request.session[last_processed_playlist_key]
+            if last_processed_playlist_details_key in mock_request.session:
+                result[last_processed_playlist_details_key] = mock_request.session[last_processed_playlist_details_key]
 
         if context_window_exceeded and context_flag_name:
             result[context_flag_name] = True
@@ -2064,7 +2060,11 @@ def stream_chat_response(request, task_id):
                             'user_currently_revising_saved_songs_playlist',
                             'user_currently_revising_new_songs_playlist',
                             'saved_songs_context_window_exceeded',
-                            'new_songs_context_window_exceeded'
+                            'new_songs_context_window_exceeded',
+                            'last_processed_playlist_saved_songs',
+                            'last_processed_playlist_details_saved_songs',
+                            'last_processed_playlist_new_songs',
+                            'last_processed_playlist_details_new_songs',
                         ]:
                             if k in pre_result:
                                 request.session[k] = pre_result[k]
@@ -2129,7 +2129,11 @@ def stream_chat_response(request, task_id):
                             'user_currently_revising_saved_songs_playlist',
                             'user_currently_revising_new_songs_playlist',
                             'saved_songs_context_window_exceeded',
-                            'new_songs_context_window_exceeded'
+                            'new_songs_context_window_exceeded',
+                            'last_processed_playlist_saved_songs',
+                            'last_processed_playlist_details_saved_songs',
+                            'last_processed_playlist_new_songs',
+                            'last_processed_playlist_details_new_songs',
                         ]:
                             if k in result:
                                 request.session[k] = result[k]
@@ -2633,16 +2637,6 @@ def validate_playlist_api(request):
                     _log_to_file(SPOTIFY_API_LOG_FILE, f"Could not find meta description tag for playlist {playlist_id} after retries")
                     playlist_name = _fallback_name()
                     track_count = 0
-                
-                user_id = request.session.get('euphonic_intelligence_user_id')
-                if user_id:
-                    cache_key = f"validated_playlist_{user_id}_{playlist_id}"
-                    cache.set(cache_key, {
-                        'name': playlist_name,
-                        'track_count': track_count,
-                        'url': playlist_url,
-                        'id': playlist_id
-                    }, timeout=3600)
                 
                 _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully validated playlist {playlist_id}: {playlist_name} ({track_count} tracks)")
                 
