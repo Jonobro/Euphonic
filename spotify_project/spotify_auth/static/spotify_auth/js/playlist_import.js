@@ -235,7 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             }
                         } catch (e) {
-                        console.error('Failed to append saved_songs updates to chat-history');
+                            console.error('Failed to append saved_songs updates to chat-history');
+                        }
                     }
                 }
 
