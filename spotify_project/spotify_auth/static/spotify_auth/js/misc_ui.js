@@ -146,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-
 window.onclick = function(event) {
     const modal = document.getElementById('legalModal');
     const importModal = document.getElementById('importModal');
