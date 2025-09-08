@@ -218,6 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (activeBtn?.dataset.mode === 'saved_songs') {
                                 const messageList = document.getElementById('message-list');
                                 if (messageList) {
+                                    const existingMessages = messageList.querySelectorAll('.message');
+                                    existingMessages.forEach(msg => msg.classList.add('previous-conversation'));
                                     result.updated_messages_for_saved_songs.forEach((m, idx) => {
                                         if (m.role === 'divider') {
                                             const dividerElement = document.createElement('div');
@@ -229,6 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                             const createdEl = window.addMessageAndScroll(m.parts[0].text, 'ai', { suppressPersist: true });
                                             if (createdEl instanceof HTMLElement && idx === 0) {
                                                 createdEl.classList.add('previous-termination-message');
+                                                createdEl.classList.add('previous-conversation');
                                             }
                                         }
                                     });

@@ -873,7 +873,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                     messageElement.appendChild(actions);
                                 }
                             }
-                            
+
+                            if (mode === 'saved_songs') {
+                                const msgTxt = (message.parts && message.parts[0] && typeof message.parts[0].text === 'string') ? message.parts[0].text.trim() : '';
+                                if (msgTxt === '~ Music Collection Updated & New Conversation Started ~') {
+                                    messageElement.classList.add('previous-termination-message');
+                                }
+                            }
+
                             if (lastDividerIndex !== -1 && index < lastDividerIndex) {
                                 messageElement.classList.add('previous-conversation');
                             }
