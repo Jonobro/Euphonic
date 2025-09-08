@@ -2370,12 +2370,12 @@ def import_playlists_api(request):
         updated_messages_for_saved_songs = None
         if merged_tracks_list and user_id and playlists_changed:
             _reset_and_start_analysis(request)
+            request.session['spotify_user_tracks'] = merged_tracks_list
             if request.session.get('final_saved_songs_chat_history'):
                 if 'saved_songs_chat_history' in request.session:
                     del request.session['saved_songs_chat_history']
                 request.session['saved_songs_context_window_exceeded'] = False
                 request.session['user_currently_revising_saved_songs_playlist'] = False
-                request.session['spotify_user_tracks'] = merged_tracks_list
 
                 full_library_string = ""
                 song_strings = [f"{t['name']} by {t['artists']}" for t in merged_tracks_list]
