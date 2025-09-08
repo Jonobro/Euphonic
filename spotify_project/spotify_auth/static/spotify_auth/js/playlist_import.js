@@ -194,6 +194,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             
             if (response.ok) {
+                if (Array.isArray(result.updated_messages_for_saved_songs) && result.updated_messages_for_saved_songs.length) {
+                    try {
+                        result.updated_messages_for_saved_songs.forEach(msg => {
+                            if (window.updateChatHistoryData) {
+                                window.updateChatHistoryData('saved_songs', msg);
+                            }
+                        });
+
+                        const activeBtn = document.querySelector('.segment-button.active');
+                        if (activeBtn?.dataset.mode === 'saved_songs') {
+                            const messageList = document.getElementById('message-list');
+                            if (messageList) {
+                                result.updated_messages_for_saved_songs.forEach(m => {
+                                    if (m.role === 'divider') {
+                                        const dividerElement = document.createElement('div');
+                                        dividerElement.className = 'conversation-divider';
+                                        messageList.appendChild(dividerElement);
+                                    } else if (m.role === 'model' && m.parts?.[0]?.text && window.addMessageAndScroll) {
+                                        window.addMessageAndScroll(m.parts[0].text, 'ai', { suppressPersist: true });
+                                    }
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Failed to append saved_songs updates to chat-history');
+                    }
+                }
+
                 window.closeImportModal();
                 const labelEl = document.querySelector('#import-music-link .dropdown-link-text');
                 if (labelEl) labelEl.textContent = 'Edit Imported Playlists';

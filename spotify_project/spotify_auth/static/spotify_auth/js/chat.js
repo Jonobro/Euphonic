@@ -544,8 +544,11 @@ document.addEventListener('DOMContentLoaded', () => {
         suppressHistoryUpdate = prev;
     }
 
-    window.addMessageAndScroll = (text, sender) => {
+    window.addMessageAndScroll = (text, sender, { suppressPersist = false } = {}) => {
+        const prev = suppressHistoryUpdate;
+        if (suppressPersist) suppressHistoryUpdate = true;
         const newMessage = addMessage(text, sender, false);
+        suppressHistoryUpdate = prev;
         newMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
     

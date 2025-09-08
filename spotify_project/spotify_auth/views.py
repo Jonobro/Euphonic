@@ -2367,6 +2367,7 @@ def import_playlists_api(request):
         
         merged_tracks_list = list(existing_by_id.values())
         playlists_changed = bool(playlist_additions or playlist_removals)
+        updated_messages_for_saved_songs = None
         if merged_tracks_list and user_id:
             if playlists_changed:
                 if 'saved_songs_chat_history' in request.session:
@@ -2390,16 +2391,16 @@ def import_playlists_api(request):
                 """
                 initial_response = """Cool – you got some music imported. Let’s craft some custom playlists using your tracks. I can filter through your music using any criteria you can imagine.
 
-                Here are some examples of what I can do:
+Here are some examples of what I can do:
 
-                * Give me a playlist of all of my songs from the 90s
-                * I’m on a road trip with my grandma – make a playlist of my songs that she might like
-                * Create a playlist of all of the dream pop songs in my imported music
-                * Make me a playlist of my most niche tracks
-                * I’m feeling discouraged today – give me a playlist of my most uplifting songs
-                * Make a playlist of all my imported songs that are sung in Spanish
+* Give me a playlist of all of my songs from the 90s
+* I’m on a road trip with my grandma – make a playlist of my songs that she might like
+* Create a playlist of all of the dream pop songs in my imported music
+* Make me a playlist of my most niche tracks
+* I’m feeling discouraged today – give me a playlist of my most uplifting songs
+* Make a playlist of all my imported songs that are sung in Spanish
 
-                I’ve talked too much – let’s get started! What can I do for you?"""
+I’ve talked too much – let’s get started! What can I do for you?"""
 
                 new_history_list = [
                     {'role': 'user', 'parts': [{'text': initial_prompt}]},
@@ -2408,9 +2409,12 @@ def import_playlists_api(request):
                 request.session['saved_songs_chat_history'] = new_history_list
 
                 final_history_list = request.session.get('final_saved_songs_chat_history', [])
-                final_history_list.append({'role': 'model', 'parts': [{'text': '~ Music Collection Updated - New Conversation Started ~'}]})
-                final_history_list.append({'role': 'divider', 'parts': [{'text': '---'}]})
-                final_history_list.append({'role': 'model', 'parts': [{'text': initial_response}]})
+                updated_messages_for_saved_songs = [
+                    {'role': 'model', 'parts': [{'text': '~ Music Collection Updated & New Conversation Started ~'}]},
+                    {'role': 'divider', 'parts': [{'text': '---'}]},
+                    {'role': 'model', 'parts': [{'text': initial_response}]}
+                ]
+                final_history_list.extend(updated_messages_for_saved_songs)
                 request.session['final_saved_songs_chat_history'] = final_history_list
                 request.session.save()
 
@@ -2420,6 +2424,8 @@ def import_playlists_api(request):
             'success': True,
             'playlists_changed': playlists_changed
         }
+        if updated_messages_for_saved_songs:
+            response_data['updated_messages_for_saved_songs'] = updated_messages_for_saved_songs
         
         _log_to_file(GENERAL_LOG_FILE, f"Completed synchronous playlist import for session {session_key}")
         return JsonResponse(response_data)
