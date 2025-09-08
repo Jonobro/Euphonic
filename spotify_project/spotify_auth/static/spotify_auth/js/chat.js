@@ -877,7 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (mode === 'saved_songs') {
                                 const msgTxt = (message.parts && message.parts[0] && typeof message.parts[0].text === 'string') ? message.parts[0].text.trim() : '';
                                 if (msgTxt === '~ Music Collection Updated & New Conversation Started ~') {
-                                    messageElement.classList.add('previous-termination-message');
+                                    messageElement.classList.add('music-collection-updated-message');
                                 }
                             }
 

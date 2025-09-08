@@ -251,6 +251,13 @@ h2, h3, h4, h5, h6 {
     margin-bottom: -35px;
 }
 
+.ai-message.music-collection-updated-message {
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: -35px;
+    margin-top: -5px;
+}
+
 .ai-message.has-playlist-button.previous-conversation {
     padding-bottom: 6px;
 }

@@ -232,11 +232,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                         if (m.role === 'model' && m.parts?.[0]?.text && window.addMessageAndScroll) {
                                             const createdEl = window.addMessageAndScroll(m.parts[0].text, 'ai', { suppressPersist: true });
                                             if (createdEl instanceof HTMLElement && idx === 0) {
-                                                createdEl.classList.add('previous-termination-message');
+                                                createdEl.classList.add('music-collection-updated-message');
                                                 createdEl.classList.add('previous-conversation');
                                             }
                                         }
                                     });
+
+                                    if (window.toggleChatInput) {
+                                        window.toggleChatInput(false);
+                                    }
+                                    const userInput = document.getElementById('user-input');
+                                    if (userInput) {
+                                        userInput.focus();
+                                    }
                                 }
                             }
                         } catch (e) {
