@@ -386,35 +386,22 @@ def _generate_musical_analysis(session_data):
 
     mock_request = MockRequest(session_data)
     user_id = mock_request.user_id
+    generation_id = session_data.get('analysis_generation_id')
 
     status = 'failed'
 
     if not user_id:
-        _log_to_file(GENERAL_LOG_FILE, "Analysis generation skipped: user_id not in session.")
+        _log_to_file(GENERAL_LOG_FILE, "Analysis generation aborted: user_id not in session.")
         status = 'failed'
         _publish(status)
         return
 
-    if mock_request.session.get('final_analysis_chat_history'):
-        _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: analysis already exists.")
-        status = 'completed'
-        _publish(status)
-        return
-
     analysis_in_progress_key = f"analysis_in_progress_{user_id}"
-    if cache.get(analysis_in_progress_key):
-        _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: analysis already in progress.")
-        status = 'in_progress'
-        _publish(status)
-        return
-
-    cache.set(analysis_in_progress_key, True, timeout=300)
-
     try:
+        cache.set(analysis_in_progress_key, generation_id, timeout=300)
         tracks_list = mock_request.session.get('spotify_user_tracks')
-
         if tracks_list is None:
-            _log_to_file(GENERAL_LOG_FILE, f"Analysis generation skipped for user {user_id}: library not found in cache.")
+            _log_to_file(GENERAL_LOG_FILE, f"Analysis generation aborted for user {user_id}: library not found.")
             status = 'failed'
             return
 
@@ -462,7 +449,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
         client = get_gemini_client()
         use_grounding = check_and_update_grounding_usage()
         current_tools = [GOOGLE_SEARCH_TOOL] if use_grounding else None
-        
+
         chat_config = types.GenerateContentConfig(
             system_instruction=ANALYSIS_SYSTEM_INSTRUCTION,
             tools=current_tools,
@@ -489,15 +476,15 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
         )
 
         log_message_prompt_analysis = (
-            f"Gemini API Call (_generate_musical_analysis for user {user_id}):\n"
+            f"Gemini API Call (_generate_musical_analysis for user {user_id}, gen {generation_id}):\n"
             f"  Initial Prompt: {initial_prompt[:500]}{'...' if len(initial_prompt) > 500 else ''}\n"
             f"  Config: {{'tools': {current_tools}}}\n"
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_analysis}\n******************************\n")
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({EXPENSIVE_MODEL_NAME}) (_generate_musical_analysis for user {user_id})")
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({EXPENSIVE_MODEL_NAME}) (analysis gen {generation_id})")
         response = chat.send_message(initial_prompt)
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({EXPENSIVE_MODEL_NAME}) (_generate_musical_analysis for user {user_id})")
-        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (_generate_musical_analysis for user {user_id}):\n{response}\n******************************\n")
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({EXPENSIVE_MODEL_NAME}) (analysis gen {generation_id})")
+        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (analysis gen {generation_id}):\n{response}\n******************************\n")
 
         try:
             thought_summaries = []
@@ -511,12 +498,12 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
                 _log_to_file(
                     GEMINI_API_LOG_FILE,
                     "\n******************************\n"
-                    f"Thought Summaries (_generate_musical_analysis for user {user_id}):\n"
+                    f"Thought Summaries (analysis gen {generation_id}):\n"
                     f"{'\n\n'.join(thought_summaries)}\n"
                     "******************************\n"
                 )
         except Exception as e:
-            _log_to_file(GENERAL_LOG_FILE, f"Error extracting thought summaries (analysis) for user {user_id}: {e}")
+            _log_to_file(GENERAL_LOG_FILE, f"Error extracting thought summaries (analysis gen {generation_id}) for user {user_id}: {e}")
 
         if response.candidates and response.candidates[0].content and response.candidates[0].content.parts and response.text and response.text.strip():
             initial_text_from_gemini = response.text
@@ -548,26 +535,39 @@ Here are a few questions you might find interesting:
             {'role': 'model', 'parts': [{'text': introductory_message_end}]}
         ]
         mock_request.session['final_analysis_chat_history'] = final_history_list
-        
+
         session_store = Session.get_session_store_class()
         session_key_from_data = mock_request.session.get('session_key')
         if not session_key_from_data:
-            _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis for user {user_id}: session_key not found in session_data.")
+            _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis (gen {generation_id}) for user {user_id}: session_key missing.")
             status = 'failed'
             return
         
         session = session_store(session_key=session_key_from_data)
+        current_session_data = session.load()
+        current_gen = current_session_data.get('analysis_generation_id')
+
+        if current_gen != generation_id:
+            _log_to_file(GENERAL_LOG_FILE, f"Discarding obsolete analysis result gen {generation_id} (current gen {current_gen}) for user {user_id}")
+            status = 'obsolete'
+            return
+
         session['analysis_chat_history'] = mock_request.session.get('analysis_chat_history', [])
         session['final_analysis_chat_history'] = mock_request.session.get('final_analysis_chat_history', [])
         session.save()
-        _log_to_file(GENERAL_LOG_FILE, f"Successfully generated and saved musical analysis for user {user_id}")
+        _log_to_file(GENERAL_LOG_FILE, f"Saved musical analysis gen {generation_id} for user {user_id}")
         status = 'completed'
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis for user {user_id}: {e}")
+        _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis (gen {generation_id}) for user {user_id}: {e}")
         status = 'failed'
     finally:
-        cache.delete(analysis_in_progress_key)
-        _publish(status)
+        try:
+            if cache.get(analysis_in_progress_key) == generation_id:
+                cache.delete(analysis_in_progress_key)
+        except Exception:
+            pass
+        if status in ('completed', 'failed'):
+            _publish(status)
 
 def _reset_and_start_analysis(request):
     try:
@@ -578,12 +578,17 @@ def _reset_and_start_analysis(request):
 
         request.session.pop('analysis_chat_history', None)
         request.session.pop('final_analysis_chat_history', None)
+
+        new_generation_id = str(uuid.uuid4())
+        request.session['analysis_generation_id'] = new_generation_id
+
         request.session.modified = True
         if not request.session.session_key:
             request.session.save()
 
         session_data = dict(request.session)
         session_data['session_key'] = request.session.session_key
+        session_data['analysis_generation_id'] = new_generation_id
 
         thread = threading.Thread(
             target=_generate_musical_analysis,
@@ -591,7 +596,7 @@ def _reset_and_start_analysis(request):
             daemon=True
         )
         thread.start()
-        _log_to_file(GENERAL_LOG_FILE, f"Scheduled fresh musical analysis for session {request.session.session_key}")
+        _log_to_file(GENERAL_LOG_FILE, f"Started new musical analysis generation {new_generation_id} for session {request.session.session_key}")
         return
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Failed to schedule musical analysis: {e}")
