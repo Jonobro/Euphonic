@@ -396,9 +396,7 @@ def _generate_musical_analysis(session_data):
         _publish(status)
         return
 
-    analysis_in_progress_key = f"analysis_in_progress_{user_id}"
     try:
-        cache.set(analysis_in_progress_key, generation_id, timeout=300)
         tracks_list = mock_request.session.get('spotify_user_tracks')
         if tracks_list is None:
             _log_to_file(GENERAL_LOG_FILE, f"Analysis generation aborted for user {user_id}: library not found.")
@@ -562,6 +560,7 @@ Here are a few questions you might find interesting:
         status = 'failed'
     finally:
         try:
+            analysis_in_progress_key = f"analysis_in_progress_{user_id}"
             if cache.get(analysis_in_progress_key) == generation_id:
                 cache.delete(analysis_in_progress_key)
         except Exception:
@@ -581,6 +580,9 @@ def _reset_and_start_analysis(request):
 
         new_generation_id = str(uuid.uuid4())
         request.session['analysis_generation_id'] = new_generation_id
+
+        analysis_in_progress_key = f"analysis_in_progress_{user_id}"
+        cache.set(analysis_in_progress_key, new_generation_id, timeout=300)
 
         request.session.modified = True
         if not request.session.session_key:
