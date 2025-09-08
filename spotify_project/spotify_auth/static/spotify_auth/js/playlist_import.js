@@ -220,6 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 if (messageList) {
                                     const existingMessages = messageList.querySelectorAll('.message');
                                     existingMessages.forEach(msg => msg.classList.add('previous-conversation'));
+                                    const oldPlaylistActionButtons = messageList.querySelectorAll('div.additional-buttons-container');
+                                    oldPlaylistActionButtons.forEach(el => el.remove());
                                     result.updated_messages_for_saved_songs.forEach((m, idx) => {
                                         if (m.role === 'divider') {
                                             const dividerElement = document.createElement('div');
