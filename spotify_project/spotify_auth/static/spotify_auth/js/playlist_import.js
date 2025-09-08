@@ -195,29 +195,46 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (response.ok) {
                 if (Array.isArray(result.updated_messages_for_saved_songs) && result.updated_messages_for_saved_songs.length) {
-                    try {
-                        result.updated_messages_for_saved_songs.forEach(msg => {
-                            if (window.updateChatHistoryData) {
-                                window.updateChatHistoryData('saved_songs', msg);
-                            }
-                        });
-
-                        const activeBtn = document.querySelector('.segment-button.active');
-                        if (activeBtn?.dataset.mode === 'saved_songs') {
-                            const messageList = document.getElementById('message-list');
-                            if (messageList) {
-                                result.updated_messages_for_saved_songs.forEach(m => {
-                                    if (m.role === 'divider') {
-                                        const dividerElement = document.createElement('div');
-                                        dividerElement.className = 'conversation-divider';
-                                        messageList.appendChild(dividerElement);
-                                    } else if (m.role === 'model' && m.parts?.[0]?.text && window.addMessageAndScroll) {
-                                        window.addMessageAndScroll(m.parts[0].text, 'ai', { suppressPersist: true });
-                                    }
-                                });
-                            }
+                    const historyEl = document.getElementById('chat-history-data');
+                    let hasSavedSongsHistory = false;
+                    if (historyEl) {
+                        try {
+                            const all = JSON.parse(historyEl.textContent || '[]');
+                            hasSavedSongsHistory = Array.isArray(all) && all.length === 3 && Array.isArray(all[1]) && all[1].length > 0;
+                        } catch (e) {
+                            console.error('Failed to parse chat-history-data JSON:', e);
                         }
-                    } catch (e) {
+                    }
+
+                    if (hasSavedSongsHistory) {
+                        try {
+                            result.updated_messages_for_saved_songs.forEach(msg => {
+                                if (window.updateChatHistoryData) {
+                                    window.updateChatHistoryData('saved_songs', msg);
+                                }
+                            });
+
+                            const activeBtn = document.querySelector('.segment-button.active');
+                            if (activeBtn?.dataset.mode === 'saved_songs') {
+                                const messageList = document.getElementById('message-list');
+                                if (messageList) {
+                                    result.updated_messages_for_saved_songs.forEach((m, idx) => {
+                                        if (m.role === 'divider') {
+                                            const dividerElement = document.createElement('div');
+                                            dividerElement.className = 'conversation-divider';
+                                            messageList.appendChild(dividerElement);
+                                            return;
+                                        }
+                                        if (m.role === 'model' && m.parts?.[0]?.text && window.addMessageAndScroll) {
+                                            const createdEl = window.addMessageAndScroll(m.parts[0].text, 'ai', { suppressPersist: true });
+                                            if (createdEl instanceof HTMLElement && idx === 0) {
+                                                createdEl.classList.add('previous-termination-message');
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        } catch (e) {
                         console.error('Failed to append saved_songs updates to chat-history');
                     }
                 }

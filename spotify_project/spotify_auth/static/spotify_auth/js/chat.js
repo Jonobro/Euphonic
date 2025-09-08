@@ -550,6 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newMessage = addMessage(text, sender, false);
         suppressHistoryUpdate = prev;
         newMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return newMessage;
     };
     
     const listenForResponse = (taskId, thinkingMsgElement, userMessageElement) => {
