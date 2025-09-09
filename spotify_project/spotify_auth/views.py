@@ -2376,8 +2376,9 @@ def import_playlists_api(request):
         playlists_changed = bool(playlist_additions or playlist_removals)
         updated_messages_for_saved_songs = None
         if merged_tracks_list and user_id and playlists_changed:
-            _reset_and_start_analysis(request)
             request.session['spotify_user_tracks'] = merged_tracks_list
+            request.session.save()
+            _reset_and_start_analysis(request)
             if request.session.get('final_saved_songs_chat_history'):
                 if 'saved_songs_chat_history' in request.session:
                     del request.session['saved_songs_chat_history']
