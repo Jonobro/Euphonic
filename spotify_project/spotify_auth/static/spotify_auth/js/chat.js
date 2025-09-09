@@ -857,7 +857,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentMode = getChatMode();
         if (reinitIfActive && currentMode === 'analysis') {
             toggleChatInput(true);
-            showAnalysisLoadingIndicator({ forceReplace: true });
             initializeChatMode('analysis');
         }
     }
