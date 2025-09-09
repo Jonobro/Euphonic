@@ -19,16 +19,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function processMessageForPlaylist(messageElement) {
-        if (messageElement.dataset.playlistProcessed === '1') {
+        if (!(messageElement instanceof HTMLElement)) return;
+        if (messageElement.dataset.playlistProcessed === '1') return;
+        if (!messageElement.classList.contains('ai-message')) return;
+
+        const messageListEl = messageElement.closest('#message-list');
+        if (!messageListEl || !document.body.contains(messageListEl)) {
             return;
         }
-        if (!messageElement.classList.contains('ai-message')) {
-            return;
-        }
+
         messageElement.dataset.playlistProcessed = '1';
-        
-        const messageList = messageElement.closest('#message-list');
-        const allMessages = Array.from(messageList.children);
+
+        const allMessages = Array.from(messageListEl.children);
         const messageIndex = allMessages.indexOf(messageElement);
         
         let lastDividerIndex = -1;
