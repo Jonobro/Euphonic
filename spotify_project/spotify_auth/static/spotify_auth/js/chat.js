@@ -1015,7 +1015,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (mode === 'analysis') {
             setTimeout(() => {
-                if (!analysisLoadingIndicator) {
+                if (!analysisLoadingIndicator && getChatMode() === 'analysis' && messageList.querySelectorAll('.message').length === 0) {
                     showAnalysisLoadingIndicator({ forceReplace: false });
                 }
             }, 300);
