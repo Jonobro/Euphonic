@@ -37,6 +37,8 @@ function getChatMode() {
     throw new Error('No active chat mode button found');
 }
 
+window.getChatMode = getChatMode;
+
 async function handleNewContextAction(userAction) {
     const chatMode = getChatMode();
     const messageList = document.getElementById('message-list');
@@ -292,6 +294,35 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             userInput.placeholder = 'Reply to Aria...';
         }
+    }
+
+    function showAnalysisLoadingIndicator({ forceReplace = false } = {}) {
+        const baseText = "I have your tracks and I’m analyzing them. This might take a moment";
+        if (analysisLoadingInterval) {
+            clearInterval(analysisLoadingInterval);
+            analysisLoadingInterval = null;
+        }
+        if (analysisLoadingIndicator) {
+            analysisLoadingIndicator.remove();
+            analysisLoadingIndicator = null;
+        }
+        if (forceReplace) {
+            while (messageList.firstChild) {
+                messageList.removeChild(messageList.firstChild);
+            }
+        }
+        const prev = suppressHistoryUpdate;
+        suppressHistoryUpdate = true;
+        analysisLoadingIndicator = addMessage(baseText + "...", 'ai', true, false);
+        analysisLoadingIndicator.classList.add('fade-in-analysis-message');
+        let dotCount = 3;
+        analysisLoadingInterval = setInterval(() => {
+            dotCount = (dotCount % 3) + 1;
+            if (analysisLoadingIndicator) {
+                analysisLoadingIndicator.textContent = baseText + '.'.repeat(dotCount);
+            }
+        }, 400);
+        suppressHistoryUpdate = prev;
     }
 
     function updateSendButtonCursor() {
@@ -793,6 +824,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function forceResetAnalysis(reinitIfActive = true) {
+        try {
+            const el = document.getElementById('chat-history-data');
+            if (el) {
+                let all = JSON.parse(el.textContent || '[[],[],[]]');
+                if (!Array.isArray(all) || all.length !== 3) all = [[], [], []];
+                all[2] = [];
+                el.textContent = JSON.stringify(all);
+            }
+        } catch (e) {
+            console.error('forceResetAnalysis: failed to clear cached analysis history');
+        }
+
+        if (initialAnalysisEventSource) {
+            try {
+                initialAnalysisEventSource.close();
+            } catch (e) {
+                console.error('forceResetAnalysis: failed to close EventSource');
+            }
+            initialAnalysisEventSource = null;
+        }
+        if (analysisLoadingInterval) {
+            clearInterval(analysisLoadingInterval);
+            analysisLoadingInterval = null;
+        }
+        if (analysisLoadingIndicator) {
+            analysisLoadingIndicator.remove();
+            analysisLoadingIndicator = null;
+        }
+
+        const currentMode = getChatMode();
+        if (reinitIfActive && currentMode === 'analysis') {
+            toggleChatInput(true);
+            showAnalysisLoadingIndicator({ forceReplace: true });
+            initializeChatMode('analysis');
+        }
+    }
+
+    window.forceResetAnalysis = forceResetAnalysis;
+
     function isChatModeInitialized(mode) {
         const el = document.getElementById('chat-history-data');
         if (!el) return false;
@@ -944,21 +1015,9 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleChatInput(true);
 
         if (mode === 'analysis') {
-            const baseText = "I have your tracks and I’m analyzing them. This might take a moment";
             setTimeout(() => {
-                if (messageList.querySelectorAll('.message').length === 0 && !analysisLoadingIndicator) {
-                    const prev = suppressHistoryUpdate;
-                    suppressHistoryUpdate = true;
-                    analysisLoadingIndicator = addMessage(baseText + "...", 'ai', true, false);
-                    analysisLoadingIndicator.classList.add('fade-in-analysis-message');
-                    let dotCount = 3;
-                    analysisLoadingInterval = setInterval(() => {
-                        dotCount = (dotCount % 3) + 1;
-                        if (analysisLoadingIndicator) {
-                            analysisLoadingIndicator.textContent = baseText + '.'.repeat(dotCount);
-                        }
-                    }, 400);
-                    suppressHistoryUpdate = prev;
+                if (!analysisLoadingIndicator) {
+                    showAnalysisLoadingIndicator({ forceReplace: false });
                 }
             }, 300);
         } else if (mode === 'saved_songs') {
@@ -1068,6 +1127,10 @@ I’ve talked too much – let’s get started! What can I do for you?`;
                         const payload = JSON.parse(e.data);
 
                         if (payload.status === 'in_progress') {
+                            const hasOtherMessages = messageList.querySelectorAll('.message').length > 1;
+                            if (!analysisLoadingIndicator || hasOtherMessages) {
+                                showAnalysisLoadingIndicator({ forceReplace: true });
+                            }
                             return;
                         }
 

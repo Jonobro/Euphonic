@@ -194,6 +194,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             
             if (response.ok) {
+                const playlistsChanged = !!result.playlists_changed;
+                
+                if (playlistsChanged) {
+                    if (window.forceResetAnalysis) {
+                        window.forceResetAnalysis(true);
+                    }
+                }
+
                 if (Array.isArray(result.updated_messages_for_saved_songs) && result.updated_messages_for_saved_songs.length) {
                     const historyEl = document.getElementById('chat-history-data');
                     let hasSavedSongsHistory = false;
