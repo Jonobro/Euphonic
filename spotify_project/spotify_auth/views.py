@@ -2351,11 +2351,22 @@ def import_playlists_api(request):
             'lock': threading.Lock()
         }
 
+        existing_ids = set(existing_by_id.keys())
+        existing_ids_lock = threading.Lock()
+
         truncated_returned = set()
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_to_url = {
-                executor.submit(_process_single_playlist, url, spotify_get_playlist_items_headers, track_counter, remaining_capacity): url
+                executor.submit(
+                    _process_single_playlist,
+                    url,
+                    spotify_get_playlist_items_headers,
+                    track_counter,
+                    remaining_capacity,
+                    existing_ids,
+                    existing_ids_lock
+                ): url
                 for url in fetch_urls
             }
             for future in concurrent.futures.as_completed(future_to_url):
@@ -2475,7 +2486,7 @@ def get_submitted_playlists_api(request):
         
     return JsonResponse({'playlists': meta})
 
-def _process_single_playlist(url, spotify_get_playlist_items_headers, track_counter, max_total_new_tracks):
+def _process_single_playlist(url, spotify_get_playlist_items_headers, track_counter, max_total_new_tracks, existing_ids, existing_ids_lock):
     try:
         if 'open.spotify.com/playlist/' in url:
             playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
@@ -2558,18 +2569,23 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
             batch_tracks = []
             for item in items:
                 track = item.get('track')
-                if track and track.get('id') and track.get('name'):
-                    artists = track.get('artists', [])
-                    artist_names = [artist.get('name', '') for artist in artists if artist.get('name')]
-                    
-                    if artist_names:
-                        track_info = {
-                            'id': track['id'],
-                            'name': track['name'],
-                            'artists': ', '.join(artist_names),
-                            'playlist_urls': [url]
-                        }
-                        batch_tracks.append(track_info)
+                if not (track and track.get('id') and track.get('name')):
+                    continue
+                track_id = track['id']
+                with existing_ids_lock:
+                    if track_id in existing_ids:
+                        continue
+                    existing_ids.add(track_id)
+                artists = track.get('artists', [])
+                artist_names = [artist.get('name', '') for artist in artists if artist.get('name')]
+                if artist_names:
+                    track_info = {
+                        'id': track_id,
+                        'name': track['name'],
+                        'artists': ', '.join(artist_names),
+                        'playlist_urls': [url]
+                    }
+                    batch_tracks.append(track_info)
             
             with track_counter['lock']:
                 if track_counter['count'] + len(batch_tracks) > max_total_new_tracks:
