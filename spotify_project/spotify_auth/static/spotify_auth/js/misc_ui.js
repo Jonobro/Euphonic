@@ -96,6 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (importMusicLink) {
         importMusicLink.addEventListener('click', (event) => {
             event.preventDefault();
+            if (document.querySelector('.thinking-message')) {
+                alert("Aria's still thinking! Let her finish.");
+                return;
+            }
             openImportModal();
         });
     }

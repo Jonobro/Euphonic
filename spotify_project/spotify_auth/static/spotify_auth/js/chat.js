@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 let initialMessageDelayNeeded = true;
+let hasImportedTracks = false;
 
 function getChatMode() {
     const activeBtn = document.querySelector('.segment-button.active');
@@ -1449,36 +1450,41 @@ I’ve talked too much – let’s get started! What can I do for you?`;
                     return;
                 }
 
-                try {
-                    const resp = await fetch('/check_import_status_api/', {
-                        method: 'GET',
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    });
-                    if (resp.ok) {
-                        const data = await resp.json();
-                        if (!data.completed) {
+                const targetMode = this.dataset.mode;
+
+                if ((targetMode === 'saved_songs' || targetMode === 'analysis') && !hasImportedTracks) {
+                    try {
+                        const resp = await fetch('/check_import_status_api/', {
+                            method: 'GET',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            if (!data.completed) {
+                                if (typeof openImportModal === 'function') {
+                                    openImportModal(targetMode);
+                                } else {
+                                    alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
+                                }
+                                return;
+                            }
+                            hasImportedTracks = true;
+                        } else {
                             if (typeof openImportModal === 'function') {
-                                openImportModal(this.dataset.mode);
+                                openImportModal(targetMode);
                             } else {
                                 alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
                             }
                             return;
                         }
-                    } else {
+                    } catch (e) {
                         if (typeof openImportModal === 'function') {
-                            openImportModal();
+                            openImportModal(targetMode);
                         } else {
                             alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
                         }
                         return;
                     }
-                } catch (e) {
-                    if (typeof openImportModal === 'function') {
-                        openImportModal();
-                    } else {
-                        alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
-                    }
-                    return;
                 }
 
                 const fromBtn = document.querySelector('.segment-button.active');
