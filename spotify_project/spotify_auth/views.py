@@ -2273,6 +2273,14 @@ def import_playlists_api(request):
         playlist_removals = sorted(list(existing_urls - new_urls))
         playlist_additions = sorted(list(new_urls - existing_urls))
 
+        existing_truncated = request.session.get('truncated_playlists', []) or []
+        existing_truncated_set = {u for u in existing_truncated if u in new_urls}
+        if playlist_removals:
+            playlists_to_refetch = sorted(existing_truncated_set)
+        else:
+            playlists_to_refetch = []
+        fetch_urls = playlists_to_refetch + playlist_additions
+
         try:
             existing_tracks_session = request.session.get('spotify_user_tracks') or []
             if existing_tracks_session and playlist_removals:
@@ -2341,15 +2349,20 @@ def import_playlists_api(request):
             'count': 0,
             'lock': threading.Lock()
         }
+
+        truncated_returned = set()
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_to_url = {
                 executor.submit(_process_single_playlist, url, spotify_get_playlist_items_headers, track_counter, remaining_capacity): url
-                for url in playlist_additions
+                for url in fetch_urls
             }
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
-                    tracks = future.result()
+                    tracks, truncated_url = future.result()
+                    if truncated_url:
+                        truncated_returned.update(truncated_url)
                     for trk in tracks:
                         tid = trk.get('id')
                         if not tid:
@@ -2372,6 +2385,14 @@ def import_playlists_api(request):
                 except Exception as e:
                     _log_to_file(GENERAL_LOG_FILE, f"Exception occurred while processing playlist {url}: {e}")
         
+        if playlist_removals:
+            final_truncated_set = truncated_returned
+        else:
+            final_truncated_set = existing_truncated_set | truncated_returned
+
+        final_truncated_list = sorted([u for u in final_truncated_set if u in new_urls])
+        request.session['truncated_playlists'] = final_truncated_list
+
         merged_tracks_list = list(existing_by_id.values())
         playlists_changed = bool(playlist_additions or playlist_removals)
         updated_messages_for_saved_songs = None
@@ -2463,17 +2484,20 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
             playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
         else:
             _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
-            return []
+            return [], []
         
         tracks = []
         offset = 0
         limit = 100
         max_retries = 5
+        total_tracks_from_spotify = None
+        truncated_due_to_capacity = False
         
         while True:
             with track_counter['lock']:
                 if track_counter['count'] >= max_total_new_tracks:
-                    _log_to_file(GENERAL_LOG_FILE, f"Track limit of {max_total_new_tracks} reached, stopping playlist {playlist_id} processing")
+                    truncated_due_to_capacity = True
+                    _log_to_file(GENERAL_LOG_FILE, f"Track limit {max_total_new_tracks} reached; truncating playlist {playlist_id}")
                     break
             
             playlist_api_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
@@ -2487,7 +2511,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
                 try:
                     _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_api_url} (offset: {offset}, limit: {limit})")
                     response = requests.get(playlist_api_url, headers=spotify_get_playlist_items_headers, params=params, timeout=10)
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_api_url} | Status: {response.status_code}")
+                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response {response.status_code} from {playlist_api_url}")
                     
                     if response.status_code == 200:
                         break
@@ -2499,7 +2523,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
                         continue
                     elif response.status_code in {400, 401, 403, 404, 422}:
                         _log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} for playlist {playlist_id}")
-                        return tracks
+                        return tracks, []
                     else:
                         if attempt < max_retries - 1:
                             delay = 2 ** attempt + random.uniform(0, 1)
@@ -2508,7 +2532,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
                             continue
                         else:
                             _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id} after {max_retries} attempts. Status: {response.status_code}")
-                            return tracks
+                            return tracks, []
                             
                 except requests.exceptions.RequestException as e:
                     if attempt < max_retries - 1:
@@ -2518,17 +2542,18 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
                         continue
                     else:
                         _log_to_file(SPOTIFY_API_LOG_FILE, f"Request failed for playlist {playlist_id} after {max_retries} attempts: {e}")
-                        return tracks
+                        return tracks, []
             else:
                 _log_to_file(SPOTIFY_API_LOG_FILE, f"All retries exhausted for playlist {playlist_id}")
-                return tracks
+                return tracks, []
             
             if response.status_code != 200:
                 _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id}. Status: {response.status_code}, Response: {response.text}")
-                return tracks
+                return tracks, []
             
             playlist_data = response.json()
             items = playlist_data.get('items', [])
+            total_tracks_from_spotify = playlist_data.get('total')
             
             if not items:
                 break
@@ -2552,10 +2577,11 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
             with track_counter['lock']:
                 if track_counter['count'] + len(batch_tracks) > max_total_new_tracks:
                     remaining_slots = max_total_new_tracks - track_counter['count']
+                    if remaining_slots < len(batch_tracks):
+                        truncated_due_to_capacity = True
                     batch_tracks = batch_tracks[:max(0, remaining_slots)]
                     tracks.extend(batch_tracks)
                     track_counter['count'] += len(batch_tracks)
-                    _log_to_file(GENERAL_LOG_FILE, f"Reached {max_total_new_tracks} track limit while processing playlist {playlist_id}")
                     break
                 else:
                     tracks.extend(batch_tracks)
@@ -2567,12 +2593,16 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
             if offset >= total_tracks:
                 break
         
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully processed playlist {playlist_id} with {len(tracks)} tracks")
-        return tracks
+        if truncated_due_to_capacity:
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Playlist {playlist_id} truncated due to capacity (fetched {len(tracks)} of {total_tracks_from_spotify})")
+            return tracks, [url]
+        else:
+            _log_to_file(SPOTIFY_API_LOG_FILE, f"Playlist {playlist_id} complete ({len(tracks)} tracks)")
+            return tracks, []
         
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Error processing playlist URL {url}: {e}")
-        return []
+        return [], []
 
 @csrf_protect
 @require_http_methods(["POST"])
