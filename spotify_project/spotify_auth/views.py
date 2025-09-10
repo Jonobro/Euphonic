@@ -2275,11 +2275,12 @@ def import_playlists_api(request):
 
         existing_truncated = request.session.get('truncated_playlists', []) or []
         existing_truncated_set = {u for u in existing_truncated if u in new_urls}
-        if playlist_removals:
-            playlists_to_refetch = sorted(existing_truncated_set)
-        else:
-            playlists_to_refetch = []
-        fetch_urls = playlists_to_refetch + playlist_additions
+
+        playlists_to_refetch = sorted(existing_truncated_set)
+        fetch_urls = []
+        for u in playlists_to_refetch + playlist_additions:
+            if u not in fetch_urls:
+                fetch_urls.append(u)
 
         try:
             existing_tracks_session = request.session.get('spotify_user_tracks') or []
@@ -2385,11 +2386,7 @@ def import_playlists_api(request):
                 except Exception as e:
                     _log_to_file(GENERAL_LOG_FILE, f"Exception occurred while processing playlist {url}: {e}")
         
-        if playlist_removals:
-            final_truncated_set = truncated_returned
-        else:
-            final_truncated_set = existing_truncated_set | truncated_returned
-
+        final_truncated_set = truncated_returned
         final_truncated_list = sorted([u for u in final_truncated_set if u in new_urls])
         request.session['truncated_playlists'] = final_truncated_list
 
