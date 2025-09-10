@@ -2402,6 +2402,7 @@ def import_playlists_api(request):
         request.session['truncated_playlists'] = final_truncated_list
 
         merged_tracks_list = list(existing_by_id.values())
+        _log_to_file(GENERAL_LOG_FILE, f"Import cycle completed for session {session_key}: {len(merged_tracks_list)} unique tracks total")
         playlists_changed = bool(playlist_additions or playlist_removals)
         updated_messages_for_saved_songs = None
         if merged_tracks_list and user_id and playlists_changed:
