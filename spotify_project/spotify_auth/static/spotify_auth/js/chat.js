@@ -1305,10 +1305,12 @@ I’ve talked too much – let’s get started! What can I do for you?`;
         function rectFor(el) {
             const parent = control.getBoundingClientRect();
             const r = el.getBoundingClientRect();
-            const borderLeft = parseFloat(getComputedStyle(control).borderLeftWidth) || 0;
+            const cs = getComputedStyle(control);
+            const borderLeft = parseFloat(cs.borderLeftWidth) || 0;
+            const borderTop  = parseFloat(cs.borderTopWidth) || 0;
             const result = {
                 x: r.left - parent.left - borderLeft,
-                y: 0,
+                y: -borderTop,
                 width: r.width,
                 height: r.height
             };
