@@ -19,6 +19,11 @@ window.addEventListener('load', function() {
                     segmented.style.setProperty('--segmented-control-height', r.height + 'px');
                 });
             }
+
+            window.addEventListener('resize', () => {
+                const r = segmented.getBoundingClientRect();
+                segmented.style.setProperty('--segmented-control-height', r.height + 'px');
+            }, { passive: true });
         }
     }, 300);
 });
