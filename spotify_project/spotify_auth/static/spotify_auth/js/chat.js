@@ -1408,8 +1408,15 @@ I’ve talked too much – let’s get started! What can I do for you?`;
 
             const fromRect = rectFor(fromBtn);
             const toRect = rectFor(toBtn);
-            toRect.width = fromRect.width;
-            toRect.height = fromRect.height;
+            if ((window.matchMedia && window.matchMedia('(max-width: 768px)').matches) || window.innerWidth <= 768) {
+                const controlBorderWidth = parseFloat(getComputedStyle(control).borderTopWidth) || 0;
+                toRect.height -= controlBorderWidth;
+                fromRect.height -= controlBorderWidth;
+            } else {
+                toRect.width = fromRect.width;
+                toRect.height = fromRect.height;
+            }
+            
             oldPathEl.setAttribute('d', buildPillPath(fromRect));
             newPathEl.setAttribute('d', buildPillPath(toRect));
             newPathEl.style.visibility = 'hidden';
