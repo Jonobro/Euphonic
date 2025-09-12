@@ -1391,6 +1391,7 @@ body.aria-intro-active .segmented-control {
     z-index: 1;
     box-shadow: 0 0 4px rgba(30,200,90,0.6);
     opacity: 1;
+    height: var(--segmented-control-height);
 }
 
 .segment-button:focus {

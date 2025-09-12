@@ -7,6 +7,19 @@ window.addEventListener('load', function() {
         if (container) container.classList.add('loaded');
         if (betaNotice) betaNotice.classList.add('loaded');
         if (spotifyFooter) spotifyFooter.classList.add('loaded');
+        
+        const segmented = document.querySelector('.segmented-control');
+        if (segmented) {
+            const rect = segmented.getBoundingClientRect();
+            segmented.style.setProperty('--segmented-control-height', rect.height + 'px');
+
+            if (document.fonts?.ready) {
+                document.fonts.ready.then(() => {
+                    const r = segmented.getBoundingClientRect();
+                    segmented.style.setProperty('--segmented-control-height', r.height + 'px');
+                });
+            }
+        }
     }, 300);
 });
 
