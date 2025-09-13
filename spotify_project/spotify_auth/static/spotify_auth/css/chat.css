@@ -1737,7 +1737,7 @@ body.aria-intro-active .hamburger-menu-container {
         justify-content: flex-start;
         width: auto;
         flex: 1;
-        gap: 0px;
+        gap: 2px;
         margin: 0;
     }
 
@@ -1780,7 +1780,7 @@ body.aria-intro-active .hamburger-menu-container {
         white-space: nowrap;
         border-radius: 20px;
         padding: 6px 0px;
-        font-size: 15px;
+        font-size: 14px;
         color: #e0e0e0;
         word-spacing: 1px;
         display: flex;
@@ -1791,5 +1791,22 @@ body.aria-intro-active .hamburger-menu-container {
         margin-top: -1px;
         margin-bottom: -1px;
         opacity: 0.6;
+    }
+    
+    .segment-button.active {
+        background-color: transparent;
+        border: 2px solid rgb(30,200,90);
+        pointer-events: none;
+        z-index: 1;
+        box-shadow: 0 0 4px rgba(30,200,90,0.6);
+        opacity: 1;
+        height: var(--segmented-control-height);
+        max-height: 38px;
+    }
+
+    .header-buttons {
+        display: flex;
+        align-items: center;
+        margin-right: 5px;
     }
 }
