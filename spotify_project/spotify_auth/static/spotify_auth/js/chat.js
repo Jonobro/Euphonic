@@ -1285,9 +1285,10 @@ I’ve talked too much – let’s get started! What can I do for you?`;
 
         function ensureSVGSize() {
             const r = control.getBoundingClientRect();
+            const cssH = parseFloat(getComputedStyle(control).getPropertyValue('--segmented-control-height'));
             svg.setAttribute('width', r.width);
-            svg.setAttribute('height', r.height);
-            svg.setAttribute('viewBox', `0 0 ${r.width} ${r.height}`);
+            svg.setAttribute('height', cssH);
+            svg.setAttribute('viewBox', `0 0 ${r.width} ${cssH}`);
             svg.style.position = 'absolute';
             svg.style.top = '0';
             svg.style.left = '0';

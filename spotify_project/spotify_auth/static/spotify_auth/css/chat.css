@@ -1801,12 +1801,11 @@ body.aria-intro-active .hamburger-menu-container {
         box-shadow: 0 0 4px rgba(30,200,90,0.6);
         opacity: 1;
         height: var(--segmented-control-height);
-        max-height: 38px;
     }
 
     .header-buttons {
         display: flex;
         align-items: center;
-        margin-right: 5px;
+        margin-right: 6px;
     }
 }
