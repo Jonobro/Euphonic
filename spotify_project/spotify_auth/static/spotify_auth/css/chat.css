@@ -1346,6 +1346,7 @@ body.aria-intro-active .segmented-control {
 .segmented-control.is-animating .segment-button.active,
 .segmented-control.is-animating .segment-button.was-active {
     border-color: transparent;
+    height: var(--segmented-control-height);
 }
 
 .segment-button {
