@@ -36,9 +36,10 @@ body {
     z-index: -1;
 }
 
-html.mac-chrome .container::before {
+/* Added this class due to issues with the background gradient on older Macs, but disabling due to testing on newer Macs */
+/* html.mac-chrome .container::before {
     background: #161616 !important;
-}
+} */
 
 .container.loaded {
     visibility: visible;
@@ -598,10 +599,17 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .conversation-divider {
-    height: 0;
-    border-top: 3px solid transparent;
-    border-image: linear-gradient(90deg, transparent, rgb(30, 200, 90), transparent) 1;
+    position: relative;
+    height: 2.4px;
     margin: 30px 0;
+    border: 0;
+}
+
+.conversation-divider::before {
+    content: "";
+    display: block;
+    height: 3px;
+    background: linear-gradient(90deg, rgba(30, 200, 90, 0), rgba(30, 200, 90, 1), rgba(30, 200, 90, 0));
     animation: pulse 2s ease-in-out infinite;
     will-change: opacity;
 }
