@@ -832,6 +832,10 @@ document.addEventListener('DOMContentLoaded', () => {
             initialAnalysisEventSource.close();
             initialAnalysisEventSource = null;
         }
+        if (window.playlistNames) {
+            window.playlistNames = [];
+        }
+
         const chatMode = newMode;
         sessionStorage.setItem('chatMode', chatMode);
         setActiveSegment(chatMode);
