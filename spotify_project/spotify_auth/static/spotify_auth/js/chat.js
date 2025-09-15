@@ -1,3 +1,24 @@
+(function detectMacChrome() {
+    try {
+        const ua = navigator.userAgent;
+        const platformHint = navigator.userAgentData?.platform || '';
+        const isMac = /mac/i.test(platformHint) || /\bMacintosh\b/.test(ua);
+
+        const brands = navigator.userAgentData?.brands || [];
+        const brandIsChrome = brands.some(b =>
+            /Chrom(ium|e)|Edg|Edge|OPR|Opera|Brave|Vivaldi|YaBrowser|Yandex|Arc/i.test(b.brand)
+        );
+
+        const isChromeUA = /\b(Chrome|Chromium|Edg|OPR|Vivaldi|YaBrowser|Yandex|Brave|Arc)\//i.test(ua);
+
+        const isChrome = brandIsChrome || isChromeUA;
+
+        if (isMac && isChrome) {
+            document.documentElement.classList.add('mac-chrome');
+        }
+    } catch (_) {}
+})();
+
 window.addEventListener('load', function() {
     const container = document.querySelector('.container');
     const betaNotice = document.querySelector('.beta-notice');

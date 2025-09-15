@@ -36,6 +36,10 @@ body {
     z-index: -1;
 }
 
+html.mac-chrome .container::before {
+    background: #161616 !important;
+}
+
 .container.loaded {
     visibility: visible;
     opacity: 1;
