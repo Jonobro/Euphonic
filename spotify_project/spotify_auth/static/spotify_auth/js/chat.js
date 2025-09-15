@@ -1361,11 +1361,15 @@ I’ve talked too much – let’s get started! What can I do for you?`;
             ].join(' ');
         }
 
+        function dashArray(L) {
+            return `${L} ${L}`;
+        }
+
         function animateStroke(pathEl, type, direction, speedPxPerMs) {
             return new Promise(res => {
-                const length = pathEl.getTotalLength();
                 pathEl.style.visibility = 'visible';
-                pathEl.setAttribute('stroke-dasharray', `${length}`);
+                const length = pathEl.getTotalLength();
+                pathEl.setAttribute('stroke-dasharray', dashArray(length));
                 let from, to;
                 if (type === 'erase') {
                     from = 0;
