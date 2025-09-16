@@ -1289,14 +1289,22 @@ I’ve talked too much – let’s get started! What can I do for you?`;
             const dpr = window.devicePixelRatio || 1;
             const divs = control.querySelectorAll('.divider-element');
             divs.forEach(el => {
-                el.style.transform = 'translateX(0px)';
+                el.style.transform = 'translateX(0px) scaleX(1)';
                 const rect = el.getBoundingClientRect();
                 const leftDevice = rect.left * dpr;
                 const frac = leftDevice - Math.round(leftDevice);
                 const correction = -frac / dpr;
-                if (Math.abs(correction) > 0.001) {
-                    el.style.transform = `translateX(${correction}px)`;
-                }
+
+                const widthDevice = Math.max(0.0001, rect.width * dpr);
+                const targetDeviceWidth = Math.max(1, Math.round(widthDevice));
+                const scaleX = targetDeviceWidth / widthDevice;
+
+                let t = '';
+                t += Math.abs(correction) > 0.001 ? `translateX(${correction}px)` : 'translateX(0px)';
+                if (Math.abs(scaleX - 1) > 0.001) t += ` scaleX(${scaleX})`;
+
+                el.style.transformOrigin = 'center';
+                el.style.transform = t;
             });
         }
 
