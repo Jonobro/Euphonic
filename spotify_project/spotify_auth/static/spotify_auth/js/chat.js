@@ -1258,6 +1258,19 @@ I’ve talked too much – let’s get started! What can I do for you?`;
         const svg = document.getElementById('segment-animation-svg');
         if (!control || !svg) return;
 
+        const existingDivider = control.querySelector('.segment-divider');
+        const buttonsOnly = Array.from(control.querySelectorAll('.segment-button'));
+        if (!existingDivider && buttonsOnly.length == 3) {
+            for (let i = buttonsOnly.length - 1; i > 0; i--) {
+                const spacer = document.createElement('div');
+                spacer.className = 'segment-divider';
+                const dot = document.createElement('div');
+                dot.className = 'divider-dot';
+                spacer.appendChild(dot);
+                control.insertBefore(spacer, buttonsOnly[i]);
+            }
+        }
+
         const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
         defs.innerHTML = `
             <filter id="glow" x="-50%" y="-50%" width="200%" height="200%" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse">

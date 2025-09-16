@@ -1426,6 +1426,30 @@ body.aria-intro-active .segmented-control {
     vector-effect: non-scaling-stroke;
 }
 
+.segment-divider {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    margin: 0 8px;
+    pointer-events: none;
+}
+
+.divider-dot {
+    display: block;
+    border: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%,
+        rgba(30, 200, 90, 0.95) 0%,
+        rgba(30, 200, 90, 0.70) 55%,
+        rgba(30, 200, 90, 0.15) 100%);
+    box-shadow: 0 0 6px rgba(30, 200, 90, 0.6);
+    opacity: 0.95;
+}
+
 .hamburger-menu-container {
     position: relative;
     display: inline-block;
