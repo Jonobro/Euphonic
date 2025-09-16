@@ -1440,14 +1440,14 @@ body.aria-intro-active .segmented-control {
 .divider-element {
     display: block;
     border: 0;
-    width: 2px;
+    width: 1px;
     height: 13px;
     border-radius: 9999px;
     background: linear-gradient(to bottom,
         rgba(30, 200, 90, 0.15) 0%,
         rgba(30, 200, 90, 0.80) 50%,
         rgba(30, 200, 90, 0.15) 100%);
-    box-shadow: 0 0 5px rgba(30, 200, 90, 0.6);
+    box-shadow: 0 0 3px rgba(30, 200, 90, 0.4);
     opacity: 0.9;
 }
 
