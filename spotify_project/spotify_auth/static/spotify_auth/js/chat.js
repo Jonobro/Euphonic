@@ -1265,7 +1265,7 @@ I’ve talked too much – let’s get started! What can I do for you?`;
                 const spacer = document.createElement('div');
                 spacer.className = 'segment-divider';
                 const dot = document.createElement('div');
-                dot.className = 'divider-dot';
+                dot.className = 'divider-element';
                 spacer.appendChild(dot);
                 control.insertBefore(spacer, buttonsOnly[i]);
             }
