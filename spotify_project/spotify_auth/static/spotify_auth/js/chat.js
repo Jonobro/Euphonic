@@ -1285,6 +1285,21 @@ I’ve talked too much – let’s get started! What can I do for you?`;
 
         const buttons = Array.from(control.querySelectorAll('.segment-button'));
 
+        function snapAllDividersToPixelGrid() {
+            const dpr = window.devicePixelRatio || 1;
+            const divs = control.querySelectorAll('.divider-element');
+            divs.forEach(el => {
+                el.style.transform = 'translateX(0px)';
+                const rect = el.getBoundingClientRect();
+                const leftDevice = rect.left * dpr;
+                const frac = leftDevice - Math.round(leftDevice);
+                const correction = -frac / dpr;
+                if (Math.abs(correction) > 0.001) {
+                    el.style.transform = `translateX(${correction}px)`;
+                }
+            });
+        }
+
         const getStrokeWidth = () => {
             const activeBtn = control.querySelector('.segment-button.active');
             if (activeBtn) {
@@ -1570,5 +1585,13 @@ I’ve talked too much – let’s get started! What can I do for you?`;
                 });
             }, { capture: true });
         });
+
+        window.addEventListener('resize', () => {
+            if (isAnimating) return;
+            ensureSVGSize();
+            snapAllDividersToPixelGrid();
+        });
+
+        requestAnimationFrame(() => snapAllDividersToPixelGrid());
     })();
 });
