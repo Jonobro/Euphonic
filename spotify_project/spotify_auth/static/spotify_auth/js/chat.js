@@ -218,6 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveDisabledState(map) {
         try { localStorage.setItem(DISABLED_STATE_KEY, JSON.stringify(map)); } catch {}
     }
+
+    let ariaIntroInProgress = false;
+    const pendingEphemeralMessages = [];
     
     function setModeDisabledPersist(mode, disabled) {
         const map = loadDisabledState();
@@ -243,6 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         sessionStorage.setItem('ariaIntroShown', '1');
         document.body.classList.add('aria-intro-active');
+        ariaIntroInProgress = true;
 
         const splashContainer = document.createElement('div');
         splashContainer.className = 'aria-intro-splash';
@@ -290,6 +294,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                     splashContainer.remove();
                     document.body.classList.remove('aria-intro-active');
+                    ariaIntroInProgress = false;
+                    if (pendingEphemeralMessages.length) {
+                        const toFlush = pendingEphemeralMessages.splice(0);
+                        toFlush.forEach(({ text, sender, allowBlurFade }) => {
+                            addEphemeralMessage(text, sender, allowBlurFade);
+                        });
+                    }
                     done && done();
                 }, 850);
             }, step1 + step3);
@@ -609,6 +620,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addEphemeralMessage(text, sender='ai', allowBlurFade=false) {
+        if (ariaIntroInProgress) {
+            pendingEphemeralMessages.push({ text, sender, allowBlurFade });
+            return;
+        }
         const prev = suppressHistoryUpdate;
         suppressHistoryUpdate = true;
         addMessage(text, sender, true, allowBlurFade);
@@ -1210,8 +1225,6 @@ I’ve talked too much – let’s get started! What can I do for you?`;
                             initialAnalysisEventSource = null;
                             return;
                         }
-                        if (loadingIndicator) loadingIndicator.remove();
-                        if (loadingInterval) clearInterval(loadingInterval);
                         const errorData = JSON.parse(e.data);
                         addEphemeralMessage(`Sorry, an error occurred while processing your request. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
                         console.error('Stream error:', errorData.message);
@@ -1227,8 +1240,6 @@ I’ve talked too much – let’s get started! What can I do for you?`;
                             initialAnalysisEventSource = null;
                             return;
                         }
-                        if (loadingIndicator) loadingIndicator.remove();
-                        if (loadingInterval) clearInterval(loadingInterval);
                         addEphemeralMessage(`Sorry, a connection error occurred while fetching your analysis. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
                         es.close();
                         initialAnalysisEventSource = null;
@@ -1589,7 +1600,7 @@ I’ve talked too much – let’s get started! What can I do for you?`;
                     setTimeout(() => {
                         modeSwitchCooldown = false;
                         buttons.forEach(b => b.style.pointerEvents='');
-                    }, 200);
+                    }, 300);
                 });
             }, { capture: true });
         });
