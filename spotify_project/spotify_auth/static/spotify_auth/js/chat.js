@@ -1094,7 +1094,8 @@ I’ve talked too much – let’s get started! What can I do for you?`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
                 if (existingMessages.length === 0) {
-                    addMessage(initialMessage, 'ai', false, true);
+                    const el = addMessage(initialMessage, 'ai', false, true);
+                    el.classList.add('initial-mode-message');
                 }
             }, 0);
         } else if (mode === 'new_songs') {
@@ -1120,7 +1121,8 @@ I’ve talked too much – let’s get started! What can I do for you?`;
                 setTimeout(() => {
                     const existingMessages = messageList.querySelectorAll('.message');
                     if (existingMessages.length === 0) {
-                        addMessage(initialMessage, 'ai', false, true);
+                        const el = addMessage(initialMessage, 'ai', false, true);
+                        el.classList.add('initial-mode-message');
                     }
                 }, 0);
             };
@@ -1253,6 +1255,9 @@ I’ve talked too much – let’s get started! What can I do for you?`;
                 if (data.error) {
                     console.error(`Initialization failed: ${data.error}`);
                     addEphemeralMessage(`Sorry, there was a problem initializing the chat. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
+                    const intros = messageList.querySelectorAll('.initial-mode-message');
+                    intros.forEach(el => el.remove());
+                    toggleChatInput(true);
                 }
             }
         })
@@ -1261,6 +1266,11 @@ I’ve talked too much – let’s get started! What can I do for you?`;
             if (analysisLoadingInterval) { clearInterval(analysisLoadingInterval); analysisLoadingInterval = null; }
             console.error("Initialization error:", error);
             addEphemeralMessage(`Sorry, there was a problem initializing the chat. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
+            if (mode === 'saved_songs' || mode === 'new_songs') {
+                const intros = messageList.querySelectorAll('.initial-mode-message');
+                intros.forEach(el => el.remove());
+                toggleChatInput(true);
+            }
         });
     }
 
@@ -1268,19 +1278,6 @@ I’ve talked too much – let’s get started! What can I do for you?`;
         const control = document.querySelector('.segmented-control');
         const svg = document.getElementById('segment-animation-svg');
         if (!control || !svg) return;
-
-        const existingDivider = control.querySelector('.segment-divider');
-        const buttonsOnly = Array.from(control.querySelectorAll('.segment-button'));
-        if (!existingDivider && buttonsOnly.length == 3) {
-            for (let i = buttonsOnly.length - 1; i > 0; i--) {
-                const spacer = document.createElement('div');
-                spacer.className = 'segment-divider';
-                const dot = document.createElement('div');
-                dot.className = 'divider-element';
-                spacer.appendChild(dot);
-                control.insertBefore(spacer, buttonsOnly[i]);
-            }
-        }
 
         const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
         defs.innerHTML = `
@@ -1295,29 +1292,6 @@ I’ve talked too much – let’s get started! What can I do for you?`;
         svg.appendChild(defs);
 
         const buttons = Array.from(control.querySelectorAll('.segment-button'));
-
-        function snapAllDividersToPixelGrid() {
-            const dpr = window.devicePixelRatio || 1;
-            const divs = control.querySelectorAll('.divider-element');
-            divs.forEach(el => {
-                el.style.transform = 'translateX(0px) scaleX(1)';
-                const rect = el.getBoundingClientRect();
-                const leftDevice = rect.left * dpr;
-                const frac = leftDevice - Math.round(leftDevice);
-                const correction = -frac / dpr;
-
-                const widthDevice = Math.max(0.0001, rect.width * dpr);
-                const targetDeviceWidth = Math.max(1, Math.round(widthDevice));
-                const scaleX = targetDeviceWidth / widthDevice;
-
-                let t = '';
-                t += Math.abs(correction) > 0.001 ? `translateX(${correction}px)` : 'translateX(0px)';
-                if (Math.abs(scaleX - 1) > 0.001) t += ` scaleX(${scaleX})`;
-
-                el.style.transformOrigin = 'center';
-                el.style.transform = t;
-            });
-        }
 
         const getStrokeWidth = () => {
             const activeBtn = control.querySelector('.segment-button.active');
@@ -1357,7 +1331,14 @@ I’ve talked too much – let’s get started! What can I do for you?`;
 
         function ensureSVGSize() {
             const r = control.getBoundingClientRect();
-            const cssH = parseFloat(getComputedStyle(control).getPropertyValue('--segmented-control-height'));
+            const cs = getComputedStyle(control);
+
+            let cssH = parseFloat((cs.getPropertyValue('--segmented-control-height') || '').trim());
+            if (!Number.isFinite(cssH) || cssH <= 0) {
+                cssH = r.height || control.offsetHeight || 39;
+                control.style.setProperty('--segmented-control-height', `${cssH}px`);
+            }
+
             svg.setAttribute('width', r.width);
             svg.setAttribute('height', cssH);
             svg.setAttribute('viewBox', `0 0 ${r.width} ${cssH}`);
@@ -1604,13 +1585,5 @@ I’ve talked too much – let’s get started! What can I do for you?`;
                 });
             }, { capture: true });
         });
-
-        window.addEventListener('resize', () => {
-            if (isAnimating) return;
-            ensureSVGSize();
-            snapAllDividersToPixelGrid();
-        });
-
-        requestAnimationFrame(() => snapAllDividersToPixelGrid());
     })();
 });
