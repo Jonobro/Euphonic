@@ -30,7 +30,6 @@ function openModal(type) {
     title.textContent = entry.title;
     body.innerHTML = document.getElementById(entry.tpl).innerHTML;
     modal.style.display = 'block';
-    document.body.classList.add('modal-open');
     requestAnimationFrame(() => {
         modal.classList.add('open');
     });
@@ -43,7 +42,6 @@ function closeModal() {
     modal.classList.remove('open');
     const tidy = () => {
         modal.style.display = 'none';
-        document.body.classList.remove('modal-open');
         modal.removeEventListener('transitionend', tidy);
     };
     modal.addEventListener('transitionend', tidy);
@@ -168,7 +166,6 @@ function openImportModal(switchToModeOnCompletion) {
 
     const importModal = document.getElementById('importModal');
     importModal.style.display = 'block';
-    document.body.classList.add('modal-open');
 
     const panel = importModal.querySelector('.import-modal-content');
     if (panel) {
@@ -201,7 +198,6 @@ function closeImportModal() {
 
     const tidy = () => {
         importModal.style.display = 'none';
-        document.body.classList.remove('modal-open');
         importModal.removeEventListener('transitionend', tidy);
         detachImportModalSizing();
 

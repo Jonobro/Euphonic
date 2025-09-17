@@ -649,6 +649,9 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     overflow-y: auto;
     opacity: 0;
     pointer-events: none;
+}
+
+.general-modal:not(#legalModal) {
     transition:
         background-color 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
         opacity 220ms ease-out;
@@ -660,8 +663,8 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     pointer-events: auto;
 }
 
-body.modal-open {
-    overflow: hidden;
+#legalModal.open {
+    background-color: rgb(0, 0, 0);
 }
 
 .legal-modal-content {
