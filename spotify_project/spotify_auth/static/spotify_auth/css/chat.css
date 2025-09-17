@@ -681,7 +681,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .import-modal-content {
     background-color: #161616;
-    padding: 18px 30px 21px 30px;
+    padding: 18px 92px 21px 92px;
     border-radius: 10px;
     position: fixed;
     top: var(--import-top, 6%);
@@ -700,6 +700,17 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     overflow-y: auto;
     backface-visibility: hidden;
     box-sizing: border-box;
+    background-image: radial-gradient(
+        ellipse 50% 70% at 50% 50%,
+        rgba(30, 200, 90, 0.30) 0%,
+        rgba(30, 200, 90, 0.16) 38%,
+        rgba(30, 200, 90, 0.08) 58%,
+        rgba(30, 200, 90, 0.04) 72%,
+        transparent 82%
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-position: center;
 }
 
 .legal-modal-content.has-scrollbar,
@@ -951,7 +962,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 .playlist-success-state {
     position: relative;
     background: rgba(42, 42, 42, 0.6);
-    border: 1px solid rgba(30, 200, 90, 0.9);
+    border: 1px solid #e0e0e0;
     border-radius: 25px;
     padding: 5px 5px;
     display: flex;
@@ -1306,7 +1317,6 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 .modal-body p.import-instructions {
     font-size: 0.825rem;
     margin-bottom: 15px;
-    max-width: 79%;
 }
 
 .import-help-icon {
