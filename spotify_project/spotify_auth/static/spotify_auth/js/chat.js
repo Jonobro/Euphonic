@@ -326,6 +326,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function watchScrollbar(el) {
+        if (!el) return;
+        const update = () => {
+            const needsYScroll = el.scrollHeight > el.clientHeight + 1; // Add one to avoid false positives due to subpixel differences
+            el.classList.toggle('has-scrollbar', needsYScroll);
+        };
+        const ro = new ResizeObserver(update);
+        ro.observe(el);
+        const mo = new MutationObserver(update);
+        mo.observe(el, { childList: true, subtree: true, characterData: true });
+        window.addEventListener('resize', update, { passive: true });
+        update();
+    }
+
+    document.querySelectorAll('.import-modal-content, .legal-modal-content')
+        .forEach(watchScrollbar);
+    
     function shouldShowActionPlaceholder() {
         const aiMessages = document.querySelectorAll('.ai-message.has-playlist-button');
         for (const msg of aiMessages) {

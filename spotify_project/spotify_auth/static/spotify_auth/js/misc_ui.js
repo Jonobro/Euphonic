@@ -73,13 +73,13 @@ function adjustImportModalBounds() {
         const hr = header.getBoundingClientRect();
         const lr = list.getBoundingClientRect();
 
-        const top = hr.top;
+        const top = hr.top - 5;
         const left = Math.min(hr.left, lr.left);
         const right = Math.max(hr.right, lr.right);
         const bottom = lr.bottom;
 
         const width = Math.max(0, right - left);
-        const height = Math.max(0, bottom - top);
+        const height = Math.max(0, bottom - top) + 5;
 
         panel.style.setProperty('--import-top', `${Math.max(0, top)}px`);
         panel.style.setProperty('--import-left', `${Math.max(0, left)}px`);
