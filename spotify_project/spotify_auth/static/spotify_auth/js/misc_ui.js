@@ -30,10 +30,23 @@ function openModal(type) {
     title.textContent = entry.title;
     body.innerHTML = document.getElementById(entry.tpl).innerHTML;
     modal.style.display = 'block';
+    document.body.classList.add('modal-open');
+    requestAnimationFrame(() => {
+        modal.classList.add('open');
+    });
 }
 
 function closeModal() {
-    document.getElementById('legalModal').style.display = 'none';
+    const modal = document.getElementById('legalModal');
+    if (!modal) return;
+
+    modal.classList.remove('open');
+    const tidy = () => {
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        modal.removeEventListener('transitionend', tidy);
+    };
+    modal.addEventListener('transitionend', tidy);
 }
 
 if (window.pendingModeSwitch === undefined) {
@@ -42,6 +55,85 @@ if (window.pendingModeSwitch === undefined) {
 
 if (window.hasImportedPlaylists === undefined) {
     window.hasImportedPlaylists = false;
+}
+
+let _importModalResizeObserver = null;
+let _importModalAdjustBound = null;
+
+function adjustImportModalBounds() {
+    try {
+        const importModal = document.getElementById('importModal');
+        if (!importModal || !importModal.classList.contains('open')) return;
+
+        const panel = importModal.querySelector('.import-modal-content');
+        const header = document.querySelector('.header-row');
+        const list = document.getElementById('message-list');
+        if (!panel || !header || !list) return;
+
+        const hr = header.getBoundingClientRect();
+        const lr = list.getBoundingClientRect();
+
+        const top = hr.top;
+        const left = Math.min(hr.left, lr.left);
+        const right = Math.max(hr.right, lr.right);
+        const bottom = lr.bottom;
+
+        const width = Math.max(0, right - left);
+        const height = Math.max(0, bottom - top);
+
+        panel.style.setProperty('--import-top', `${Math.max(0, top)}px`);
+        panel.style.setProperty('--import-left', `${Math.max(0, left)}px`);
+        panel.style.setProperty('--import-width', `${width}px`);
+        panel.style.setProperty('--import-height', `${height}px`);
+
+        panel.style.setProperty('--import-max-width', 'none');
+        panel.style.setProperty('--import-max-height', 'none');
+        panel.style.setProperty('--import-margin', '0');
+
+        if (!panel.style.getPropertyValue('--import-transform')) {
+            panel.style.setProperty('--import-transform', 'translateY(10px) scale(0.98)');
+        }
+        if (!panel.style.getPropertyValue('--import-transform-open')) {
+            panel.style.setProperty('--import-transform-open', 'translateY(0) scale(1)');
+        }
+    } catch (_) {}
+}
+
+function attachImportModalSizing() {
+    if (_importModalAdjustBound) return;
+    _importModalAdjustBound = () => adjustImportModalBounds();
+
+    window.addEventListener('resize', _importModalAdjustBound, { passive: true });
+    window.addEventListener('scroll', _importModalAdjustBound, { passive: true });
+
+    try {
+        const header = document.querySelector('.header-row');
+        const list = document.getElementById('message-list');
+        if (window.ResizeObserver && header && list) {
+            _importModalResizeObserver = new ResizeObserver(_importModalAdjustBound);
+            _importModalResizeObserver.observe(header);
+            _importModalResizeObserver.observe(list);
+        }
+    } catch (_) {}
+}
+
+function detachImportModalSizing() {
+    window.removeEventListener('resize', _importModalAdjustBound || (() => {}));
+    window.removeEventListener('scroll', _importModalAdjustBound || (() => {}));
+    _importModalAdjustBound = null;
+
+    if (_importModalResizeObserver) {
+        try { _importModalResizeObserver.disconnect(); } catch (_) {}
+        _importModalResizeObserver = null;
+    }
+
+    const panel = document.querySelector('#importModal .import-modal-content');
+    if (panel) {
+        ['--import-top','--import-left','--import-width','--import-height',
+         '--import-max-width','--import-max-height','--import-margin',
+         '--import-transform','--import-transform-open']
+        .forEach(v => panel.style.removeProperty(v));
+    }
 }
 
 function setImportUiState() {
@@ -67,12 +159,29 @@ function openImportModal(switchToModeOnCompletion) {
     if (switchToModeOnCompletion) {
         window.pendingModeSwitch = switchToModeOnCompletion;
     }
+
+    setImportUiState();
+    
     if (window.playlistImport && typeof window.playlistImport.resetPlaylistData === 'function') {
         window.playlistImport.resetPlaylistData();
     }
 
-    document.getElementById('importModal').style.display = 'block';
-    setImportUiState();
+    const importModal = document.getElementById('importModal');
+    importModal.style.display = 'block';
+    document.body.classList.add('modal-open');
+
+    const panel = importModal.querySelector('.import-modal-content');
+    if (panel) {
+        panel.style.setProperty('--import-transform', 'translateY(10px) scale(0.98)');
+        panel.style.setProperty('--import-transform-open', 'translateY(0) scale(1)');
+    }
+
+    requestAnimationFrame(() => {
+        importModal.classList.add('open');
+        adjustImportModalBounds();
+        attachImportModalSizing();
+        setTimeout(adjustImportModalBounds, 100);
+    });
 
     if (window.playlistImport) {
         if (typeof window.playlistImport.initialize === 'function') {
@@ -85,10 +194,22 @@ function openImportModal(switchToModeOnCompletion) {
 }
 
 function closeImportModal() {
-    document.getElementById('importModal').style.display = 'none';
-    if (window.playlistImport && typeof window.playlistImport.resetPlaylistData === 'function') {
-        window.playlistImport.resetPlaylistData();
-    }
+    const importModal = document.getElementById('importModal');
+    if (!importModal) return;
+
+    importModal.classList.remove('open');
+
+    const tidy = () => {
+        importModal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        importModal.removeEventListener('transitionend', tidy);
+        detachImportModalSizing();
+
+        if (window.playlistImport && typeof window.playlistImport.resetPlaylistData === 'function') {
+            window.playlistImport.resetPlaylistData();
+        }
+    };
+    importModal.addEventListener('transitionend', tidy);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
