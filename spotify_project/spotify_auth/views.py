@@ -1935,6 +1935,16 @@ def stream_initial_analysis(request):
         referer = request.META.get('HTTP_REFERER')
         _log_to_file(GENERAL_LOG_FILE, f"Forbidden SSE request to stream_initial_analysis. Origin: {origin}, Referer: {referer}")
         return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    session_key = request.session.session_key
+    stream_id = str(uuid.uuid4())
+    slot_key = f"sse:analysis:{session_key}"
+    slot_ttl = ANALYSIS_EVENT_TIMEOUT + 60
+    try:
+        REDIS_CLIENT.set(slot_key, stream_id, ex=slot_ttl)
+    except Exception as e:
+        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: failed to set slot key {slot_key}: {e}")
+
     def event_stream():
         try:
             final_history = request.session.get('final_analysis_chat_history')
@@ -1943,7 +1953,6 @@ def stream_initial_analysis(request):
                 yield f"data: {json.dumps({'response': final_history})}\n\n"
                 return
 
-            session_key = request.session.session_key
             if not session_key:
                 _log_to_file(GENERAL_LOG_FILE, "stream_initial_analysis: No valid session_key found; aborting SSE stream.")
                 yield f"event: stream_error\ndata: {json.dumps({'message': 'No valid session.'})}\n\n"
@@ -1961,10 +1970,25 @@ def stream_initial_analysis(request):
 
             start_time = time.time()
             last_keepalive = start_time
+            last_ttl_refresh = start_time
 
             try:
                 while True:
                     now = time.time()
+
+                    try:
+                        owner = REDIS_CLIENT.get(slot_key)
+                        if isinstance(owner, bytes):
+                            owner = owner.decode('utf-8')
+                        if owner != stream_id:
+                            _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: stream replaced for session {session_key}; exiting.")
+                            return
+                        if now - last_ttl_refresh >= 10:
+                            REDIS_CLIENT.expire(slot_key, slot_ttl)
+                            last_ttl_refresh = now
+                    except Exception as e:
+                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: slot check/refresh failed for {slot_key}: {e}")
+
                     if now - start_time > ANALYSIS_EVENT_TIMEOUT:
                         _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Timeout ({ANALYSIS_EVENT_TIMEOUT}s) waiting for analysis on channel '{channel}'.")
                         yield f"event: stream_error\ndata: {json.dumps({'message': 'Timeout waiting for musical analysis.'})}\n\n"
@@ -2044,6 +2068,15 @@ def stream_initial_analysis(request):
         except Exception as e:
             _log_to_file(GENERAL_LOG_FILE, f"SSE error in stream_initial_analysis outer handler: {e}")
             yield f"event: stream_error\ndata: {json.dumps({'message': 'Server error during streaming.'})}\n\n"
+        finally:
+            try:
+                owner = REDIS_CLIENT.get(slot_key)
+                if isinstance(owner, bytes):
+                    owner = owner.decode('utf-8')
+                if owner == stream_id:
+                    REDIS_CLIENT.delete(slot_key)
+            except Exception as e:
+                _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: failed to release slot {slot_key}: {e}")
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'
@@ -2058,12 +2091,22 @@ def stream_chat_response(request, task_id):
         referer = request.META.get('HTTP_REFERER')
         _log_to_file(GENERAL_LOG_FILE, f"Forbidden SSE request to stream_chat_response. Origin: {origin}, Referer: {referer}, Task: {task_id}")
         return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    stream_id = str(uuid.uuid4())
+    slot_key = f"sse:chat:{task_id}"
+    slot_ttl = CHAT_EVENT_TIMEOUT + 60
+    try:
+        REDIS_CLIENT.set(slot_key, stream_id, ex=slot_ttl)
+    except Exception as e:
+        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] failed to set slot key {slot_key}: {e}")
+
     def event_stream():
         channel = f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}"
         _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Opening stream for task {task_id} on channel '{channel}'")
         pubsub = REDIS_CLIENT.pubsub()
         start_time = time.time()
         last_keepalive = start_time
+        last_ttl_refresh = start_time
         try:
             try:
                 pubsub.subscribe(channel)
@@ -2113,6 +2156,20 @@ def stream_chat_response(request, task_id):
 
             while True:
                 now = time.time()
+
+                try:
+                    owner = REDIS_CLIENT.get(slot_key)
+                    if isinstance(owner, bytes):
+                        owner = owner.decode('utf-8')
+                    if owner != stream_id:
+                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] stream replaced for task {task_id}; exiting.")
+                        return
+                    if now - last_ttl_refresh >= 10:
+                        REDIS_CLIENT.expire(slot_key, slot_ttl)
+                        last_ttl_refresh = now
+                except Exception as e:
+                    _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] slot check/refresh failed for {slot_key}: {e}")
+
                 if now - start_time > CHAT_EVENT_TIMEOUT:
                     _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Timeout ({CHAT_EVENT_TIMEOUT}s) for task {task_id}")
                     err = {'message': 'Request timed out.'}
@@ -2129,14 +2186,13 @@ def stream_chat_response(request, task_id):
                     _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error retrieving Redis message task {task_id}: {get_msg_err}")
                     continue
 
-                if not message:
+                if not message or message['type'] != 'message':
                     continue
-                if message['type'] != 'message':
-                    continue
-                
+
                 payload = message['data']
                 if isinstance(payload, bytes):
                     payload = payload.decode('utf-8')
+
                 if payload == 'completed':
                     try:
                         result = cache.get(task_id)
@@ -2207,6 +2263,15 @@ def stream_chat_response(request, task_id):
                 _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Closed pubsub for task {task_id}")
             except Exception as close_err:
                 _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error closing pubsub task {task_id}: {close_err}")
+
+            try:
+                owner = REDIS_CLIENT.get(slot_key)
+                if isinstance(owner, bytes):
+                    owner = owner.decode('utf-8')
+                if owner == stream_id:
+                    REDIS_CLIENT.delete(slot_key)
+            except Exception as e:
+                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] failed to release slot {slot_key}: {e}")
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'

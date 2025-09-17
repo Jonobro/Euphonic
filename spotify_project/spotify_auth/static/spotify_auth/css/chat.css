@@ -1379,7 +1379,7 @@ body.aria-intro-active .segmented-control {
     white-space: nowrap;
     border-radius: 20px;
     padding: 6px 0px;
-    font-size: 15px;
+    font-size: 15.5px;
     color: #e0e0e0;
     word-spacing: 1px;
     display: flex;
@@ -1551,6 +1551,19 @@ body.aria-intro-active .hamburger-menu-container {
 
     .segmented-control .segment-icon {
         display: none !important;
+    }
+
+    .segmented-control {
+        display: flex;
+        background-color: transparent;
+        border: 1px solid #535353;
+        box-shadow: 0 0 4px rgba(30, 200, 90, 0.3), 0 0 8px rgba(30, 200, 90, 0.1), 0 0 12px rgba(30, 200, 90, 0.06);
+        width: 100%;
+        border-radius: 20px;
+        align-items: center;
+        position: relative;
+        overflow: visible;
+        gap: 0px;
     }
 
     .header-logo {
