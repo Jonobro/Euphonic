@@ -137,7 +137,7 @@ function detachImportModalSizing() {
 function setImportUiState() {
     const labelEl = document.querySelector('#import-music-link .dropdown-link-text');
     const tooltipEl = document.querySelector('#import-music-link .dropdown-tooltip');
-    const headerEl = document.querySelector('#importModal .modal-header h2');
+    const headerEl = document.querySelector('#importModal .import-modal-header h2');
 
     if (window.hasImportedPlaylists) {
         if (labelEl) labelEl.textContent = 'Edit Imported Playlists';

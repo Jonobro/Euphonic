@@ -701,12 +701,12 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     backface-visibility: hidden;
     box-sizing: border-box;
     background-image: radial-gradient(
-        ellipse 50% 70% at 50% 50%,
-        rgba(30, 200, 90, 0.30) 0%,
-        rgba(30, 200, 90, 0.16) 38%,
-        rgba(30, 200, 90, 0.08) 58%,
-        rgba(30, 200, 90, 0.04) 72%,
-        transparent 82%
+        ellipse 300% 70% at 50% 48%,
+        rgba(30, 200, 90, 0.11) 0%,
+        rgba(30, 200, 90, 0.08) 38%,
+        rgba(30, 200, 90, 0.04) 58%,
+        rgba(30, 200, 90, 0.01) 88%,
+        transparent 100%
     );
     background-repeat: no-repeat;
     background-size: 100% 100%;
@@ -724,17 +724,33 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     opacity: 1;
 }
 
-.modal-header {
+.legal-modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #444;
     padding-bottom: 11px;
     margin-bottom: 16px;
+    margin-top: -10px;
 }
 
-.modal-header h2 {
-    color: rgb(27, 180, 81);
+.legal-modal-header h2 {
+    color: rgb(30, 200, 90);
+    margin: 0;
+}
+
+.import-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #444;
+    padding-bottom: 11px;
+    margin-bottom: 16px;
+    margin-top: 6px;
+}
+
+.import-modal-header h2 {
+    color: rgb(33, 220, 99);
     margin: 0;
 }
 
@@ -961,7 +977,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .playlist-success-state {
     position: relative;
-    background: rgba(42, 42, 42, 0.6);
+    background: #181818;
     border: 1px solid #e0e0e0;
     border-radius: 25px;
     padding: 5px 5px;
