@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!helpBtn || !panel) return;
         helpBtn.addEventListener('click', () => {
             panel.hidden = !panel.hidden;
+            requestAnimationFrame(() => {
+                recalcSuccessPillOffsets();
+            });
         });
     })();
 
@@ -404,6 +407,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1200);
     }
 
+    function recalcSuccessPillOffsets() {
+        const containers = document.querySelectorAll('#playlistInputsContainer .playlist-input-container');
+        containers.forEach(inputContainer => {
+            const successElement = inputContainer.querySelector('.playlist-success-state');
+            if (!successElement) return;
+            const containerRect = inputContainer.getBoundingClientRect();
+            const elementRect = successElement.getBoundingClientRect();
+            const distanceToLeft = elementRect.left - containerRect.left - 5.5;
+            successElement.style.transition = 'none';
+            successElement.style.transform = `translateX(-${distanceToLeft}px)`;
+        });
+    }
+
     function renderPlaylistInputs() {
         const container = document.getElementById('playlistInputsContainer');
         if (!container) return;
@@ -538,13 +554,46 @@ document.addEventListener('DOMContentLoaded', () => {
         
         playlistStates = playlistStates.map(p => ({ ...p, justSucceeded: false }));
     }
+    
+    function computeDefaultVisibleCount() {
+        const modalBody = document.querySelector('#importModal .modal-body');
+        const inputsContainer = document.getElementById('playlistInputsContainer');
+        if (!modalBody || !inputsContainer) return;
+        const groups = inputsContainer.querySelectorAll('.playlist-input-group');
+        if (groups.length === 0) return;
+        const bodyRect = modalBody.getBoundingClientRect();
+        if (bodyRect.height <= 0) return;
+        const addSection = inputsContainer.querySelector('.playlist-add-button-container');
+        const addSectionRect = addSection.getBoundingClientRect();
+
+        const styles = window.getComputedStyle(modalBody);
+        const paddingBottom = parseFloat(styles.paddingBottom) || 0;
+        const containerRect = inputsContainer.getBoundingClientRect();
+        const rowStep = groups[0].getBoundingClientRect().height;
+
+        const availableSpace = bodyRect.height - (containerRect.top - bodyRect.top) - paddingBottom - addSectionRect.height - 1;
+        let count = Math.floor(availableSpace / rowStep);
+
+        const total = playlistStates.length;
+
+        if (!Number.isFinite(count)) count = 1;
+        if (count < 1) count = 1;
+        if (count > total) count = total;
+        if (count !== visibleCount) {
+            visibleCount = count;
+            renderPlaylistInputs();
+        }
+    }
 
     function initialize() {
         visibleCount = 3;
         renderPlaylistInputs();
         updateImportButton();
         updateModalInteractivity();
-        
+        requestAnimationFrame(() => {
+            computeDefaultVisibleCount();
+        });
+
         const importBtn = document.getElementById('importPlaylistsBtn');
         if (importBtn) {
             importBtn.addEventListener('click', handleImportAll);
