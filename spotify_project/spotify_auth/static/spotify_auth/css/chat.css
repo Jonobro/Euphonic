@@ -744,14 +744,14 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #444;
-    padding-bottom: 11px;
     margin-bottom: 16px;
-    margin-top: 6px;
+    margin-top: 12px;
 }
 
 .import-modal-header h2 {
     color: rgb(33, 220, 99);
     margin: 0;
+    font-weight: 500;
 }
 
 .close-modal {
