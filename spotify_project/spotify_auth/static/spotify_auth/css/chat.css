@@ -1359,7 +1359,13 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     }
 }
 
-.modal-body p.import-instructions {
+.modal-body p.import-instructions-one {
+    font-size: 0.825rem;
+    margin-bottom: 13px;
+    margin-top: 0px;
+}
+
+.modal-body p.import-instructions-two {
     font-size: 0.825rem;
     margin-bottom: 15px;
     margin-top: 0px;

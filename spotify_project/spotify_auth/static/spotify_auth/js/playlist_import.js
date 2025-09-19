@@ -561,19 +561,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!modalBody || !inputsContainer) return;
         const groups = inputsContainer.querySelectorAll('.playlist-input-group');
         if (groups.length === 0) return;
-        const bodyRect = modalBody.getBoundingClientRect();
-        if (bodyRect.height <= 0) return;
+        const bodyHeight = modalBody.clientHeight;
+        if (bodyHeight <= 0) return;
         const addSection = inputsContainer.querySelector('.playlist-add-button-container');
-        const addSectionRect = addSection.getBoundingClientRect();
+        const addSectionHeight = addSection.clientHeight;
 
         const styles = window.getComputedStyle(modalBody);
+        const paddingTop = parseFloat(styles.paddingTop) || 0;
         const paddingBottom = parseFloat(styles.paddingBottom) || 0;
-        const containerRect = inputsContainer.getBoundingClientRect();
-        const rowStep = groups[0].getBoundingClientRect().height;
 
-        const availableSpace = bodyRect.height - (containerRect.top - bodyRect.top) - paddingBottom - addSectionRect.height - 1;
+        const p1 = modalBody.querySelector('p.import-instructions-one');
+        const p2 = modalBody.querySelector('p.import-instructions-two');
+        const p1Height = p1.clientHeight;
+        const p2Height = p2.clientHeight;
+        const p1Style = window.getComputedStyle(p1);
+        const p2Style = window.getComputedStyle(p2);
+        const p1MarginBottom = parseFloat(p1Style.marginBottom) || 0;
+        const p2MarginBottom = parseFloat(p2Style.marginBottom) || 0;
+
+        const groupStyle = window.getComputedStyle(groups[0]);
+        const rowStep = groups[0].clientHeight + parseFloat(groupStyle.marginBottom);
+        if (rowStep <= 0) return;
+
+        const consumed = p1Height + p1MarginBottom + p2Height + p2MarginBottom + addSectionHeight + paddingTop + paddingBottom;
+        const availableSpace = Math.max(0, bodyHeight - consumed - 1);
         let count = Math.floor(availableSpace / rowStep);
-
+        
         const total = playlistStates.length;
 
         if (!Number.isFinite(count)) count = 1;
@@ -588,11 +601,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function initialize() {
         visibleCount = 3;
         renderPlaylistInputs();
-        updateImportButton();
-        updateModalInteractivity();
         requestAnimationFrame(() => {
             computeDefaultVisibleCount();
         });
+        updateImportButton();
+        updateModalInteractivity();
 
         const importBtn = document.getElementById('importPlaylistsBtn');
         if (importBtn) {
