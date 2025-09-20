@@ -4,7 +4,7 @@ body {
     color: #FFFFFF;
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 17px 20px 18px 20px;
     background-color: #101010;
     background-image: url('../images/EuphonicIntelligenceBackground.png');
     background-repeat: no-repeat;
@@ -16,7 +16,7 @@ body {
 .container {
     background-color: #161616;
     border-radius: 15px;
-    padding: 22.5px 17.5px 20px 20px;
+    padding: 20px 17.5px 20px 20px;
     box-shadow: 1px 4px 8px rgba(0,0,0,0.4);
     visibility: hidden;
     opacity: 0;
@@ -121,7 +121,7 @@ h2, h3, h4, h5, h6 {
     padding: 0px;
     display: flex;
     flex-direction: column;
-    height: 70vh;
+    height: calc(100vh - 257px);
     width: 100%;
 }
 
@@ -407,7 +407,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .spotify-footer {
     text-align: center;
-    margin-top: 17.5px;
+    margin-top: 15.5px;
     color: #B3B3B3;
     font-size: 13px;
     display: flex;
@@ -588,6 +588,8 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     color: rgba(224,224,224,0.85);
     padding: 10px 20px;
     box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5), 2.5px 3.33px 5px rgba(0, 0, 0, 0.2);
+    max-height: 40px;
+    min-height: 40px;
 }
 
 @media (min-width: 769px) {
@@ -677,19 +679,21 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 #legalModal.open {
-    background-color: rgb(0, 0, 0);
+    background-color: #0B0B0B;
 }
 
 .legal-modal-content {
     background-color: #161616;
-    margin: 2% auto;
     padding: 30px;
     border-radius: 10px;
-    width: 90%;
-    max-width: 700px;
-    max-height: 85.5vh;
     overflow-y: auto;
     position: relative;
+    margin: 3% auto;
+    height: calc(100vh - 5vw);
+    width: 94%;
+    box-sizing: border-box;
+    max-width: 800px;
+    margin-top: 2%;
 }
 
 .import-modal-content {
@@ -859,7 +863,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     border-radius: 8px;
     padding: 7px;
     text-align: center;
-    margin-bottom: 15px;
+    margin-bottom: 14px;
     margin-top: -5px;
     visibility: hidden;
     opacity: 0;
@@ -952,6 +956,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     color: #e0e0e0;
     font-weight: 600;
     font-size: 13.5px;
+    gap: 8px;
 }
 
 .playlist-input-group {
@@ -998,6 +1003,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     padding: 0.75rem;
     font-size: 0.875rem;
     transform: translateX(-18px);
+    gap: 6px;
 }
 
 .playlist-error-state {
@@ -1124,7 +1130,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     justify-content: center;
     width: 1.5rem;
     height: 1.5rem;
-    margin-right: 0.5rem;
+    margin-right: 0.3rem;
     margin-left: -0.55rem;
     filter: drop-shadow(0px 0px 1px rgba(30, 200, 90, 0.5)) opacity(0.9) brightness(1.15);
 }
@@ -2026,12 +2032,6 @@ body.aria-intro-active .hamburger-menu-container {
         margin-top: 0px;
     }
 
-	.general-modal.open {
-	    opacity: 1;
-	    background-color: #0B0B0B;
-	    pointer-events: auto;
-	}
-
     .import-help-panel {
 		font-size: 0.825rem;
 		margin-bottom: 6px;
@@ -2077,6 +2077,7 @@ body.aria-intro-active .hamburger-menu-container {
         color: #e0e0e0;
         font-weight: 600;
         font-size: 13.5px;
+        gap: 8px;
     }
 
     .playlist-remove-btn {
@@ -2100,6 +2101,7 @@ body.aria-intro-active .hamburger-menu-container {
         padding: 0.75rem;
         font-size: 0.875rem;
         transform: translateX(-3px);
+        gap: 6px;
     }
 
     .aria-intro-splash {
@@ -2117,16 +2119,15 @@ body.aria-intro-active .hamburger-menu-container {
 	    background-color: #161616;
 	    padding: 18px;
 	    border-radius: 10px;
-	    max-width: 96%;
-	    max-height: calc(100vh - 4vw);
 	    overflow-y: auto;
 	    position: fixed;
 	    width: 96%;
+        max-width: 96%;
 	    margin: 2%;
 	    height: calc(100vh - 4vw);
 	    box-sizing: border-box;
 	}
-	
+
 	.legal-modal-content.has-scrollbar {
 	    border-top-right-radius: 4px;
 	    border-bottom-right-radius: 4px;

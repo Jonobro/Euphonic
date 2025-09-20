@@ -836,7 +836,7 @@ I’ve talked too much – let’s get started! What can I do for you?"""
         # If statement for new songs mode
         if chat_mode == 'new_songs':
             initial_prompt = "Who are you and what can you do for me?"
-            initial_response = """Hey, I’m Aria. Here to help you turn your ideas into playlists.
+            initial_response = """Hey, I’m Aria. Here to help you craft your perfect playlist.
 
 Let’s get to it. What kind of music are you feeling today? You can mention things like:
 
@@ -963,7 +963,7 @@ I’ve talked too much – let’s get started! What can I do for you?"""
 
         elif chat_mode == 'new_songs' and user_action == 'create_another_playlist':
             initial_prompt = "Who are you and what can you do for me?"
-            initial_response = """Hey, I’m Aria. Here to help you turn your ideas into playlists.
+            initial_response = """Hey, I’m Aria. Here to help you craft your perfect playlist.
 
 Let’s get to it. What kind of music are you feeling today? You can mention things like:
 

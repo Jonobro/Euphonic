@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showAriaIntroSplash(done) {
         const introText1 = "Hey, I’m Aria.";
-        const introText2 = "Here to help you turn your ideas into playlists.";
+        const introText2 = "Here to help you craft your perfect playlist.";
         if (sessionStorage.getItem('ariaIntroShown')) {
             done && done();
             return;
