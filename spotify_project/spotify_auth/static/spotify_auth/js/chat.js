@@ -1096,9 +1096,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 300);
         } else if (mode === 'saved_songs') {
-            const initialMessage = `Cool – you got some music imported. Let’s craft some custom playlists using your tracks. I can filter through your music using any criteria you can imagine.
-
-Some examples:
+            const initialMessage = `Cool – you got some music imported. Let’s craft some custom playlists using your tracks. I can filter through your music using any criteria you can imagine. Here are some examples:
 
 * Give me a playlist of all my songs from the 90s
 * Make me a playlist of my most niche tracks
