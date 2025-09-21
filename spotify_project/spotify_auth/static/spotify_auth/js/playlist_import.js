@@ -290,9 +290,13 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`Error: ${error.message}`);
         } finally {
             isImporting = false;
-            importBtn.disabled = false;
-            importBtn.textContent = originalText;
-            [modalCloseEl, modalCancelEl].forEach(el => { if (el) el.style.pointerEvents = ''; });
+            const importModal = document.getElementById('importModal');
+            const isModalOpen = importModal && importModal.classList.contains('open');
+            if (isModalOpen) {
+                importBtn.disabled = false;
+                importBtn.textContent = originalText;
+                [modalCloseEl, modalCancelEl].forEach(el => { if (el) el.style.pointerEvents = ''; });
+            }
         }
     }
 

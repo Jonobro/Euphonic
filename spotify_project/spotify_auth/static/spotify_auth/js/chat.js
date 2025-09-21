@@ -1098,16 +1098,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (mode === 'saved_songs') {
             const initialMessage = `Cool – you got some music imported. Let’s craft some custom playlists using your tracks. I can filter through your music using any criteria you can imagine.
 
-Here are some examples of what I can do:
+Some examples:
 
-* Give me a playlist of all of my songs from the 90s
+* Give me a playlist of all my songs from the 90s
+* Make me a playlist of my most niche tracks
 * I’m on a road trip with my grandma – make a playlist of my songs that she might like
 * Create a playlist of all of the dream pop songs in my imported music
-* Make me a playlist of my most niche tracks
-* I’m feeling discouraged today – give me a playlist of my most uplifting songs
-* Make a playlist of all my imported songs that are sung in Spanish
-
-I’ve talked too much – let’s get started! What can I do for you?`;
+* Give me a playlist of my most uplifting songs
+* Make a playlist of all my songs that are sung in Spanish`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
                 if (existingMessages.length === 0) {
@@ -1116,23 +1114,15 @@ I’ve talked too much – let’s get started! What can I do for you?`;
                 }
             }, 0);
         } else if (mode === 'new_songs') {
-            const initialMessage = `Let’s get to it. What kind of music are you feeling today? You can mention things like:
+            const initialMessage = `Let’s get to it. What kind of playlist can I make for you? I can handle requests like:
 
-* Mood (e.g., chill, focused, elated, exhausted)
-* Genres (e.g., 90s rock, lo-fi beats, 50s bluegrass, dream pop)
-* Favorite artists (e.g., create a playlist of songs by Drake, Kendrick Lamar, and J. Cole)
-* A certain activity (e.g., music for studying history, road trip anthems, techno for bullet chess)
-* A specific song (e.g., create a playlist of songs that sound similar to Stairway to Heaven)
-
-What’s cool about me, though, is that I can create custom playlists for you based on any criteria you can imagine. For example:
-
-* Create a playlist of Katy Perry’s worst songs
-* Make a playlist of songs that were produced in another country but blew up in the US
+* Make a playlist of chill lo-fi beats for studying
+* Make a playlist of songs released in 2014
+* Create a playlist of songs by Drake, Kendrick Lamar, and J. Cole
 * Give me a playlist of songs about monkeys
-* Create a playlist of songs that were released in May of 2021
-* Send me a playlist of songs about bowling
-
-I’ve talked too much – let’s get started! What can I do for you?`;
+* Road trip anthems to sing along to
+* Create a playlist of Katy Perry’s worst songs
+* Make a playlist of foreign songs that blew up in the US`;
 
             const injectInitial = () => {
                 setTimeout(() => {

@@ -232,6 +232,14 @@ h2, h3, h4, h5, h6 {
     max-width: 93%;
 }
 
+body[data-chat-mode="new_songs"] .ai-message:first-child ul {
+    padding-left: 25px;
+}
+
+body[data-chat-mode="saved_songs"] .ai-message:first-child ul {
+    padding-left: 20px;
+}
+
 .ai-message.has-playlist-button {
     padding-bottom: 22px;
     margin-left: auto;
