@@ -181,6 +181,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         Working on it...
                     `;
 
+                    const ua = navigator.userAgent || '';
+                    const isAndroid = /Android/i.test(ua);
+                    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+                    let pendingTab = null;
+                    if (!isAndroid && !isIOS) {
+                        pendingTab = window.open('about:blank', '_blank', 'noopener,noreferrer');
+                    }
+
                     const trackUris = trackLinks.map(link => {
                         const url = new URL(link.href);
                         const trackId = url.pathname.split('/').pop();
@@ -203,8 +211,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (response.ok) {
                             const result = await response.json();
-                            await new Promise(resolve => setTimeout(resolve, 1500)); /* Simulated delay for improved UX and to allow for Spotify propagation */
-                            window.open(result.playlist_url, '_blank', 'noopener, noreferrer');
+                            await new Promise(resolve => setTimeout(resolve, 1500)); // Simulated delay for improved UX and to allow for Spotify propagation
+                            
+                            const webUrl = result.playlist_url;
+                            let playlistId = '';
+                            try {
+                                const u = new URL(webUrl);
+                                playlistId = u.pathname.split('/').pop() || '';
+                            } catch (_) {}
+
+                            if (playlistId) {
+                                if (isAndroid) {
+                                    const intentUrl = `intent://playlist/${playlistId}#Intent;scheme=spotify;package=com.spotify.music;S.browser_fallback_url=${encodeURIComponent(webUrl)};end`;
+                                    window.location.href = intentUrl;
+                                } else if (isIOS) {
+                                    const appUrl = `spotify:playlist:${playlistId}`;
+                                    window.location.href = appUrl;
+                                } else {
+                                    if (pendingTab && !pendingTab.closed) {
+                                        pendingTab.location.href = webUrl;
+                                    } else {
+                                        window.open(webUrl, '_blank', 'noopener,noreferrer');
+                                    }
+                                }
+                            } else {
+                                window.open(webUrl, '_blank', 'noopener, noreferrer');
+                            }
                             
                             const messageContainer = document.createElement('div');
                             messageContainer.className = 'message-container';
@@ -236,6 +268,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             throw new Error(errorText);
                         }
                     } catch (error) {
+                        if (pendingTab && !pendingTab.closed) {
+                            pendingTab.close();
+                        }
                         openButton.innerHTML = `Open Playlist in Spotify <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236.05 225.25" style="height: 20px; fill: #141414;"><path d="M122.37 3.31C61.99.91 11.1 47.91 8.71 108.29c-2.4 60.38 44.61 111.26 104.98 113.66 60.38 2.4 111.26-44.6 113.66-104.98C229.74 56.59 182.74 5.7 122.37 3.31m46.18 160.28a6.53 6.53 0 0 1-6.59 3.24c-.79-.11-1.58-.37-2.32-.79-14.46-8.23-30.22-13.59-46.84-15.93s-33.25-1.53-49.42 2.4a6.53 6.53 0 0 1-7.89-4.81 6.53 6.53 0 0 1 4.81-7.89c17.78-4.32 36.06-5.21 54.32-2.64s35.58 8.46 51.49 17.51a6.544 6.544 0 0 1 2.45 8.91Zm14.38-28.72c-2.23 4.12-7.39 5.66-11.51 3.43-16.92-9.15-35.24-15.16-54.45-17.86s-38.47-1.97-57.26 2.16c-1.02.22-2.03.26-3.01.12-3.41-.48-6.33-3.02-7.11-6.59-1.01-4.58 1.89-9.11 6.47-10.12 20.77-4.57 42.06-5.38 63.28-2.4 21.21 2.98 41.46 9.62 60.16 19.74 4.13 2.23 5.66 7.38 3.43 11.51Zm15.94-32.38c-2.1 4.04-6.47 6.13-10.73 5.53a10.5 10.5 0 0 1-3.37-1.08c-19.7-10.25-40.92-17.02-63.07-20.13s-44.42-2.45-66.18 1.97c-5.66 1.15-11.17-2.51-12.32-8.16-1.15-5.66 2.51-11.17 8.16-12.32 24.1-4.89 48.74-5.62 73.25-2.18s47.99 10.94 69.81 22.29c5.12 2.66 7.11 8.97 4.45 14.09Z" style="stroke-width:0"></path></svg>`;
                         openButton.disabled = false;
                         console.error("Error opening playlist:", error);
