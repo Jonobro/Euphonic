@@ -1050,9 +1050,11 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .playlist-success-state .icon {
     filter: hue-rotate(240deg) brightness(1.2) contrast(1.2) saturate(1.65);
-    font-size: 15.5px;
     margin-left: 11px;
     margin-right: 1px;
+    margin-top: 1px;
+    width: 20px;
+    height: 20px;
 }
 
 .playlist-name {

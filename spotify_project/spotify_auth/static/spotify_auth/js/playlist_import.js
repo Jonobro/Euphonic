@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     content = `
                         <div class="playlist-success-state">
                             <div class="playlist-success-content">
-                                <img class="icon" src="/static/spotify_auth/images/MusicEmoji.webp" alt="" style="width:16px;height:16px;"/>
+                                <img class="icon" src="/static/spotify_auth/images/MusicEmoji.webp" alt=""/>
                                 <div class="playlist-success-info">
                                     <div class="playlist-name">${playlist.name}</div>
                                     ${trackMarkup}
