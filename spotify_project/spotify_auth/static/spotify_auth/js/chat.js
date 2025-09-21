@@ -1120,7 +1120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 * Give me a playlist of songs about monkeys
 * Road trip anthems to sing along to
 * Create a playlist of Katy Perry’s worst songs
-* Make a playlist of foreign songs that blew up in the US`;
+* Make a playlist of international songs that blew up in the US`;
 
             const injectInitial = () => {
                 setTimeout(() => {

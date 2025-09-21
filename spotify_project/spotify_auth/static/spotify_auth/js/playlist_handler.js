@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (response.ok) {
                             const result = await response.json();
-                            await new Promise(resolve => setTimeout(resolve, 1500)); // Simulated delay for improved UX and to allow for Spotify propagation
+                            await new Promise(resolve => setTimeout(resolve, 100)); // Slight delay to allow for Spotify propagation
                             
                             const webUrl = result.playlist_url;
                             let playlistId = '';
