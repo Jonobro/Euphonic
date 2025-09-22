@@ -223,9 +223,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             if (playlistId) {
                                 if (isAndroid) {
+                                    await new Promise(resolve => setTimeout(resolve, 100));
                                     const intentUrl = `intent://playlist/${playlistId}#Intent;scheme=spotify;package=com.spotify.music;S.browser_fallback_url=${encodeURIComponent(webUrl)};end`;
                                     window.location.href = intentUrl;
                                 } else if (isIOS) {
+                                    await new Promise(resolve => setTimeout(resolve, 100));
                                     const appUrl = `spotify:playlist:${playlistId}`;
                                     window.location.href = appUrl;
                                 } else {

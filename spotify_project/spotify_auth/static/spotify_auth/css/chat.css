@@ -1388,7 +1388,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     width: 100%;
     display: inline-block;
     opacity: 0.9;
-    transform: scale(1.05);
+    transform: scale(1.07);
     overflow: visible;
 }
 
