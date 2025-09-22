@@ -411,30 +411,37 @@ def _generate_musical_analysis(session_data):
             if len(full_library_string) > max_prompt_length:
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
 
-        initial_prompt = f"""At the bottom of this message, I have provided you with a list of all my imported tracks. Please conduct a comprehensive analysis of my music and provide detailed insights about my preferences.
+        initial_prompt = f"""At the bottom of this message, I have provided a list of all my imported tracks. Please conduct a comprehensive analysis of my music and provide insights about my preferences.
 
-## Analysis areas to cover:
-- Identify my core musical identity and taste based on dominant genres, artists, and characteristics found in my tracks
-- Highlight what makes my taste unique or interesting
-- Provide any other observations that you think I might find interesting
+## Structure Your Response Like This:
 
-## Optional elements to include if relevant – no need to force them in:
-- Are there any unexpected connections between seemingly different artists/genres?
-- Are there any interesting contradictions or range in my preferences?
-- Compare my taste to general population trends. Identify where I'm mainstream vs. niche.
-- Highlight my most unique or rare musical choices.
-- Let me know what other artists/genres I may want to explore based on my preferences. Identify gaps in my musical exploration that might yield discoveries.
-- Are there patterns in the release years of the songs I listen to? Do I favor a certain musical era?
+### Core Musical Identity (2-3 short paragraphs, 150-200 words)
+- Identify my core musical identity and taste based on dominant genres, artists, and recurring characteristics found in my tracks. Highlight what makes my taste unique or interesting.
+
+### Key Observations (3 bullet points, 100-150 words)
+Provide three unique observations about my preferences and my imported tracks. I have included some examples of areas you could explore below. Use this list as inspiration rather than a checklist. Don't limit yourself to these items.
 - What is the emotional profile of my music? What kind of moods and vibes do I like?
+- Highlight my most unique or rare musical choices.
 - Is my music diverse in terms of genre, geography, or language?
+- Are there patterns in the release years of the songs I listen to? Do I favor a certain musical era?
+- Any unexpected connections or contradictions in my music.
+- How does my taste compare to that of the general population?
+
+### Fun Facts (5 short/punchy bullet points, 50-100 words)
+- Provide five fun facts pertaining to my music. These could relate to specific artists, songs, or my music collection as a whole.
+
+### What to Explore Next (one short paragraph, 50-100 words)
+- Provide a short paragraph that outlines other artists/genres that I should explore.
 
 ## Response Requirements:
-- Make it your own. Don't just rigidly follow the above structure. Deviate from it if you think it will yield a better analysis.
-- Make it engaging and personal, not just statistical
-- Be creative. Try to tell me some things I may never have realized about my music/tastes.
-- Make the analysis thorough, analytically rigorous, and creatively insightful.
-- Communicate your ideas succinctly.
-- Scale the length and detail of your analysis to correspond with the number of tracks provided. Fewer tracks should result in a shorter analysis.
+- Make it your own. Bring your own observations to the table rather than just telling me what you think I want to hear.
+- Make it engaging and personal.
+- Be creative. Try to tell me things I may never have realized about my music/tastes.
+- Be specific and concrete in your observations.
+- Base observations on actual patterns in the data, not assumptions.
+- Communicate your ideas succinctly. Prioritize scannability.
+- Bold key phrases for readability and emphasis.
+- Your analysis should never exceed 450 words in length.
 
 Don't ever mention this message or directly respond to it. Just perform the analysis and provide your insights.
 

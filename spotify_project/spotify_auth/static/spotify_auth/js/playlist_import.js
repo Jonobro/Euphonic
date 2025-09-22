@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const musicEmojiImg = new Image();
+    musicEmojiImg.src = '/static/spotify_auth/images/MusicEmoji.webp';
+    
     let playlistStates = [
         { id: 1, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false },
         { id: 2, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false },

@@ -965,7 +965,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .playlist-input-container {
     position: relative;
-    min-height: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
