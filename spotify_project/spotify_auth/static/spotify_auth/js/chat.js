@@ -655,6 +655,31 @@ document.addEventListener('DOMContentLoaded', () => {
         newMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return newMessage;
     };
+
+    function hasDuplicatePlaylistTitlesInResponse(resp) {
+        const texts = Array.isArray(resp)
+            ? resp.filter(t => typeof t === 'string')
+            : (typeof resp === 'string' ? [resp] : []);
+        if (!texts.length) return false;
+        let totalSets = 0;
+        for (const text of texts) {
+            let i = 0;
+            const n = text.length;
+            while (i < n) {
+                if (text.charCodeAt(i) === 43) {
+                    let j = i + 1;
+                    while (j < n && text.charCodeAt(j) === 43) j++;
+                    const runLen = j - i;
+                    totalSets += Math.floor(runLen / 5);
+                    if (totalSets > 2) return true;
+                    i = j;
+                } else {
+                    i++;
+                }
+            }
+        }
+        return totalSets > 2;
+    }
     
     const listenForResponse = (taskId, thinkingMsgElement, userMessageElement) => {
         const eventSource = new EventSource(`/stream_chat_response/${taskId}/`);
@@ -698,6 +723,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (data.response) {
+                if (hasDuplicatePlaylistTitlesInResponse(data.response)) {
+                    removeLastUserMessageFromHistory();
+                    addEphemeralMessage(`Sorry, I had a problem with your request. Please resend your message.`, 'ai');
+                    cleanup();
+                    return;
+                }
+
                 if (Array.isArray(data.response)) {
                     const hasContent = data.response.some(text => text && text.trim() !== '');
                     if (hasContent) {

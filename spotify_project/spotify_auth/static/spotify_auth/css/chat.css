@@ -498,10 +498,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     gap: 16px;
 }
 
-.save-playlist-error {
-    text-align: center;
-}
-
 .save-playlist-button-wrapper {
     height: 55.8px;
     overflow: visible;

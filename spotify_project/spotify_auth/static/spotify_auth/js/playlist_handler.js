@@ -130,11 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 messageElement.classList.add('has-playlist-button');
                 const isLastMessage = messageIndex === allMessages.length - 1;
                 
-                const existingErrorContainer = content.querySelector('.save-playlist-error');
-                if (existingErrorContainer) {
-                    return;
-                }
-                
                 const existingSaveButton = content.querySelector('.save-playlist-button');
                 if (existingSaveButton) {
                     return;
