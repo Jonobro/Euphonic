@@ -77,11 +77,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handlePlaylistInput(id, inputValue) {
-        if (!inputValue.trim() || validating[id]) return;
-        
+        if (validating[id]) return;
+
+        if (!inputValue.trim()) {
+            showErrorAndClear(id);
+            return;
+        }
+
         const parsedUrl = parseSpotifyUrl(inputValue);
-        if (!parsedUrl) return;
-        
+        if (!parsedUrl) {
+            showErrorAndClear(id);
+            return;
+        }
+
         // Prevent re-entry
         validating[id] = true;
         
@@ -101,23 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const playlistInfo = await validatePlaylist(parsedUrl, inputId);
             updatePlaylistStatus(id, 'success', playlistInfo.name, parsedUrl, playlistInfo.track_count, playlistInfo.playlist_id);
         } catch (error) {
-            updatePlaylistStatus(id, 'error', '', parsedUrl, 0, '');
-            setTimeout(() => {
-                updatePlaylistStatus(id, 'idle', '', '', 0, '');
-            }, 3000);
+            showErrorAndClear(id);
         } finally {
             validating[id] = false;
         }
     }
 
     async function handlePlaylistBlur(id, url) {
-        if (!url.trim()) return;
-        
-        if (!isValidSpotifyUrl(url)) {
-            updatePlaylistStatus(id, 'error', '', url, 0, '');
-            setTimeout(() => {
-                updatePlaylistStatus(id, 'idle', '', '', 0, '');
-            }, 3000);
+        if (!url.trim() || !isValidSpotifyUrl(url)) {
+            showErrorAndClear(id);
             return;
         }
     }
@@ -379,6 +379,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function showErrorAndClear(id) {
+        const inputElement = document.querySelector(`input[data-playlist-id="${id}"]`);
+        if (inputElement) {
+            inputElement.value = '';
+        }
+        updatePlaylistStatus(id, 'error', '', '', 0, '');
+        setTimeout(() => {
+            updatePlaylistStatus(id, 'idle', '', '', 0, '');
+        }, 8000);
+    }
+
     function triggerBurstAnimation(targetContainer) {
         if (!targetContainer) return;
 
@@ -488,7 +499,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'error':
                     content = `
                         <div class="playlist-error-state">
-                            <span>Invalid Spotify playlist URL</span>
+                            <span>Invalid share link. Press <svg xmlns="http://www.w3.org/2000/svg" class="import-help-icon-error" viewBox="0 0 20 20">
+                            <circle cx="10" cy="10" r="9.5" fill="none" stroke-width="1.5" />
+                            <text x="10" y="14" font-family="Roboto, 'Segoe UI', Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle">?</text>
+                        </svg> above for help.</span>
                         </div>
                     `;
                     break;
