@@ -116,7 +116,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handlePlaylistBlur(id, url) {
-        if (!url.trim() || !isValidSpotifyUrl(url)) {
+        const trimmed = (url || '').trim();
+        if (!trimmed) {
+            return;
+        }
+        if (!isValidSpotifyUrl(trimmed)) {
             showErrorAndClear(id);
             return;
         }
