@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePlaylistStatus(id, 'error', '', '', 0, '');
         setTimeout(() => {
             updatePlaylistStatus(id, 'idle', '', '', 0, '');
-        }, 8000);
+        }, 6000);
     }
 
     function triggerBurstAnimation(targetContainer) {
