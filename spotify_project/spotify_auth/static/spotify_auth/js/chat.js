@@ -353,14 +353,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateChatInputPlaceholder() {
         if (!userInput) return;
+
+        const chatInputArea = document.getElementById('chat-input-area');
+        let overlay = document.getElementById('chat-input-overlay');
+
         if (userInput.disabled) {
             if (shouldShowActionPlaceholder()) {
-                userInput.placeholder = 'Please select an option above to continue...';
+                userInput.placeholder = '';
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.id = 'chat-input-overlay';
+                    overlay.className = 'chat-input-overlay';
+                    overlay.textContent = 'Please select an option above to continue';
+                    chatInputArea.appendChild(overlay);
+                }
+                setTimeout(() => {
+                    overlay.classList.add('visible');
+                    chatInputArea.classList.add('overlay-active');
+                }, 0);
             } else {
                 userInput.placeholder = '';
+                if (overlay) {
+                    overlay.classList.remove('visible');
+                }
+                chatInputArea.classList.remove('overlay-active');
             }
         } else {
             userInput.placeholder = 'Reply to Aria...';
+            if (overlay) {
+                overlay.classList.remove('visible');
+            }
+            chatInputArea.classList.remove('overlay-active');
         }
     }
 

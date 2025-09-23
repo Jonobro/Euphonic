@@ -326,6 +326,30 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     display: flex;
     align-items: center;
     padding-top: 20px;
+    position: relative;
+}
+
+.chat-input-overlay {
+    position: absolute;
+    top: 20px;
+    left: 5px;
+    right: 80px;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #989898;
+    font-family: 'Poppins', sans-serif, Arial;
+    font-size: 14px;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    padding: 8px 15px 9px 15px;
+}
+
+.chat-input-overlay.visible {
+    opacity: 1;
 }
 
 #chat-input-area textarea {
@@ -347,6 +371,11 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     padding-bottom: 9px;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    transition: box-shadow 0.35s ease;
+}
+
+#chat-input-area.overlay-active textarea {
+    box-shadow: none;
 }
 
 #chat-input-area textarea::-webkit-scrollbar {
@@ -1375,7 +1404,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 
 .modal-body p.import-instructions-two {
     font-size: 0.825rem;
-    margin-bottom: 15.1px;
+    margin-bottom: 15px;
     margin-top: 0px;
 }
 
@@ -1871,6 +1900,7 @@ body.aria-intro-active .hamburger-menu-container {
         padding-bottom: 9px;
         -ms-overflow-style: none;
         scrollbar-width: none;
+        transition: box-shadow 0.35s ease;
     }
 
     #send-button {
@@ -2054,7 +2084,7 @@ body.aria-intro-active .hamburger-menu-container {
 
     .modal-body p.import-instructions-two {
         font-size: 0.825rem;
-        margin-bottom: 15.43px;
+        margin-bottom: 15px;
         margin-top: 0px;
     }
 
