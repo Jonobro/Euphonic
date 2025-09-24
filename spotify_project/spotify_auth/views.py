@@ -460,6 +460,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             tools=current_tools,
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
+            temperature=0.5,
 
             # Default config for dynamic max thinking and no thought summaries
             # thinking_config=types.ThinkingConfig(thinking_budget=-1)
@@ -1141,11 +1142,19 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         else:
             system_instruction_for_mode = system_instruction_map_not_editing.get(chat_mode)
         
+        temperature_map = {
+            'analysis': 0.4,
+            'saved_songs': 0.3,
+            'new_songs': 0.8,
+        }
+        temperature_for_mode = temperature_map.get(chat_mode)
+
         chat_config = types.GenerateContentConfig(
             system_instruction=system_instruction_for_mode,
             tools=first_pass_tools,
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
+            temperature=temperature_for_mode,
 
             # Default config for dynamic max thinking and no thought summaries
             # thinking_config=types.ThinkingConfig(thinking_budget=-1)
@@ -1254,6 +1263,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             formatting_chat_config = types.GenerateContentConfig(
                 system_instruction=FORMATTING_SYSTEM_INSTRUCTION,
                 safety_settings=SAFETY_SETTINGS,
+                temperature=0.1,
 
                 # Test with no thinking to speed things up
                 thinking_config=types.ThinkingConfig(thinking_budget=0)
@@ -1446,6 +1456,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 tools=feedback_pass_tools,
                 response_modalities=["TEXT"],
                 safety_settings=SAFETY_SETTINGS,
+                temperature=0.1,
 
                 # Test with no thinking to speed things up
                 thinking_config=types.ThinkingConfig(thinking_budget=0)
@@ -1551,6 +1562,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     tools=removal_pass_tools,
                     response_modalities=["TEXT"],
                     safety_settings=SAFETY_SETTINGS,
+                    temperature=0.1,
                     
                     # Test with no thinking to speed things up
                     thinking_config=types.ThinkingConfig(thinking_budget=0)
