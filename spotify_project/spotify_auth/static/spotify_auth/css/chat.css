@@ -331,21 +331,15 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .chat-input-overlay {
     position: absolute;
-    top: 20px;
-    left: 5px;
-    right: 80px;
-    bottom: 0;
     display: flex;
     align-items: center;
-    justify-content: center;
     color: #989898;
     font-family: 'Poppins', sans-serif, Arial;
     font-size: 14px;
-    text-align: center;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.2s ease-in-out;
-    padding: 8px 15px 9px 15px;
+    left: calc(50% - 175px);
 }
 
 .chat-input-overlay.visible {
@@ -1620,6 +1614,7 @@ body.aria-intro-active .hamburger-menu-container {
     width: 1.25rem;
     height: 1.25rem;
     filter: drop-shadow(0px 0px 2px rgba(30, 200, 90, 0.8)) opacity(0.9);
+    transform: scale(1.2);
 }
 
 .dropdown-panel {
@@ -1841,6 +1836,11 @@ body.aria-intro-active .hamburger-menu-container {
         padding-right: 15px;
         max-width: 100%;
     }
+    
+    .ai-message.thinking-message {
+        padding-top: 13px;
+        padding-bottom: 13px;
+    }
 
     body[data-chat-mode="new_songs"] .ai-message:first-child ul {
         padding-left: 25px;
@@ -1903,6 +1903,21 @@ body.aria-intro-active .hamburger-menu-container {
         transition: box-shadow 0.35s ease;
     }
 
+    .chat-input-overlay {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        color: #989898;
+        font-family: 'Poppins', sans-serif, Arial;
+        font-size: 14px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+        left: calc(50% - 101px);
+        width: 152px;
+        text-align: center;
+    }
+
     #send-button {
         display: inline-flex;
         align-items: center;
@@ -1913,6 +1928,15 @@ body.aria-intro-active .hamburger-menu-container {
         opacity: 0.85;
         margin-right: 10px;
         margin-left: 14px;
+        transform: scale(1.07);
+    }
+
+    #send-button svg {
+        display: block;
+        pointer-events: none;
+        fill: #161616;
+        margin-left: 3px;
+        transform: scaleY(0.8) scale(0.875) translateY(1px);
     }
 
     .header-row {
