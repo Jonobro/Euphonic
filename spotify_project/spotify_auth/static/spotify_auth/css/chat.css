@@ -1410,19 +1410,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 }
 
 .import-help-icon {
-    height: 100%;
-    width: 100%;
-    display: inline-block;
-    opacity: 0.9;
-    overflow: visible;
-}
-
-.import-help-icon circle {
-    stroke: #e0e0e0;
-}
-
-.import-help-icon text {
-    fill: #e0e0e0;
+    transform: translateY(-1px);
 }
 
 @media (min-width: 769px) {
@@ -1438,22 +1426,13 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 }
 
 .import-help-icon-error {
-    height: 15px;
-    width: 15px;
+    height: 16px;
+    width: 16px;
     display: inline-block;
-    overflow: visible;
     margin-left: 1px;
     margin-right: 1px;
     vertical-align: middle;
     transform: translateY(-1px);
-}
-
-.import-help-icon-error circle {
-    stroke: #ff6b6b;
-}
-
-.import-help-icon-error text {
-    fill: #ff6b6b;
 }
 
 .import-help-button {
