@@ -36,6 +36,13 @@ body {
     z-index: -1;
 }
 
+/* Override due to appearance issues on Firefox */
+@supports (-moz-appearance: none) {
+    .container::before {
+        background: #161616 !important;
+    }
+}
+
 /* Added this class due to issues with the background gradient on older Macs, but disabling due to testing on newer Macs */
 /* html.mac-chrome .container::before {
     background: #161616 !important;
