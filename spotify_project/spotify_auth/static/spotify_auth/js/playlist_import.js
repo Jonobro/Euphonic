@@ -436,10 +436,13 @@ document.addEventListener('DOMContentLoaded', () => {
         containers.forEach(inputContainer => {
             const successElement = inputContainer.querySelector('.playlist-success-state');
             if (!successElement) return;
+
+            successElement.style.transition = 'none';
+            successElement.style.transform = 'none';
+
             const containerRect = inputContainer.getBoundingClientRect();
             const elementRect = successElement.getBoundingClientRect();
             const distanceToLeft = elementRect.left - containerRect.left - 5.5;
-            successElement.style.transition = 'none';
             successElement.style.transform = `translateX(-${distanceToLeft}px)`;
         });
     }
