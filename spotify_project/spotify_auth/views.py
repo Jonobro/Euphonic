@@ -522,7 +522,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
 
 Here are a few questions you might find interesting:
 * What's the most prevalent genre in my tracks?
-* Do I lean more toward male or female lead vocalists – and by how much?
+* Do I lean more toward male or female lead vocalists?
 * What is the most common key across my songs? Am I more drawn to major or minor keys? What does this reveal?
 * Are there particular decades or years I seem to favor?"""
 
@@ -1159,7 +1159,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             
             # Config with dynamic thinking and max_output_tokens
             thinking_config=types.ThinkingConfig(thinking_budget=-1),
-            max_output_tokens=15000
+            max_output_tokens=12000
         )
         
         chat = client.chats.create(
