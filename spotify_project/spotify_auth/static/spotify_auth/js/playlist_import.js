@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const musicEmojiImg = new Image();
     musicEmojiImg.src = '/static/spotify_auth/images/MusicEmoji.avif';
     
+    const isWebkitOrFirefox = /AppleWebKit|Firefox/i.test(navigator.userAgent);
+
     let playlistStates = [
         { id: 1, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false },
         { id: 2, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false },
@@ -482,8 +484,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <div class="playlist-track-count">${playlist.trackCount} tracks</div>
                               `
                         : '';
-                    content = `
-                        <div class="playlist-success-state">
+                    
+                    const successContentMarkup = isWebkitOrFirefox
+                        ? `
                             <div class="playlist-success-content">
                                 <img class="icon" src="/static/spotify_auth/images/MusicEmoji.avif" alt=""/>
                                 <div class="playlist-success-info">
@@ -491,6 +494,20 @@ document.addEventListener('DOMContentLoaded', () => {
                                     ${trackMarkup}
                                 </div>
                             </div>
+                        `
+                        : `
+                            <div class="playlist-success-content">
+                                <span class="icon">🎵</span>
+                                <div class="playlist-success-info">
+                                    <div class="playlist-name">${playlist.name}</div>
+                                    ${trackMarkup}
+                                </div>
+                            </div>
+                        `;
+
+                    content = `
+                        <div class="playlist-success-state">
+                            ${successContentMarkup}
                             <button class="playlist-remove-btn" onclick="window.playlistImport.handleRemovePlaylist(${playlist.id})">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -503,10 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'error':
                     content = `
                         <div class="playlist-error-state">
-                            <span>Invalid share link. Press <svg xmlns="http://www.w3.org/2000/svg" class="import-help-icon-error" viewBox="0 0 20 20">
-                            <circle cx="10" cy="10" r="9.5" fill="none" stroke-width="1.5" />
-                            <text x="10" y="14" font-family="Roboto, 'Segoe UI', Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle">?</text>
-                        </svg> above for help.</span>
+                            <span>Invalid share link. Press <svg xmlns="http://www.w3.org/2000/svg" class="import-help-icon-error" id="svg1" width="17" height="17" viewBox="0 0 21.25 21.25"><circle id="circle1" cx="10.625" cy="10.625" r="9.5" fill="none" stroke="#6b7280" stroke-width="1.5" style="stroke:#e0e0e0;stroke-opacity:1"/><path id="text1" d="M11.08 13.108H9.716q.007-.703.124-1.15.125-.454.403-.827.278-.374.74-.85.337-.344.615-.644.286-.308.462-.66.175-.358.175-.856 0-.506-.183-.872-.176-.366-.527-.564-.344-.198-.857-.198-.425 0-.806.154-.38.154-.615.476-.234.315-.242.828H7.651q.015-.828.41-1.421.403-.593 1.085-.908.68-.315 1.523-.315.93 0 1.582.337.66.337 1.003.966.345.623.345 1.48 0 .66-.271 1.216-.264.55-.682 1.033-.417.483-.886.922-.403.374-.542.843t-.139 1.01M9.657 15.43q0-.33.205-.556.205-.228.594-.228.395 0 .6.228.205.227.205.556 0 .315-.205.542t-.6.227q-.389 0-.594-.227t-.205-.542" aria-label="?" style="font-size:15px;font-family:Roboto;-inkscape-font-specification:&quot;Roboto, Normal&quot;;text-anchor:middle;fill:#e0e0e0;fill-opacity:1"/><style id="style1">svg:hover circle{stroke:#9ca3af}</style></svg> above for help.</span>
                         </div>
                     `;
                     break;

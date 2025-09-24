@@ -472,7 +472,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             # max_output_tokens=6144
 
             # Config with dynamic thinking and max_output_tokens
-            thinking_config=types.ThinkingConfig(thinking_budget=-1),
+            thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True),
             max_output_tokens=10000
         )
         chat = client.chats.create(
