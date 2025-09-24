@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const musicEmojiImg = new Image();
-    musicEmojiImg.src = '/static/spotify_auth/images/MusicEmoji.avif';
-    
-    const isChromium = !!window.chrome;
+    musicEmojiImg.src = '/static/spotify_auth/images/MusicEmoji.webp';
+
+    const isWindowsChromium = !!window.chrome && (/Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent));
 
     let playlistStates = [
         { id: 1, url: '', name: '', status: 'idle', trackCount: 0, playlistId: '', justSucceeded: false },
@@ -485,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
                               `
                         : '';
                     
-                    const successContentMarkup = isChromium
+                    const successContentMarkup = isWindowsChromium
                         ? `
                             <div class="playlist-success-content">
                                 <span class="icon">🎵</span>
@@ -497,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         `
                         : `
                             <div class="playlist-success-content">
-                                <img class="icon" src="/static/spotify_auth/images/MusicEmoji.avif" alt=""/>
+                                <img class="icon" src="/static/spotify_auth/images/MusicEmoji.webp" alt=""/>
                                 <div class="playlist-success-info">
                                     <div class="playlist-name">${playlist.name}</div>
                                     ${trackMarkup}
@@ -520,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'error':
                     content = `
                         <div class="playlist-error-state">
-                            <span>Invalid share link. Press <svg xmlns="http://www.w3.org/2000/svg" class="import-help-icon-error" id="svg1" width="17" height="17" viewBox="0 0 21.25 21.25"><circle id="circle1" cx="10.625" cy="10.625" r="9.5" fill="none" stroke="#6b7280" stroke-width="1.5" style="stroke:#e0e0e0;stroke-opacity:1"/><path id="text1" d="M11.41 13.086H9.522q.008-.74.106-1.27.098-.528.326-.96.236-.43.643-.87.284-.342.52-.651.244-.318.391-.651.146-.342.146-.774 0-.48-.122-.805-.114-.326-.333-.497t-.554-.17q-.244 0-.488.154-.236.147-.399.464-.154.31-.162.822H7.504q.016-1.09.423-1.799.415-.716 1.123-1.066.716-.358 1.595-.358.977 0 1.669.375.691.366 1.058 1.074.374.708.374 1.717 0 .716-.252 1.278-.253.561-.643 1.05-.39.48-.822.976-.366.415-.488.879-.114.464-.13 1.082M9.36 15.61q0-.496.309-.83t.838-.334q.537 0 .838.334.31.334.31.83 0 .48-.31.822-.3.334-.838.334-.529 0-.838-.334-.31-.342-.31-.822" aria-label="?" style="font-size:16.6667px;font-family:Roboto;-inkscape-font-specification:&quot;Roboto, @wght=600&quot;;font-variation-settings:&quot;wght&quot;600;text-anchor:middle;fill:#e0e0e0"/><style id="style1">svg:hover circle{stroke:#9ca3af}</style></svg> above for help.</span>
+                            <span>Invalid share link. Press <svg xmlns="http://www.w3.org/2000/svg" class="import-help-icon-error" id="svg1" width="17" height="17" viewBox="0 0 21.25 21.25"><circle id="circle1" cx="10.625" cy="10.625" r="9.5" fill="none" stroke="#6b7280" stroke-width="1.5" style="stroke:#e0e0e0;stroke-opacity:1"/><path id="text1" d="M11.41 12.848H9.522q.008-.666.106-1.143.098-.475.326-.864.236-.387.643-.783.284-.307.52-.585.244-.287.391-.586.146-.308.146-.697 0-.432-.122-.724-.114-.294-.333-.448t-.554-.153q-.244 0-.488.139-.236.132-.399.417-.154.28-.162.74H7.504q.016-.98.423-1.619.415-.644 1.123-.96.716-.321 1.595-.321.977 0 1.669.337.691.33 1.058.967.374.637.374 1.545 0 .644-.252 1.15-.253.505-.643.945-.39.432-.822.879-.366.373-.488.79-.114.418-.13.974M9.36 15.12q0-.446.309-.747.309-.3.838-.3.537 0 .838.3.31.3.31.747 0 .432-.31.74-.3.3-.838.3-.529 0-.838-.3-.31-.308-.31-.74" aria-label="?" style="font-size:16.6667px;font-family:Roboto;-inkscape-font-specification:&quot;Roboto, @wght=600&quot;;font-variation-settings:&quot;wght&quot;600;text-anchor:middle;fill:#e0e0e0;stroke-width:.948683"/><style id="style1">svg:hover circle{stroke:#9ca3af}</style></svg> above for help.</span>
                         </div>
                     `;
                     break;
