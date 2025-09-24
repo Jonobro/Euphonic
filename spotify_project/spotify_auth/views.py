@@ -1149,6 +1149,13 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         }
         temperature_for_mode = temperature_map.get(chat_mode)
 
+        thinking_config_map = {
+            'analysis': types.ThinkingConfig(thinking_budget=6000),
+            'saved_songs': types.ThinkingConfig(thinking_budget=-1),
+            'new_songs': types.ThinkingConfig(thinking_budget=-1),
+        }
+        thinking_config_for_mode = thinking_config_map.get(chat_mode)
+        
         chat_config = types.GenerateContentConfig(
             system_instruction=system_instruction_for_mode,
             tools=first_pass_tools,
@@ -1167,7 +1174,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             # max_output_tokens=6144
             
             # Config with dynamic thinking and max_output_tokens
-            thinking_config=types.ThinkingConfig(thinking_budget=-1),
+            thinking_config=thinking_config_for_mode,
             max_output_tokens=12000
         )
         
