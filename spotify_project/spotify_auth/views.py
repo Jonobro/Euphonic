@@ -1159,7 +1159,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             
             # Config with dynamic thinking and max_output_tokens
             thinking_config=types.ThinkingConfig(thinking_budget=-1),
-            max_output_tokens=10000
+            max_output_tokens=15000
         )
         
         chat = client.chats.create(

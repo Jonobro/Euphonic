@@ -1839,7 +1839,7 @@ body.aria-intro-active .hamburger-menu-container {
     
     .ai-message.thinking-message {
         padding-top: 13px;
-        padding-bottom: 13px;
+        padding-bottom: 17px;
     }
 
     body[data-chat-mode="new_songs"] .ai-message:first-child ul {
@@ -1909,7 +1909,7 @@ body.aria-intro-active .hamburger-menu-container {
         align-items: center;
         color: #989898;
         font-family: 'Poppins', sans-serif, Arial;
-        font-size: 14px;
+        font-size: 13px;
         pointer-events: none;
         opacity: 0;
         transition: opacity 0.2s ease-in-out;
