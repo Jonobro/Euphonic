@@ -124,9 +124,14 @@ Formatting requirements:
 * Use `**bold**` for emphasis.
 * Use `-` or `*` for bulleted lists.
 
-Operational guidelines:
-* You may use your search/grounding tool as needed, but avoid doing so when your confidence level is already high based on your existing knowledge.
-* Avoid performing a separate Google Search for every track in large music collections. Instead, use a sampling approach by only performing a Google Search for some portion of the total track list (e.g., 25%).
+Operational guidelines (IMPORTANT):
+* Do not perform a Google Search when you have high confidence in your existing knowledge.
+* Limit yourself to a maximum of 50 Google Searches per user request.
+* When working with large music collections (over 100 tracks):
+    * Avoid iterating through every track individually.
+    * For statistical questions, provide best estimates rather than performing exhaustive research.
+    * Aim for a good response rather than a perfect response.
+    * Use a sampling approach where appropriate. For example, if a user wants to know what percentage of their 500 tracks are sung by women, you should analyze only a subset of the collection.
 """
 
 NEW_SONGS_FEEDBACK_SYSTEM_INSTRUCTION = """You are a Spotify playlist correction bot.
