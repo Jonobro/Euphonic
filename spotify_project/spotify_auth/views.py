@@ -461,8 +461,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
             temperature=0.5,
-            # thinking_config=types.ThinkingConfig(thinking_budget=6000),
-            thinking_config=types.ThinkingConfig(thinking_budget=0),
+            thinking_config=types.ThinkingConfig(thinking_budget=6000),
             max_output_tokens=20000
         )
         chat = client.chats.create(
@@ -1125,7 +1124,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     if idx != -1:
                         newline_count = first_text[idx + len(phrase):].count("\n")
                         corrected_tally = newline_count - 4
-                        if corrected_tally > 100:
+                        if corrected_tally > 25:
                             use_grounding_for_first_pass = False
                             _log_to_file(GENERAL_LOG_FILE, f"Large library detected; disabling Google Search. Newline count after phrase: {newline_count}")
         except Exception:
@@ -1159,7 +1158,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         # Can add "include_thoughts=True" to see thought summaries
         thinking_config_map = {
             'analysis': types.ThinkingConfig(thinking_budget=4000),
-            'saved_songs': types.ThinkingConfig(thinking_budget=-1),
+            'saved_songs': types.ThinkingConfig(thinking_budget=4000),
             'new_songs': types.ThinkingConfig(thinking_budget=-1),
         }
         thinking_config_for_mode = thinking_config_map.get(chat_mode)

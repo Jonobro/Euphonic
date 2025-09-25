@@ -160,6 +160,11 @@ function openImportModal(switchToModeOnCompletion) {
     }
     try {
         const userInput = document.getElementById('user-input');
+
+        if (userInput && typeof userInput.blur === 'function') {
+            try { userInput.blur(); } catch (_) {}
+        }
+
         if (window.toggleChatInput && userInput && !userInput.disabled) {
             window.toggleChatInput(true);
             _importModalDisabledChat = true;
