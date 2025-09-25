@@ -57,6 +57,7 @@ if (window.hasImportedPlaylists === undefined) {
 
 let _importModalResizeObserver = null;
 let _importModalAdjustBound = null;
+let _importModalDisabledChat = false;
 
 function adjustImportModalBounds() {
     try {
@@ -157,6 +158,15 @@ function openImportModal(switchToModeOnCompletion) {
     if (switchToModeOnCompletion) {
         window.pendingModeSwitch = switchToModeOnCompletion;
     }
+    try {
+        const userInput = document.getElementById('user-input');
+        if (window.toggleChatInput && userInput && !userInput.disabled) {
+            window.toggleChatInput(true);
+            _importModalDisabledChat = true;
+        } else {
+            _importModalDisabledChat = false;
+        }
+    } catch (_) { _importModalDisabledChat = false; }
 
     setImportUiState();
     
@@ -204,6 +214,12 @@ function closeImportModal() {
         if (window.playlistImport && typeof window.playlistImport.resetPlaylistData === 'function') {
             window.playlistImport.resetPlaylistData();
         }
+        try {
+            if (window.toggleChatInput && _importModalDisabledChat) {
+                window.toggleChatInput(false);
+            }
+        } catch (_) {}
+        _importModalDisabledChat = false;
     };
     importModal.addEventListener('transitionend', tidy);
 }

@@ -462,7 +462,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             safety_settings=SAFETY_SETTINGS,
             temperature=0.5,
             thinking_config=types.ThinkingConfig(thinking_budget=-1),
-            max_output_tokens=10000
+            max_output_tokens=20000
         )
         chat = client.chats.create(
             model=EXPENSIVE_MODEL_NAME,
@@ -1156,9 +1156,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         temperature_for_mode = temperature_map.get(chat_mode)
 
         # Can add "include_thoughts=True" to see thought summaries
-        # A thinking budget of 6000 worked fairly well for the analysis mode during testing if you determine an explicit budget is necessary
         thinking_config_map = {
-            'analysis': types.ThinkingConfig(thinking_budget=8000),
+            'analysis': types.ThinkingConfig(thinking_budget=4000),
             'saved_songs': types.ThinkingConfig(thinking_budget=-1),
             'new_songs': types.ThinkingConfig(thinking_budget=-1),
         }
