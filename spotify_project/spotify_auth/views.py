@@ -445,7 +445,7 @@ Provide three unique observations about my preferences and my imported tracks. I
 
 Don't ever mention this message or directly respond to it. Just perform the analysis and provide your insights.
 
-Here are my imported tracks:
+Here are all of my imported tracks:
 
 {full_library_string}
 
@@ -461,19 +461,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
             temperature=0.5,
-
-            # Default config for dynamic max thinking and no thought summaries
-            # thinking_config=types.ThinkingConfig(thinking_budget=-1)
-
-            # Config to obtain thought summaries for analysis/debugging
-            # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
-
-            # Config with thinking budget and max output tokens budget
-            # thinking_config=types.ThinkingConfig(thinking_budget=4096, include_thoughts=False),
-            # max_output_tokens=6144
-
-            # Config with dynamic thinking and max_output_tokens
-            thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True),
+            thinking_config=types.ThinkingConfig(thinking_budget=-1),
             max_output_tokens=10000
         )
         chat = client.chats.create(
@@ -524,7 +512,6 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
 Here are a few questions you might find interesting:
 * What's the most prevalent genre in my tracks?
 * Do I lean more toward male or female lead vocalists?
-* What is the most common key across my songs? Am I more drawn to major or minor keys? What does this reveal?
 * Are there particular decades or years I seem to favor?"""
 
         history_list = [
@@ -1124,6 +1111,25 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             return final_url
         
         use_grounding_for_first_pass = check_and_update_grounding_usage()
+
+        try:
+            if chat_mode in ('saved_songs', 'analysis') and history_list:
+                first_user_entry = history_list[0] if history_list[0].get('role') == 'user' else next(
+                    (m for m in history_list if m.get('role') == 'user'), None
+                )
+                if first_user_entry:
+                    first_text = (first_user_entry.get('parts') or [{}])[0].get('text', '')
+                    phrase = "Here are all of my imported tracks"
+                    idx = first_text.find(phrase)
+                    if idx != -1:
+                        newline_count = first_text[idx + len(phrase):].count("\n")
+                        corrected_tally = newline_count - 4
+                        if corrected_tally > 100:
+                            use_grounding_for_first_pass = False
+                            _log_to_file(GENERAL_LOG_FILE, f"Large library detected; disabling Google Search. Newline count after phrase: {newline_count}")
+        except Exception:
+            pass
+
         first_pass_tools = [GOOGLE_SEARCH_TOOL] if use_grounding_for_first_pass else None
 
         system_instruction_map_not_editing = {
@@ -1149,8 +1155,10 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         }
         temperature_for_mode = temperature_map.get(chat_mode)
 
+        # Can add "include_thoughts=True" to see thought summaries
+        # A thinking budget of 6000 worked fairly well for the analysis mode during testing if you determine an explicit budget is necessary
         thinking_config_map = {
-            'analysis': types.ThinkingConfig(thinking_budget=6000),
+            'analysis': types.ThinkingConfig(thinking_budget=-1),
             'saved_songs': types.ThinkingConfig(thinking_budget=-1),
             'new_songs': types.ThinkingConfig(thinking_budget=-1),
         }
@@ -1162,18 +1170,6 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
             temperature=temperature_for_mode,
-
-            # Default config for dynamic max thinking and no thought summaries
-            # thinking_config=types.ThinkingConfig(thinking_budget=-1)
-
-            # Config to obtain thought summaries for analysis/debugging
-            # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
-
-            # Config with thinking budget and max output tokens budget
-            # thinking_config=types.ThinkingConfig(thinking_budget=4096, include_thoughts=False),
-            # max_output_tokens=6144
-            
-            # Config with dynamic thinking and max_output_tokens
             thinking_config=thinking_config_for_mode,
             max_output_tokens=12000
         )
@@ -1271,19 +1267,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 system_instruction=FORMATTING_SYSTEM_INSTRUCTION,
                 safety_settings=SAFETY_SETTINGS,
                 temperature=0.1,
-
-                # Test with no thinking to speed things up
                 thinking_config=types.ThinkingConfig(thinking_budget=0)
-
-                # Default config for dynamic max thinking and no thought summaries
-                # thinking_config=types.ThinkingConfig(thinking_budget=-1)
-
-                # Config to obtain thought summaries for analysis/debugging
-                # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
-
-                # Config with thinking budget and max output tokens budget
-                # thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
-                # max_output_tokens = 1024
             )
 
             formatting_chat = client.chats.create(
@@ -1464,19 +1448,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 response_modalities=["TEXT"],
                 safety_settings=SAFETY_SETTINGS,
                 temperature=0.1,
-
-                # Test with no thinking to speed things up
                 thinking_config=types.ThinkingConfig(thinking_budget=0)
-
-                # Default config for dynamic max thinking and no thought summaries
-                # thinking_config=types.ThinkingConfig(thinking_budget=-1)
-
-                # Config to obtain thought summaries for analysis/debugging
-                # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
-
-                # Config with thinking budget and max output tokens budget
-                # thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
-                # max_output_tokens = 1024
             )
 
             feedback_chat = client.chats.create(
@@ -1570,19 +1542,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     response_modalities=["TEXT"],
                     safety_settings=SAFETY_SETTINGS,
                     temperature=0.1,
-                    
-                    # Test with no thinking to speed things up
                     thinking_config=types.ThinkingConfig(thinking_budget=0)
-                    
-                    # Default config for dynamic max thinking and no thought summaries
-                    # thinking_config=types.ThinkingConfig(thinking_budget=-1)
-
-                    # Config to obtain thought summaries for analysis/debugging
-                    # thinking_config=types.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
-
-                    # Config with thinking budget and max output tokens budget
-                    # thinking_config=types.ThinkingConfig(thinking_budget=1024, include_thoughts=True),
-                    # max_output_tokens = 1024
                 )
 
                 removal_chat = client.chats.create(
