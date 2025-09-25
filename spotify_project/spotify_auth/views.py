@@ -461,7 +461,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
             temperature=0.5,
-            thinking_config=types.ThinkingConfig(thinking_budget=-1),
+            thinking_config=types.ThinkingConfig(thinking_budget=6000),
             max_output_tokens=20000
         )
         chat = client.chats.create(
