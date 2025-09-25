@@ -461,7 +461,8 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
             temperature=0.5,
-            thinking_config=types.ThinkingConfig(thinking_budget=6000),
+            # thinking_config=types.ThinkingConfig(thinking_budget=6000),
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
             max_output_tokens=20000
         )
         chat = client.chats.create(
@@ -1157,7 +1158,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 
         # Can add "include_thoughts=True" to see thought summaries
         thinking_config_map = {
-            'analysis': types.ThinkingConfig(thinking_budget=1000),
+            'analysis': types.ThinkingConfig(thinking_budget=3000),
             'saved_songs': types.ThinkingConfig(thinking_budget=-1),
             'new_songs': types.ThinkingConfig(thinking_budget=-1),
         }
