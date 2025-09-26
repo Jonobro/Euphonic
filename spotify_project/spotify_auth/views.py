@@ -461,7 +461,11 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
             temperature=0.5,
-            thinking_config=types.ThinkingConfig(thinking_budget=6000),
+
+            # TEMPORARILY REDUCING THINKING BUDGET TO 0 FOR FASTER TESTING
+            # thinking_config=types.ThinkingConfig(thinking_budget=6000),
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+
             max_output_tokens=20000
         )
         chat = client.chats.create(
@@ -832,9 +836,9 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 * Make a playlist of chill lo-fi beats for studying
 * Make a playlist of songs released in 2014
 * Create a playlist of songs by Drake, Kendrick Lamar, and J. Cole
-* Give me a playlist of songs about monkeys
 * Road trip anthems to sing along to
-* Create a playlist of Katy Perry’s worst songs
+* Give me a playlist of songs about monkeys
+* Create a playlist of songs that were banned from the radio in the 60s
 * Make a playlist of international songs that blew up in the US"""
 
             history_list = []
@@ -945,9 +949,9 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 * Make a playlist of chill lo-fi beats for studying
 * Make a playlist of songs released in 2014
 * Create a playlist of songs by Drake, Kendrick Lamar, and J. Cole
-* Give me a playlist of songs about monkeys
 * Road trip anthems to sing along to
-* Create a playlist of Katy Perry’s worst songs
+* Give me a playlist of songs about monkeys
+* Create a playlist of songs that were banned from the radio in the 60s
 * Make a playlist of international songs that blew up in the US"""
 
         new_history_list = [

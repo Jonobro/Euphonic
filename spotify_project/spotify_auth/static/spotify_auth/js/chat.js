@@ -240,7 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function showAriaIntroSplash(done) {
         const introText1 = "Hey, I’m Aria.";
         const introText2 = "Here to help you craft your perfect playlist.";
-        if (sessionStorage.getItem('ariaIntroShown')) {
+        // if (sessionStorage.getItem('ariaIntroShown')) {
+        if (true || sessionStorage.getItem('ariaIntroShown')) {
             done && done();
             return;
         }
@@ -1172,9 +1173,9 @@ document.addEventListener('DOMContentLoaded', () => {
 * Make a playlist of chill lo-fi beats for studying
 * Make a playlist of songs released in 2014
 * Create a playlist of songs by Drake, Kendrick Lamar, and J. Cole
-* Give me a playlist of songs about monkeys
 * Road trip anthems to sing along to
-* Create a playlist of Katy Perry’s worst songs
+* Give me a playlist of songs about monkeys
+* Create a playlist of songs that were banned from the radio in the 60s
 * Make a playlist of international songs that blew up in the US`;
 
             const injectInitial = () => {
