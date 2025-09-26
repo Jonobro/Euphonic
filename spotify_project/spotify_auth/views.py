@@ -837,8 +837,8 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 * Make a playlist of songs released in 2014
 * Create a playlist of songs by Drake, Kendrick Lamar, and J. Cole
 * Road trip anthems to sing along to
-* Give me a playlist of songs about monkeys
-* Create a playlist of songs that were banned from the radio in the 60s
+* Make a playlist of cover songs that became more famous than the originals
+* Playlist of songs that tell a complete story
 * Make a playlist of international songs that blew up in the US"""
 
             history_list = []
@@ -950,8 +950,8 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 * Make a playlist of songs released in 2014
 * Create a playlist of songs by Drake, Kendrick Lamar, and J. Cole
 * Road trip anthems to sing along to
-* Give me a playlist of songs about monkeys
-* Create a playlist of songs that were banned from the radio in the 60s
+* Make a playlist of cover songs that became more famous than the originals
+* Playlist of songs that tell a complete story
 * Make a playlist of international songs that blew up in the US"""
 
         new_history_list = [
@@ -1161,8 +1161,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 
         # Can add "include_thoughts=True" to see thought summaries
         thinking_config_map = {
-            'analysis': types.ThinkingConfig(thinking_budget=4000),
-            'saved_songs': types.ThinkingConfig(thinking_budget=4000),
+            'analysis': types.ThinkingConfig(thinking_budget=8000),
+            'saved_songs': types.ThinkingConfig(thinking_budget=8000),
             'new_songs': types.ThinkingConfig(thinking_budget=-1),
         }
         thinking_config_for_mode = thinking_config_map.get(chat_mode)

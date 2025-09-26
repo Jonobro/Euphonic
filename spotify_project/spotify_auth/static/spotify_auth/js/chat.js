@@ -1174,8 +1174,8 @@ document.addEventListener('DOMContentLoaded', () => {
 * Make a playlist of songs released in 2014
 * Create a playlist of songs by Drake, Kendrick Lamar, and J. Cole
 * Road trip anthems to sing along to
-* Give me a playlist of songs about monkeys
-* Create a playlist of songs that were banned from the radio in the 60s
+* Make a playlist of cover songs that became more famous than the originals
+* Playlist of songs that tell a complete story
 * Make a playlist of international songs that blew up in the US`;
 
             const injectInitial = () => {
