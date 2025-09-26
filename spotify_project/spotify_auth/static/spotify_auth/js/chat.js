@@ -905,7 +905,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (errMsg.includes(HIGH_TRAFFIC_ERROR)) {
                 addEphemeralMessage(HIGH_TRAFFIC_ERROR, 'ai');
             } else {
-                addEphemeralMessage(`Sorry, something went wrong. Please try again.`, 'ai');
+                addEphemeralMessage(`Sorry, something went wrong. Please try again later.`, 'ai');
             }
             console.error('Chat send error:', e);
             toggleChatInput(false);

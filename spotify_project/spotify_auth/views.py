@@ -1161,8 +1161,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 
         # Can add "include_thoughts=True" to see thought summaries
         thinking_config_map = {
-            'analysis': types.ThinkingConfig(thinking_budget=2000),
-            'saved_songs': types.ThinkingConfig(thinking_budget=2000),
+            'analysis': types.ThinkingConfig(thinking_budget=3000),
+            'saved_songs': types.ThinkingConfig(thinking_budget=3000),
             'new_songs': types.ThinkingConfig(thinking_budget=-1),
         }
         thinking_config_for_mode = thinking_config_map.get(chat_mode)
