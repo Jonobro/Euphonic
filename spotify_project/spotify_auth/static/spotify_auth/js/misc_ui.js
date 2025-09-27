@@ -251,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
             openImportModal();
         });
     }
+
     const eulaLinkMenu = document.getElementById('eula-link-menu');
     if (eulaLinkMenu) {
         eulaLinkMenu.addEventListener('click', (event) => {
@@ -258,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             openModal('eula');
         });
     }
+    
     const privacyLinkMenu = document.getElementById('privacy-link-menu');
     if (privacyLinkMenu) {
         privacyLinkMenu.addEventListener('click', (event) => {
