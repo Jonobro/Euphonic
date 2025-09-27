@@ -1696,10 +1696,18 @@ body.aria-intro-active .hamburger-menu-container {
     }
 }
 
+.desktop-only {
+    display: block;
+}
+
 /* Mobile overrides for display widths ≤ 768px */
 @media (max-width: 768px) {
     .mobile-only { display: block; }
 
+    .desktop-only {
+        display: none;
+    }
+    
     .dropdown-panel {
         position: fixed;
         top: 63px;

@@ -58,21 +58,32 @@
                                     </svg>
                                     <span class="dropdown-text-block">
                                         <span class="dropdown-link-text">Import My Music</span>
-                                        <span class="dropdown-tooltip">Import your Spotify music collection</span>
+                                        <span class="dropdown-tooltip desktop-only">Import your Spotify music collection to create personalized playlists and gain insights into your music</span>
+                                        <span class="dropdown-tooltip mobile-only">Import your Spotify music collection</span>
                                     </span>
                                 </a>
                             </div>
+                            <div class="divider desktop-only"></div>
                             <a href="{% url 'reset' %}" class="dropdown-link reset-link">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="22" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-icon reset-icon" viewBox="0 0 18 22" aria-hidden="true">
                                     <path d="M0 5h18m-2 0v14c0 1-1 2-2 2H4c-1 0-2-1-2-2V5m3 0V3c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 5v6m4-6v6"></path>
                                 </svg>
                                 <span class="dropdown-text-block">
                                     <span class="dropdown-link-text">Reset Data</span>
-                                    <span class="dropdown-tooltip">Delete your chats, music collection, and saved data</span>
+                                    <span class="dropdown-tooltip desktop-only">Delete your chat history, music collection, and saved data</span>
+                                    <span class="dropdown-tooltip mobile-only">Delete your chats, music collection, and saved data</span>
                                 </span>
                             </a>
                             <div class="mobile-only">
                                 <div class="divider"></div>
+                                <a href="#" id="privacy-link-menu" class="dropdown-link">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13.5" height="16.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 18 22" class="dropdown-icon" aria-hidden="true">
+                                        <path d="M9 21s8-4 8-10V4L9 1 1 4v7c0 6 8 10 8 10"></path>
+                                    </svg>
+                                    <span class="dropdown-text-block">
+                                        <span class="dropdown-link-text">Privacy Policy</span>
+                                    </span>
+                                </a>
                                 <a href="#" id="eula-link-menu" class="dropdown-link">
                                     <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="430.162" height="542.483" viewBox="0 0 17.207 21.7" class="dropdown-icon" aria-hidden="true">
                                         <path d="M12.645.978A3.33 3.33 0 0 0 10.288 0H1.415C.634 0 0 .633 0 1.415v18.87c0 .781.633 1.415 1.415 1.415h14.376c.781 0 1.416-.634 1.416-1.415V6.928c0-.884-.351-1.73-.975-2.354zm-.261 2.494v.006l1.271 1.258-1.271-.002zm2.85 3.219v13.035H1.974V1.972h8.478l-.012 3.333c-.001.366.145.717.4.976.259.259.609.405.976.406z"></path>
@@ -81,14 +92,6 @@
                                     </svg>
                                     <span class="dropdown-text-block">
                                         <span class="dropdown-link-text">EULA</span>
-                                    </span>
-                                </a>
-                                <a href="#" id="privacy-link-menu" class="dropdown-link">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="13.5" height="16.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 18 22" class="dropdown-icon" aria-hidden="true">
-                                        <path d="M9 21s8-4 8-10V4L9 1 1 4v7c0 6 8 10 8 10"></path>
-                                    </svg>
-                                    <span class="dropdown-text-block">
-                                        <span class="dropdown-link-text">Privacy Policy</span>
                                     </span>
                                 </a>
                                 <a href="https://buymeacoffee.com/euphonicintelligence" target="_blank" rel="noopener noreferrer" class="dropdown-link">
@@ -138,7 +141,7 @@
     
     <div class="spotify-footer">
         <div class="legal-links">
-            <a href="#" id="eula-link">EULA</a>
+            <a href="#" id="eula-link">Terms of Use</a>
             <span>|</span>
             <a href="#" id="privacy-link">Privacy Policy</a>
             <span>|</span>
