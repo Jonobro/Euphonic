@@ -802,6 +802,7 @@ def initialize_chat_data_view(request):
                 if len(full_library_string) > max_prompt_length:
                     full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
 
+            # Note: If you ever find yourself adding or removing newlines from the below string, make sure you update the "corrected_tally = newline_count - 4" line accordingly.
             initial_prompt = f"""Here are all of my imported tracks:
 
 {full_library_string}
@@ -927,6 +928,7 @@ Just a heads up - I'm working with a clean slate and can't see the messages befo
 Just a heads up - I'm working with a clean slate and can't see the messages before the playlist, so let me know exactly what you're looking for with the updates."""
         
         elif chat_mode == 'saved_songs' and user_action == 'create_another_playlist':
+            # Note: If you ever find yourself adding or removing newlines from the below string, make sure you update the "corrected_tally = newline_count - 4" line accordingly.
             initial_prompt = f"""Here are all of my imported tracks:
 
 {full_library_string}
@@ -2452,6 +2454,7 @@ def import_playlists_api(request):
                 if len(full_library_string) > max_prompt_length:
                     full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
 
+                # Note: If you ever find yourself adding or removing newlines from the below string, make sure you update the "corrected_tally = newline_count - 4" line accordingly.
                 initial_prompt = f"""Here are all of my imported tracks:
 
                 {full_library_string}
