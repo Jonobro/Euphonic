@@ -53,28 +53,53 @@
                         <div id="hamburger-dropdown" class="dropdown-panel">
                             <div id="importMenuGroup">
                                 <a href="#" id="import-music-link" class="dropdown-link">
-                                    <span class="dropdown-link-text">Import My Music</span>
-                                    <span class="dropdown-tooltip">Import your Spotify music collection to create personalized playlists and gain insights into your music</span>
+                                    <img src="{% static 'spotify_auth/images/Import.svg' %}" alt="" class="dropdown-icon" aria-hidden="true">
+                                    <span class="dropdown-text-block">
+                                        <span class="dropdown-link-text">Import My Music</span>
+                                        <span class="dropdown-tooltip">Import your Spotify music collection to create personalized playlists and gain insights into your music</span>
+                                    </span>
                                 </a>
                                 <div class="divider"></div>
                             </div>
+                            <a href="{% url 'reset' %}" class="dropdown-link reset-link">
+                                <img src="{% static 'spotify_auth/images/ResetIcon.svg' %}" alt="" class="dropdown-icon" aria-hidden="true">
+                                <span class="dropdown-text-block">
+                                    <span class="dropdown-link-text">Reset Data</span>
+                                    <span class="dropdown-tooltip">Purges your data with Euphonic Intelligence</span>
+                                </span>
+                            </a>
                             <div class="mobile-only">
+                                <div class="divider"></div>
                                 <a href="#" id="eula-link-menu" class="dropdown-link">
-                                    <span class="dropdown-link-text">EULA</span>
-                                    <span class="dropdown-tooltip">Read the End-User License Agreement</span>
+                                    <img src="{% static 'spotify_auth/images/EULA.svg' %}" alt="" class="dropdown-icon" aria-hidden="true">
+                                    <span class="dropdown-text-block">
+                                        <span class="dropdown-link-text">EULA</span>
+                                        <span class="dropdown-tooltip">Read the End-User License Agreement</span>
+                                    </span>
                                 </a>
+                                <div class="divider"></div>
                                 <a href="#" id="privacy-link-menu" class="dropdown-link">
-                                    <span class="dropdown-link-text">Privacy Policy</span>
-                                    <span class="dropdown-tooltip">How we handle your data</span>
+                                    <img src="{% static 'spotify_auth/images/PrivacyPolicy.svg' %}" alt="" class="dropdown-icon" aria-hidden="true">
+                                    <span class="dropdown-text-block">
+                                        <span class="dropdown-link-text">Privacy Policy</span>
+                                        <span class="dropdown-tooltip">How we handle your data</span>
+                                    </span>
                                 </a>
                                 <div class="divider"></div>
                                 <a href="https://buymeacoffee.com/euphonicintelligence" target="_blank" rel="noopener noreferrer" class="dropdown-link">
-                                    <span class="dropdown-link-text">Buy Me a Coffee</span>
-                                    <span class="dropdown-tooltip">Support Euphonic Intelligence</span>
+                                    <img src="{% static 'spotify_auth/images/BuyMeACoffee.svg' %}" alt="" class="dropdown-icon" aria-hidden="true">
+                                    <span class="dropdown-text-block">
+                                        <span class="dropdown-link-text">Buy Me a Coffee</span>
+                                        <span class="dropdown-tooltip">Support Euphonic Intelligence</span>
+                                    </span>
                                 </a>
+                                <div class="divider"></div>
                                 <a href="mailto:jonathan@euphonicintelligence.com" class="dropdown-link">
-                                    <span class="dropdown-link-text">Contact Us</span>
-                                    <span class="dropdown-tooltip">jonathan@euphonicintelligence.com</span>
+                                    <img src="{% static 'spotify_auth/images/Contact.svg' %}" alt="" class="dropdown-icon" aria-hidden="true">
+                                    <span class="dropdown-text-block">
+                                        <span class="dropdown-link-text">Contact Us</span>
+                                        <span class="dropdown-tooltip">jonathan@euphonicintelligence.com</span>
+                                    </span>
                                 </a>
                                 <div class="divider"></div>
                                 <div class="mobile-menu-logos">
@@ -82,11 +107,6 @@
                                     <img src="{% static 'spotify_auth/images/EuphonicIntelligenceLogoWrapped.svg' %}" alt="Euphonic Intelligence Logo" class="ei-logo">
                                 </div>
                             </div>
-
-                            <a href="{% url 'reset' %}" class="dropdown-link reset-link">
-                                <span class="dropdown-link-text">Reset</span>
-                                <span class="dropdown-tooltip">Purges your data with Euphonic Intelligence</span>
-                            </a>
                         </div>
                         <div id="hamburger-backdrop" class="hamburger-backdrop" aria-hidden="true"></div>
                     </div>

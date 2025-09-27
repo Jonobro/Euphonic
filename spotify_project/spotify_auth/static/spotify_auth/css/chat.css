@@ -1697,19 +1697,18 @@ body.aria-intro-active .hamburger-menu-container {
         top: 0;
         right: 0;
         height: 100vh;
-        width: 86vw;
+        width: min(86vw, 380px);
         max-width: 380px;
         margin: 0;
-        border-radius: 0;
+        border-radius: 12px 0 0 12px;
         overflow-y: auto;
         transform: translateX(100%);
         transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
         display: block;
-        box-shadow: -6px 0 18px rgba(0,0,0,0.35);
-        border-left: 1px solid #535353;
-        border-right: none;
-        border-top: none;
-        border-bottom: none;
+        box-shadow: -6px 0 28px rgba(0,0,0,0.45);
+        border: none;
+        background-color: #282828;
+        padding: 8px;
     }
     .dropdown-panel.show {
         transform: translateX(0);
@@ -1731,8 +1730,56 @@ body.aria-intro-active .hamburger-menu-container {
     }
 
     .dropdown-link {
-        padding: 0.75rem 1rem 0.8rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: inherit;
         background: transparent;
+        font-size: 0.875rem;
+        transition: background-color 0.15s ease;
+    }
+    .dropdown-link:active {
+        background-color: rgba(255,255,255,0.08);
+    }
+
+    .dropdown-icon {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 20px;
+        filter: drop-shadow(0 0 1px rgba(30, 200, 90, 0.35));
+        opacity: 0.95;
+    }
+
+    .dropdown-text-block {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .dropdown-link-text {
+        display: block;
+        margin: 0;
+        font-weight: 600;
+        color: #ffffff;
+        font-size: 0.875rem;
+        line-height: 1.1;
+    }
+
+    .dropdown-tooltip {
+        display: block;
+        margin: 0;
+        font-size: 0.75rem;
+        color: #9ca3af;
+        line-height: 1.2;
+    }
+
+    .divider {
+        border-top: 1px solid rgba(255,255,255,0.1);
+        margin: 6px 4px;
     }
 
     .mobile-menu-logos {
