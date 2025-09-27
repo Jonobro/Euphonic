@@ -1167,6 +1167,10 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         }
         thinking_config_for_mode = thinking_config_map.get(chat_mode)
         
+        max_output_tokens_for_mode = 13000
+        if chat_mode == 'saved_songs':
+            max_output_tokens_for_mode = 17000
+
         chat_config = types.GenerateContentConfig(
             system_instruction=system_instruction_for_mode,
             tools=first_pass_tools,
@@ -1174,8 +1178,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             safety_settings=SAFETY_SETTINGS,
             temperature=temperature_for_mode,
             thinking_config=thinking_config_for_mode,
-            # max_output_tokens=13000
-            max_output_tokens=17000
+            max_output_tokens=max_output_tokens_for_mode
         )
         
         chat = client.chats.create(
