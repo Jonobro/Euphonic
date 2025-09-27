@@ -463,7 +463,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             temperature=0.5,
 
             # TEMPORARILY REDUCING THINKING BUDGET TO 0 FOR FASTER TESTING
-            # thinking_config=types.ThinkingConfig(thinking_budget=6000),
+            # thinking_config=types.ThinkingConfig(thinking_budget=8000),
             thinking_config=types.ThinkingConfig(thinking_budget=0),
 
             max_output_tokens=20000
@@ -1161,8 +1161,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 
         # Can add "include_thoughts=True" to see thought summaries
         thinking_config_map = {
-            'analysis': types.ThinkingConfig(thinking_budget=6000),
-            'saved_songs': types.ThinkingConfig(thinking_budget=6000),
+            'analysis': types.ThinkingConfig(thinking_budget=8000),
+            'saved_songs': types.ThinkingConfig(thinking_budget=12000),
             'new_songs': types.ThinkingConfig(thinking_budget=-1),
         }
         thinking_config_for_mode = thinking_config_map.get(chat_mode)
@@ -1174,7 +1174,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             safety_settings=SAFETY_SETTINGS,
             temperature=temperature_for_mode,
             thinking_config=thinking_config_for_mode,
-            max_output_tokens=13000
+            # max_output_tokens=13000
+            max_output_tokens=17000
         )
         
         chat = client.chats.create(
