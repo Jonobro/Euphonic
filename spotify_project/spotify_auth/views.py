@@ -514,9 +514,9 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
         introductory_message_end = """That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask.
 
 Here are a few questions you might find interesting:
-* What's the most prevalent genre in my tracks?
-* Do I lean more toward male or female lead vocalists?
-* Are there particular decades or years I seem to favor?"""
+* What percentage of my songs feature a female lead vocalist?
+* Are there particular decades or years I seem to favor?
+* What's the most prevalent genre in my tracks?"""
 
         history_list = [
             {'role': 'user', 'parts': [{'text': initial_prompt}]},
