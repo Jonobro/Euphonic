@@ -1,10 +1,20 @@
 const hamburgerBtn = document.getElementById('hamburger-btn');
 const hamburgerDropdown = document.getElementById('hamburger-dropdown');
+const hamburgerBackdrop = document.getElementById('hamburger-backdrop');
 
 hamburgerBtn.addEventListener('click', (event) => {
     event.stopPropagation();
     hamburgerDropdown.classList.toggle('show');
 });
+
+if (hamburgerBackdrop) {
+    hamburgerBackdrop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (hamburgerDropdown.classList.contains('show')) {
+            hamburgerDropdown.classList.remove('show');
+        }
+    });
+}
 
 window.addEventListener('click', (event) => {
     if (hamburgerDropdown.classList.contains('show')) {
@@ -239,6 +249,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             openImportModal();
+        });
+    }
+    const eulaLinkMenu = document.getElementById('eula-link-menu');
+    if (eulaLinkMenu) {
+        eulaLinkMenu.addEventListener('click', (event) => {
+            event.preventDefault();
+            openModal('eula');
+        });
+    }
+    const privacyLinkMenu = document.getElementById('privacy-link-menu');
+    if (privacyLinkMenu) {
+        privacyLinkMenu.addEventListener('click', (event) => {
+            event.preventDefault();
+            openModal('privacy');
         });
     }
 
