@@ -1696,18 +1696,12 @@ body.aria-intro-active .hamburger-menu-container {
     }
 }
 
-.desktop-only {
-    display: block;
-}
-
 /* Mobile overrides for display widths ≤ 768px */
 @media (max-width: 768px) {
-    .mobile-only { display: block; }
-
-    .desktop-only {
-        display: none;
+    .mobile-only {
+        display: block;
     }
-    
+
     .dropdown-panel {
         position: fixed;
         top: 63px;
@@ -1771,6 +1765,13 @@ body.aria-intro-active .hamburger-menu-container {
         stroke: #e0e0e0;
     }
 
+    .dropdown-icon.eula-icon {
+        fill: #e0e0e0;
+		stroke: #e0e0e0;
+		stroke-width: 0;
+		width: 16px;
+    }
+
     .dropdown-icon.import-icon {
         color: rgb(30, 200, 90);
         stroke: rgb(30, 200, 90);
@@ -1802,6 +1803,14 @@ body.aria-intro-active .hamburger-menu-container {
         font-size: 0.75rem;
         color: #9ca3af;
         line-height: 1.2;
+    }
+
+    .dropdown-tooltip.desktop-only {
+        display: none;
+    }
+
+    .divider.desktop-only {
+        display: none;
     }
 
     .divider {
