@@ -320,7 +320,7 @@ window.onclick = function(event) {
     if (event.target == modal) {
         closeModal();
     }
-}
+};
 
 (function () {
     let supportsPassive = false;
