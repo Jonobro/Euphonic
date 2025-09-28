@@ -508,12 +508,12 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
         else:
             initial_text_from_gemini = "Failed to generate analysis."
 
-        introductory_message_start = "I have thoroughly analyzed your imported tracks and have provided my insights below. Have a look!"
+        introductory_message_start = "I’ve analyzed your imported tracks and have provided my insights below. Have a look!"
         introductory_message_body_display = f"""<p class="musical-analysis-title"><strong>Your Musical Analysis</strong></p>\n\n{initial_text_from_gemini}"""
         introductory_message_body_history = f"Your Musical Analysis\n\n{initial_text_from_gemini}"
-        introductory_message_end = """That wraps up my analysis! If you'd like more details or have any follow-up questions, just ask.
+        introductory_message_end = """That wraps up my analysis! If you'd like more details or have any questions, just ask.
 
-Here are a few questions you might find interesting:
+For example, you can ask:
 * What percentage of my songs feature a female lead vocalist?
 * Are there particular decades or years I seem to favor?
 * What's the most prevalent genre in my tracks?"""
@@ -811,7 +811,7 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 """
             initial_response = """Cool – you got some music imported. Let’s craft some custom playlists using your tracks. I can filter through your music using any criteria you can imagine. Here are some examples:
 
-* Give me a playlist of all my songs from the 90s
+* Make a playlist of all my songs from the 90s
 * Make me a playlist of my most niche tracks
 * I’m on a road trip with my grandma – make a playlist of my songs that she might like
 * Create a playlist of all of the dream pop songs in my imported music
@@ -937,7 +937,7 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 """
             initial_response = """Cool – you got some music imported. Let’s craft some custom playlists using your tracks. I can filter through your music using any criteria you can imagine. Here are some examples:
 
-* Give me a playlist of all my songs from the 90s
+* Make a playlist of all my songs from the 90s
 * Make me a playlist of my most niche tracks
 * I’m on a road trip with my grandma – make a playlist of my songs that she might like
 * Create a playlist of all of the dream pop songs in my imported music
@@ -2463,7 +2463,7 @@ def import_playlists_api(request):
                 """
                 initial_response = """Cool – you got some music imported. Let’s craft some custom playlists using your tracks. I can filter through your music using any criteria you can imagine. Here are some examples:
 
-* Give me a playlist of all my songs from the 90s
+* Make a playlist of all my songs from the 90s
 * Make me a playlist of my most niche tracks
 * I’m on a road trip with my grandma – make a playlist of my songs that she might like
 * Create a playlist of all of the dream pop songs in my imported music

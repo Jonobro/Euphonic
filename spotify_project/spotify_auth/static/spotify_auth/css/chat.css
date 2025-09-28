@@ -1991,7 +1991,7 @@ body.aria-intro-active .hamburger-menu-container {
         background-color: transparent;
         color: #e0e0e0;
         align-self: center;
-        font-size: 0.86em;
+        font-size: 0.88em;
         /* Poppins Regular */
         font-weight: 400;
         min-width: 10%;
@@ -2018,11 +2018,28 @@ body.aria-intro-active .hamburger-menu-container {
     }
 
     body[data-chat-mode="new_songs"] .ai-message:first-child ul {
-        padding-left: 25px;
+        padding-left: 21px;
     }
 
     body[data-chat-mode="saved_songs"] .ai-message:first-child ul {
         padding-left: 20px;
+    }
+
+    body[data-chat-mode="analysis"] .ai-message.analysis-first-message {
+        margin-bottom: 8px;
+        margin-top: 9px;
+        max-width: 100%;
+        padding-left: 25px;
+    }
+
+    body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
+        margin-top: 8px;
+        max-width: 100%;
+        padding-left: 25px;
+    }
+
+    body[data-chat-mode="analysis"] .ai-message.analysis-third-message ul {
+        padding-left: 30px;
     }
 
     .user-message {
@@ -2031,7 +2048,7 @@ body.aria-intro-active .hamburger-menu-container {
         align-self: flex-end;
         margin-left: auto;
         border-bottom-right-radius: 5px;
-        font-size: 0.86em;
+        font-size: 0.88em;
         /* Poppins Medium */
         font-weight: 500;
         box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.45);
@@ -2065,7 +2082,7 @@ body.aria-intro-active .hamburger-menu-container {
         resize: none;
         overflow-y: auto;
         font-family: 'Poppins', sans-serif, Arial;
-        font-size: 14px;
+        font-size: 0.88em;
         box-shadow: 0 0 6px rgba(30, 200, 90, 0.3), 0 0 10px rgba(30, 200, 90, 0.1), 0 0 13px rgba(30, 200, 90, 0.06);
         margin-right: 0px;
         margin-left: 8px;
@@ -2146,7 +2163,7 @@ body.aria-intro-active .hamburger-menu-container {
         display: flex;
         align-items: center;
         padding-left: 13px;
-        padding-right: 17px;
+        padding-right: 19px;
         padding-top: 18px;
         padding-bottom: 18px;
         margin-top: -10px;
@@ -2175,7 +2192,7 @@ body.aria-intro-active .hamburger-menu-container {
         white-space: nowrap;
         border-radius: 20px;
         padding: 6px 0px;
-        font-size: 14.5px;
+        font-size: 14.75px;
         color: #e0e0e0;
         word-spacing: 1px;
         display: flex;
