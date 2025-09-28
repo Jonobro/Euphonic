@@ -1772,6 +1772,21 @@ body.aria-intro-active .hamburger-menu-container {
 		width: 16px;
     }
 
+    .dropdown-icon.privacy-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    .dropdown-icon.coffee-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    .dropdown-icon.contact-icon {
+        width: 20px;
+        height: 20px;
+    }
+
     .dropdown-icon.import-icon {
         color: rgb(30, 200, 90);
         stroke: rgb(30, 200, 90);
