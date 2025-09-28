@@ -1717,6 +1717,16 @@ body.aria-intro-active .hamburger-menu-container {
         display: block;
     }
 
+    body.keyboard-open #chat-container {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    body.keyboard-open #message-list {
+        overscroll-behavior: auto;
+        overscroll-behavior-y: auto;
+    }
+
     .dropdown-panel {
         position: fixed;
         top: 62px;
