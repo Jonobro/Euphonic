@@ -17,6 +17,13 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
+html, body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+}
+
 .container {
     background-color: #161616;
     border-radius: 15px;
