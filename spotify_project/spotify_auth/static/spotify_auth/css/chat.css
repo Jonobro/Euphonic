@@ -1416,7 +1416,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
 }
 
 .import-help-icon {
-    transform: translateY(-1px);
+    transform: translateY(-1px) translateX(-3px);
 }
 
 @media (min-width: 769px) {
@@ -1704,11 +1704,10 @@ body.aria-intro-active .hamburger-menu-container {
 
     .dropdown-panel {
         position: fixed;
-        top: 63px;
+        top: 62px;
         right: 0;
-        height: 384px;
-        width: min(86vw, 380px);
-        max-width: 281px;
+        height: 383px;
+        width: 274px;
         margin: 0;
         border-radius: 12px 0 0 12px;
         overflow-y: auto;
@@ -1718,12 +1717,12 @@ body.aria-intro-active .hamburger-menu-container {
         box-shadow: none;
         border: none;
         background-color: #181818;
-        padding: 8px;
+        padding: 9px;
     }
 
     .dropdown-panel.show {
         transform: translateX(0);
-        box-shadow: -6px 0 28px rgba(0,0,0,0.45);
+        box-shadow: -3px 0 10px rgba(0,0,0,0.5);
     }
 
     .hamburger-backdrop {
@@ -1739,6 +1738,8 @@ body.aria-intro-active .hamburger-menu-container {
     #hamburger-dropdown.show + #hamburger-backdrop {
         opacity: 1;
         pointer-events: auto;
+        -webkit-backdrop-filter: blur(1px);
+        backdrop-filter: blur(1px);
     }
 
     .dropdown-link {
@@ -1752,9 +1753,15 @@ body.aria-intro-active .hamburger-menu-container {
         font-size: 0.875rem;
         transition: background-color 0.15s ease;
     }
-    
-    .dropdown-link:active {
-        background-color: rgba(255,255,255,0.08);
+
+    .dropdown-link--coffee .dropdown-icon {
+        padding-top: 11px;
+        padding-bottom: 11px;
+    }
+
+    .dropdown-link--contact .dropdown-icon {
+        padding-top: 13px;
+        padding-bottom: 13px;
     }
 
     .dropdown-icon {
@@ -1778,18 +1785,21 @@ body.aria-intro-active .hamburger-menu-container {
     }
 
     .dropdown-icon.coffee-icon {
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
     }
 
     .dropdown-icon.contact-icon {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
+        scale: 0.95;
     }
 
     .dropdown-icon.import-icon {
         color: rgb(30, 200, 90);
         stroke: rgb(30, 200, 90);
+        width: 18px;
+        height: 18px;
     }
 
     .dropdown-icon.reset-icon {
@@ -1807,7 +1817,7 @@ body.aria-intro-active .hamburger-menu-container {
         display: block;
         margin: 0;
         font-weight: 400;
-        color: #ffffff;
+        color: #F0F0F0;
         font-size: 0.875rem;
         line-height: 1.1;
     }
@@ -1816,7 +1826,7 @@ body.aria-intro-active .hamburger-menu-container {
         display: block;
         margin: 0;
         font-size: 0.75rem;
-        color: #9ca3af;
+        color: #878D97;
         line-height: 1.2;
     }
 
@@ -1837,21 +1847,20 @@ body.aria-intro-active .hamburger-menu-container {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
+        gap: 15px;
         padding: 14px 10px 10px 10px;
-        opacity: 0.95;
     }
 
     .mobile-menu-logos .spotify-logo {
         height: 30px;
-        opacity: 0.9;
+        opacity: 0.85;
         margin: 0;
     }
 
     .mobile-menu-logos .ei-logo {
         height: 30px;
+        opacity: 0.9;
         margin: 0;
-        opacity: 1;
     }
 
     .spotify-footer,
@@ -2197,8 +2206,8 @@ body.aria-intro-active .hamburger-menu-container {
 	    transform: var(--import-transform, translateX(-50%) translateY(10px) scale(0.98));
 	    opacity: 0;
 	    transition:
-	        transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
-	        opacity 180ms ease-out;
+	        transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1),
+	        opacity 360ms ease-out;
 	    will-change: transform, opacity;
 	    overflow-y: auto;
 	    backface-visibility: hidden;
