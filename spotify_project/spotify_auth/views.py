@@ -813,8 +813,8 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 
 * Make a playlist of all my songs from the 90s
 * Make me a playlist of my most niche tracks
-* I’m on a road trip with my grandma – make a playlist of my songs that she might like
 * Create a playlist of all of the dream pop songs in my imported music
+* I’m on a road trip with my grandma – make a playlist of my songs that she might like
 * Give me a playlist of my most uplifting songs
 * Make a playlist of all my songs that are sung in Spanish"""
         
@@ -939,8 +939,8 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 
 * Make a playlist of all my songs from the 90s
 * Make me a playlist of my most niche tracks
-* I’m on a road trip with my grandma – make a playlist of my songs that she might like
 * Create a playlist of all of the dream pop songs in my imported music
+* I’m on a road trip with my grandma – make a playlist of my songs that she might like
 * Give me a playlist of my most uplifting songs
 * Make a playlist of all my songs that are sung in Spanish"""
 
@@ -2465,8 +2465,8 @@ def import_playlists_api(request):
 
 * Make a playlist of all my songs from the 90s
 * Make me a playlist of my most niche tracks
-* I’m on a road trip with my grandma – make a playlist of my songs that she might like
 * Create a playlist of all of the dream pop songs in my imported music
+* I’m on a road trip with my grandma – make a playlist of my songs that she might like
 * Give me a playlist of my most uplifting songs
 * Make a playlist of all my songs that are sung in Spanish"""
 

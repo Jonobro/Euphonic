@@ -321,3 +321,54 @@ window.onclick = function(event) {
         closeModal();
     }
 }
+
+(function () {
+    let supportsPassive = false;
+    try {
+        const opts = Object.defineProperty({}, 'passive', {
+            get() { supportsPassive = true; }
+        });
+        window.addEventListener('testPassive', null, opts);
+        window.removeEventListener('testPassive', null, opts);
+    } catch (_) {}
+    const listenerOpts = supportsPassive ? { passive: false } : false;
+
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(evt => {
+        document.addEventListener(evt, e => e.preventDefault(), listenerOpts);
+    });
+
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', e => {
+        const now = Date.now();
+        if (now - lastTouchEnd < 300) {
+            e.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, listenerOpts);
+})();
+
+(function () {
+    function setViewportHeight() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    function debounce(fn, wait) {
+        let t;
+        return (...args) => {
+            clearTimeout(t);
+            t = setTimeout(() => fn(...args), wait);
+        };
+    }
+    const debouncedSetViewportHeight = debounce(setViewportHeight, 100);
+
+    document.addEventListener('DOMContentLoaded', setViewportHeight);
+    window.addEventListener('load', setViewportHeight);
+    window.addEventListener('resize', debouncedSetViewportHeight);
+    window.addEventListener('orientationchange', () => setTimeout(setViewportHeight, 200));
+    if ('visualViewport' in window) {
+        window.visualViewport.addEventListener('resize', debouncedSetViewportHeight);
+    }
+    if (/Android/i.test(navigator.userAgent)) {
+        window.addEventListener('scroll', debouncedSetViewportHeight, { passive: true });
+    }
+})();
