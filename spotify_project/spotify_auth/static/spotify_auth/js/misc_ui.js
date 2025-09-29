@@ -420,6 +420,12 @@ window.onclick = function(event) {
     let spaceBelow = 0;
     spaceBelow += toNumber(getComputedStyle(document.body).paddingBottom);
 
+    const containerEl = document.querySelector('.container');
+    if (isVisible(containerEl)) {
+      const cs = getComputedStyle(containerEl);
+      spaceBelow += toNumber(cs.paddingBottom);
+    }
+
     const onMobile = window.matchMedia('(max-width: 768px)').matches;
     const footer = onMobile ? null : document.querySelector('.spotify-footer');
     if (isVisible(footer)) {
@@ -427,7 +433,7 @@ window.onclick = function(event) {
       spaceBelow += footer.offsetHeight + toNumber(fs.marginTop);
     }
 
-    const targetHeight = Math.max(250, Math.floor(viewportHeight - spaceAbove - spaceBelow - 4));
+    const targetHeight = Math.max(250, Math.floor(viewportHeight - spaceAbove - spaceBelow - (onMobile ? 4 : 0)));
     chat.style.height = `${targetHeight}px`;
   }
 
