@@ -1725,6 +1725,10 @@ body.aria-intro-active .hamburger-menu-container {
         overscroll-behavior-y: auto;
     }
 
+    .container::before {
+        background: #161616 !important;
+    }
+
     .dropdown-panel {
         position: fixed;
         top: 62px;
