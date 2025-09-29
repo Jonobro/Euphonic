@@ -139,6 +139,7 @@ h2, h3, h4, h5, h6 {
     padding: 0px;
     display: flex;
     flex-direction: column;
+    /* Height is overridden by Javascript */
     height: calc(100vh - 257px);
     height: calc((var(--vh, 1vh) * 100) - 257px);
     height: calc(100dvh - 257px);
@@ -1940,7 +1941,7 @@ body.aria-intro-active .hamburger-menu-container {
         background-color: #161616;
         border-radius: 0px;
         padding: 0px 0px 0px 0px;
-        box-shadow: 1px 4px 8px rgba(0,0,0,0.4);
+        box-shadow: none;
         visibility: hidden;
         opacity: 0;
         transition: opacity 0.5s ease-in-out;
@@ -1965,9 +1966,10 @@ body.aria-intro-active .hamburger-menu-container {
         display: flex;
         flex-direction: column;
         width: 100%;
-        height: calc(100vh - 64px);
-        height: calc((var(--vh, 1vh) * 100) - 64px);
-        height: calc(100dvh - 64px);
+        /* Height is overridden by Javascript */
+        height: calc(100vh - 68px);
+        height: calc((var(--vh, 1vh) * 100) - 68px);
+        height: calc(100dvh - 68px);
     }
 
     #message-list {

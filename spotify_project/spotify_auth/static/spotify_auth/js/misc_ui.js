@@ -404,3 +404,55 @@ window.onclick = function(event) {
         window.addEventListener('orientationchange', () => setTimeout(computeKeyboardOpen, 300), { passive: true });
     });
 })();
+
+(function () {
+  const chat = document.getElementById('chat-container');
+  if (!chat) return;
+
+  const isVisible = el => !!el && getComputedStyle(el).display !== 'none' && el.offsetParent !== null;
+  const toNumber = v => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : 0);
+
+  function computeAndSetChatHeight() {
+    const vv = window.visualViewport;
+    const viewportHeight = vv?.height ?? window.innerHeight;
+    const chatRect = chat.getBoundingClientRect();
+    const spaceAbove = Math.max(0, chatRect.top);
+    let spaceBelow = 0;
+    spaceBelow += toNumber(getComputedStyle(document.body).paddingBottom);
+
+    const onMobile = window.matchMedia('(max-width: 768px)').matches;
+    const footer = onMobile ? null : document.querySelector('.spotify-footer');
+    if (isVisible(footer)) {
+      const fs = getComputedStyle(footer);
+      spaceBelow += footer.offsetHeight + toNumber(fs.marginTop);
+    }
+
+    const targetHeight = Math.max(250, Math.floor(viewportHeight - spaceAbove - spaceBelow - 4));
+    chat.style.height = `${targetHeight}px`;
+  }
+
+  let rafId = null;
+  const schedule = () => {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(computeAndSetChatHeight);
+  };
+
+  document.addEventListener('DOMContentLoaded', schedule);
+  window.addEventListener('load', () => {
+    schedule();
+    setTimeout(schedule, 50);
+    setTimeout(schedule, 250);
+  });
+
+  window.addEventListener('resize', schedule);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', schedule);
+    window.visualViewport.addEventListener('geometrychange', schedule);
+  }
+
+  const textarea = document.getElementById('user-input');
+  if (textarea) {
+    textarea.addEventListener('focus', schedule);
+    textarea.addEventListener('blur', schedule);
+  }
+})();
