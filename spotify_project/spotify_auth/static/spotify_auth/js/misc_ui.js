@@ -413,6 +413,7 @@ window.onclick = function(event) {
   const toNumber = v => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : 0);
 
   function computeAndSetChatHeight() {
+    if (document.body.classList.contains('keyboard-open')) return;
     const vv = window.visualViewport;
     const viewportHeight = vv?.height ?? window.innerHeight;
     const chatRect = chat.getBoundingClientRect();
@@ -439,7 +440,12 @@ window.onclick = function(event) {
 
   let rafId = null;
   const schedule = () => {
-    if (rafId) cancelAnimationFrame(rafId);
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    if (document.body.classList.contains('keyboard-open')) return;
+
     rafId = requestAnimationFrame(computeAndSetChatHeight);
   };
 
@@ -458,7 +464,6 @@ window.onclick = function(event) {
 
   const textarea = document.getElementById('user-input');
   if (textarea) {
-    textarea.addEventListener('focus', schedule);
     textarea.addEventListener('blur', schedule);
   }
 })();
