@@ -4,7 +4,7 @@ body {
     color: #FFFFFF;
     max-width: 800px;
     margin: 0 auto;
-    padding: 17px 20px 0px 20px;
+    padding: 12px 20px 0px 20px;
     background-color: #101010;
     background-image: url('../images/EuphonicIntelligenceBackground.png');
     background-repeat: no-repeat;
@@ -455,7 +455,8 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 
 .spotify-footer {
     text-align: center;
-    margin-top: 15.5px;
+    margin-top: 15px;
+    margin-bottom: 17px;
     color: #B3B3B3;
     font-size: 13px;
     display: flex;
@@ -909,7 +910,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     padding: 7px;
     text-align: center;
     margin-bottom: 14px;
-    margin-top: -5px;
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;

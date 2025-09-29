@@ -430,7 +430,7 @@ window.onclick = function(event) {
     const footer = onMobile ? null : document.querySelector('.spotify-footer');
     if (isVisible(footer)) {
       const fs = getComputedStyle(footer);
-      spaceBelow += footer.offsetHeight + toNumber(fs.marginTop);
+      spaceBelow += footer.offsetHeight + toNumber(fs.marginTop) + toNumber(fs.marginBottom);
     }
 
     const targetHeight = Math.max(250, Math.floor(viewportHeight - spaceAbove - spaceBelow - (onMobile ? 4 : 0)));
