@@ -434,7 +434,18 @@ window.onclick = function(event) {
       spaceBelow += footer.offsetHeight + toNumber(fs.marginTop) + toNumber(fs.marginBottom);
     }
 
-    const targetHeight = Math.max(250, Math.floor(viewportHeight - spaceAbove - spaceBelow - (onMobile ? 4 : 0)));
+    let targetHeight = Math.max(250, Math.floor(viewportHeight - spaceAbove - spaceBelow - (onMobile ? 2 : 0)));
+
+    const isIOSSafari = /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+                       /Safari/i.test(navigator.userAgent) &&
+                       !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent);
+    const isIOS26 = CSS.supports('color', 'contrast-color(white)');
+    const keyboardOpen = document.body.classList.contains('keyboard-open');
+
+    if (isIOSSafari && isIOS26 && !keyboardOpen) {
+        targetHeight = targetHeight + 8;
+    }
+    
     chat.style.height = `${targetHeight}px`;
   }
 
