@@ -143,8 +143,6 @@ h2, h3, h4, h5, h6 {
     height: calc((var(--vh, 1vh) * 100) - 257px);
     height: calc(100dvh - 257px);
     width: 100%;
-    position: sticky;
-    top: 0;
 }
 
 #message-list {
@@ -1963,8 +1961,6 @@ body.aria-intro-active .hamburger-menu-container {
         height: calc(100vh - 64px);
         height: calc((var(--vh, 1vh) * 100) - 64px);
         height: calc(100dvh - 64px);
-        position: sticky;
-        top: 0;
     }
 
     #message-list {
@@ -1972,6 +1968,7 @@ body.aria-intro-active .hamburger-menu-container {
         overflow-y: auto;
         margin-bottom: 0px;
         padding-right: 0px;
+        -webkit-overflow-scrolling: touch;
     }
 
     #message-list::-webkit-scrollbar,

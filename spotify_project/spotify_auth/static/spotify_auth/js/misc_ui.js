@@ -364,7 +364,7 @@ window.onclick = function(event) {
     document.addEventListener('DOMContentLoaded', setViewportHeight);
     window.addEventListener('load', setViewportHeight);
     window.addEventListener('resize', debouncedSetViewportHeight);
-    window.addEventListener('orientationchange', () => setTimeout(setViewportHeight, 200));
+    window.addEventListener('orientationchange', () => setTimeout(setViewportHeight, 300));
     if ('visualViewport' in window) {
         window.visualViewport.addEventListener('resize', debouncedSetViewportHeight);
     }
@@ -396,11 +396,11 @@ window.onclick = function(event) {
         const input = document.getElementById('user-input');
         if (input) {
             input.addEventListener('focus', computeKeyboardOpen, { passive: true });
-            input.addEventListener('blur', () => setTimeout(computeKeyboardOpen, 80), { passive: true });
+            input.addEventListener('blur', computeKeyboardOpen, { passive: true });
         }
         if ('visualViewport' in window) {
             window.visualViewport.addEventListener('resize', computeKeyboardOpen);
         }
-        window.addEventListener('orientationchange', () => setTimeout(computeKeyboardOpen, 250), { passive: true });
+        window.addEventListener('orientationchange', () => setTimeout(computeKeyboardOpen, 300), { passive: true });
     });
 })();
