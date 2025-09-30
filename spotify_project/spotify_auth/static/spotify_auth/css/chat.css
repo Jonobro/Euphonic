@@ -1929,10 +1929,14 @@ body.aria-intro-active .hamburger-menu-container {
         color: #FFFFFF;
         max-width: 800px;
         margin: 0;
-        padding-top: env(safe-area-inset-top);
-        padding-right: env(safe-area-inset-right);
-        padding-bottom: env(safe-area-inset-bottom);
-        padding-left: env(safe-area-inset-left);
+        padding-top: 0;
+        padding-right: 0;
+        padding-bottom: 0;
+        padding-left: 0;
+        padding-top: env(safe-area-inset-top, 0);
+        padding-right: env(safe-area-inset-right, 0);
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        padding-left: env(safe-area-inset-left, 0);
         background-color: #161616;
         background-image: none;
     }
