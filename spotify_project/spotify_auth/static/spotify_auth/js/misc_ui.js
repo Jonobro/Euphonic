@@ -386,7 +386,7 @@ window.onclick = function(event) {
     const isIOSSafari =
         /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
         /Safari/i.test(navigator.userAgent) &&
-        !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent);
+        !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS|GSA|GoogleApp/i.test(navigator.userAgent);
     const isIOS26 = CSS.supports('color', 'contrast-color(white)');
 
     function computeKeyboardOpen() {
@@ -464,9 +464,10 @@ window.onclick = function(event) {
 
     let targetHeight = Math.max(250, Math.floor(viewportHeight - spaceAbove - spaceBelow - (onMobile ? 2 : 0)));
 
-    const isIOSSafari = /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
-                       /Safari/i.test(navigator.userAgent) &&
-                       !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent);
+    const isIOSSafari =
+        /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+        /Safari/i.test(navigator.userAgent) &&
+        !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS|GSA|GoogleApp/i.test(navigator.userAgent);
     const isIOS26 = CSS.supports('color', 'contrast-color(white)');
     const keyboardOpen = document.body.classList.contains('keyboard-open');
 
