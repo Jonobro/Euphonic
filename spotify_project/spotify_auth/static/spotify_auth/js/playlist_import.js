@@ -263,7 +263,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                     }
                                     const userInput = document.getElementById('user-input');
                                     if (userInput) {
-                                        userInput.focus();
+                                        if (window.matchMedia('(min-width: 769px)').matches) {
+                                            userInput.focus();
+                                        }
                                     }
                                 }
                             }

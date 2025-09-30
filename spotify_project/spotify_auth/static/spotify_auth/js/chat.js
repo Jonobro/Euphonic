@@ -568,7 +568,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     contentDiv.classList.contains('focused')) {
                     transitionFired = true;
                     toggleChatInput(false);
-                    userInput?.focus();
+                    if (window.matchMedia('(min-width: 769px)').matches) {
+                        userInput?.focus();
+                    }
                     contentDiv.removeEventListener('transitionend', handleTransitionEnd);
                 }
             };
@@ -577,7 +579,9 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 if (!transitionFired && contentDiv.classList.contains('focused') && userInput && userInput.disabled) {
                     toggleChatInput(false);
-                    userInput.focus();
+                    if (window.matchMedia('(min-width: 769px)').matches) {
+                        userInput.focus();
+                    }
                 }
             }, 1500);
         } else {
@@ -735,7 +739,9 @@ document.addEventListener('DOMContentLoaded', () => {
             eventSource.close();
             if (thinkingMsgElement) thinkingMsgElement.remove();
             toggleChatInput(false);
-            userInput.focus();
+            if (window.matchMedia('(min-width: 769px)').matches) {
+                userInput.focus();
+            }
         };
 
         eventSource.onmessage = (event) => {
@@ -909,7 +915,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             console.error('Chat send error:', e);
             toggleChatInput(false);
-            userInput.focus();
+            if (window.matchMedia('(min-width: 769px)').matches) {
+                userInput.focus();
+            }
         }
     };
 
@@ -1131,7 +1139,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         toggleChatInput(true);
                     } else {
                         toggleChatInput(false);
-                        userInput.focus();
+                        if (window.matchMedia('(min-width: 769px)').matches) {
+                            userInput.focus();
+                        }
                     }
                 }
             } catch (e) {
@@ -1228,7 +1238,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     for (const msg of firstMsgs) addMessage(msg, 'ai', false, false);
                     toggleChatInput(false);
-                    userInput.focus();
+                    if (window.matchMedia('(min-width: 769px)').matches) {
+                        userInput.focus();
+                    }
                 } else if (data.analysis_started) {
                     if (initialAnalysisEventSource) {
                         console.log('Initial analysis EventSource already open');
@@ -1277,7 +1289,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         es.close();
                         initialAnalysisEventSource = null;
                         toggleChatInput(false);
-                        userInput.focus();
+                        if (window.matchMedia('(min-width: 769px)').matches) {
+                            userInput.focus();
+                        }
                     };
 
                     es.addEventListener('stream_error', (e) => {
