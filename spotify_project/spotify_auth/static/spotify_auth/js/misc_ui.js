@@ -408,7 +408,7 @@ window.onclick = function(event) {
                         parseFloat(chat.style.height) ||
                         chat.getBoundingClientRect().height;
                     chat.dataset.iosKbPrevHeight = `${currentPx}px`;
-                    chat.style.height = `${Math.max(0, currentPx - 5)}px`;
+                    chat.style.height = `${Math.max(0, currentPx - 11)}px`;
                     chat.dataset.iosKbBumpApplied = '1';
                 }
             } else if (chat.dataset.iosKbBumpApplied) {
@@ -472,7 +472,7 @@ window.onclick = function(event) {
     const keyboardOpen = document.body.classList.contains('keyboard-open');
 
     if (isIOSSafari && isIOS26 && !keyboardOpen) {
-        targetHeight = targetHeight + 8;
+        targetHeight = targetHeight + 6;
     }
     
     chat.style.height = `${targetHeight}px`;
