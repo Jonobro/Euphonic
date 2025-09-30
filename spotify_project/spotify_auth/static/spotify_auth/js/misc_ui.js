@@ -383,13 +383,41 @@ window.onclick = function(event) {
         document.body.classList.toggle('keyboard-open', open);
     }
 
+    const isIOSSafari =
+        /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+        /Safari/i.test(navigator.userAgent) &&
+        !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent);
+    const isIOS26 = CSS.supports('color', 'contrast-color(white)');
+
     function computeKeyboardOpen() {
         if (!mq.matches) {
             setKeyboardOpen(false);
             return;
         }
         const input = document.getElementById('user-input');
-        setKeyboardOpen(document.activeElement === input);
+        const open = document.activeElement === input;
+        setKeyboardOpen(open);
+
+        if (isIOSSafari && isIOS26) {
+            const chat = document.getElementById('chat-container');
+            if (!chat) return;
+
+            if (open) {
+                if (!chat.dataset.iosKbBumpApplied) {
+                    const currentPx =
+                        parseFloat(chat.style.height) ||
+                        chat.getBoundingClientRect().height;
+                    chat.dataset.iosKbPrevHeight = `${currentPx}px`;
+                    chat.style.height = `${Math.max(0, currentPx - 5)}px`;
+                    chat.dataset.iosKbBumpApplied = '1';
+                }
+            } else if (chat.dataset.iosKbBumpApplied) {
+                const prev = chat.dataset.iosKbPrevHeight;
+                if (prev) chat.style.height = prev;
+                delete chat.dataset.iosKbPrevHeight;
+                delete chat.dataset.iosKbBumpApplied;
+            }
+        }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
