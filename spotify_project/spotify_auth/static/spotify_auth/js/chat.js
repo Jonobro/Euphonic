@@ -674,13 +674,28 @@ document.addEventListener('DOMContentLoaded', () => {
         addMessage(text, sender, true, allowBlurFade);
         suppressHistoryUpdate = prev;
     }
+    window.addEphemeralMessage = addEphemeralMessage;
 
     window.addMessageAndScroll = (text, sender, { suppressPersist = false } = {}) => {
         const prev = suppressHistoryUpdate;
         if (suppressPersist) suppressHistoryUpdate = true;
         const newMessage = addMessage(text, sender, false);
         suppressHistoryUpdate = prev;
-        newMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        setTimeout(() => {
+            const messageTop = newMessage.offsetTop - messageList.offsetTop;
+            const contentHeight = messageList.scrollHeight;
+            const viewHeight = messageList.clientHeight;
+            if (contentHeight - messageTop <= viewHeight) {
+                scrollToBottom();
+            } else {
+                messageList.scrollTo({
+                    top: messageTop,
+                    behavior: 'smooth'
+                });
+            }
+        }, 10);
+        
         return newMessage;
     };
 
@@ -781,13 +796,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 setTimeout(() => {
-                    const userTop = userMessageElement.offsetTop;
+                    const userTop = userMessageElement.offsetTop - messageList.offsetTop;
                     const contentHeight = messageList.scrollHeight;
                     const viewHeight = messageList.clientHeight;
                     if (contentHeight - userTop <= viewHeight) {
                         scrollToBottom();
                     } else {
-                        userMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        messageList.scrollTo({
+                            top: userTop,
+                            behavior: 'smooth'
+                        });
                     }
                 }, 10);
             } else {

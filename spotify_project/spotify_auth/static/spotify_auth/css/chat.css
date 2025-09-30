@@ -2012,6 +2012,13 @@ body.aria-intro-active .hamburger-menu-container {
         border-radius: 7px;
     }
 
+    .conversation-divider {
+        position: relative;
+        height: 2.4px;
+        margin: 8px 0;
+        border: 0;
+    }
+
     .message {
         border-radius: 15px;
         word-wrap: break-word;
@@ -2047,6 +2054,21 @@ body.aria-intro-active .hamburger-menu-container {
     .ai-message.thinking-message {
         padding-top: 13px;
         padding-bottom: 18px;
+    }
+
+    .ai-message.has-playlist-button.previous-conversation {
+        padding-bottom: 13px;
+    }
+
+    .message-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border: 1px solid #464646;
+        border-radius: 10px;
+        margin-bottom: 5px;
+        margin-top: 5px;
+        width: fit-content; /* 327px if you choose a fixed width */
     }
 
     body[data-chat-mode="new_songs"] .ai-message:first-child ul {
