@@ -440,8 +440,26 @@ window.onclick = function(event) {
   const isVisible = el => !!el && getComputedStyle(el).display !== 'none' && el.offsetParent !== null;
   const toNumber = v => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : 0);
 
+  const isIOSSafari =
+      /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+      /Safari/i.test(navigator.userAgent) &&
+      !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS|GSA|GoogleApp/i.test(navigator.userAgent);
+  const isIOS26 = CSS.supports('color', 'contrast-color(white)');
+  let headerPaddingAdjusted = false;
+
   function computeAndSetChatHeight() {
-    if (document.body.classList.contains('keyboard-open')) return;
+    const keyboardOpen = document.body.classList.contains('keyboard-open');
+    
+    if (!keyboardOpen && isIOSSafari && isIOS26 && !headerPaddingAdjusted) {
+      const header = document.querySelector('.header-row');
+      if (header) {
+        const currentPadding = toNumber(getComputedStyle(header).paddingTop);
+        header.style.paddingTop = `${Math.max(0, currentPadding - 6)}px`;
+        headerPaddingAdjusted = true;
+      }
+    }
+
+    if (keyboardOpen) return;
     const vv = window.visualViewport;
     const viewportHeight = vv?.height ?? window.innerHeight;
     const chatRect = chat.getBoundingClientRect();
@@ -463,13 +481,6 @@ window.onclick = function(event) {
     }
 
     let targetHeight = Math.max(250, Math.floor(viewportHeight - spaceAbove - spaceBelow - (onMobile ? 2 : 0)));
-
-    const isIOSSafari =
-        /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
-        /Safari/i.test(navigator.userAgent) &&
-        !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS|GSA|GoogleApp/i.test(navigator.userAgent);
-    const isIOS26 = CSS.supports('color', 'contrast-color(white)');
-    const keyboardOpen = document.body.classList.contains('keyboard-open');
 
     if (isIOSSafari && isIOS26 && !keyboardOpen) {
         targetHeight = targetHeight + 6;
