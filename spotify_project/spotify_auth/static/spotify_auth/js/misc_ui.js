@@ -441,6 +441,19 @@ window.onclick = function(event) {
     const isVisible = el => !!el && getComputedStyle(el).display !== 'none' && el.offsetParent !== null;
     const toNumber = v => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : 0);
 
+    function getSafeAreaInsetBottom() {
+        try {
+            if (!window.CSS || !CSS.supports || !CSS.supports('padding-bottom', 'env(safe-area-inset-bottom)')) return 0;
+            if (!getSafeAreaInsetBottom._probe) {
+                const el = document.createElement('div');
+                el.style.cssText = 'position:fixed;bottom:0;left:0;height:0;padding-bottom:env(safe-area-inset-bottom);pointer-events:none;visibility:hidden;';
+                document.body.appendChild(el);
+                getSafeAreaInsetBottom._probe = el;
+            }
+            return toNumber(getComputedStyle(getSafeAreaInsetBottom._probe).paddingBottom);
+        } catch (_) { return 0; }
+    }
+
     const isIOSSafari =
         /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
         /Safari/i.test(navigator.userAgent) &&
@@ -463,16 +476,17 @@ window.onclick = function(event) {
 
         if (keyboardOpen) return;
         const vv = window.visualViewport;
-        const viewportHeight = vv?.height ?? window.innerHeight;
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+        const viewportHeight = isPWA ? window.innerHeight : (vv?.height ?? window.innerHeight);
         const chatRect = chat.getBoundingClientRect();
         const spaceAbove = Math.max(0, chatRect.top);
         let spaceBelow = 0;
-        spaceBelow += toNumber(getComputedStyle(document.body).paddingBottom);
+        spaceBelow += Math.max(0, getSafeAreaInsetBottom());
 
         const containerEl = document.querySelector('.container');
         if (isVisible(containerEl)) {
-        const cs = getComputedStyle(containerEl);
-        spaceBelow += toNumber(cs.paddingBottom);
+            const cs = getComputedStyle(containerEl);
+            spaceBelow += toNumber(cs.paddingBottom);
         }
 
         const onMobile = window.matchMedia('(max-width: 768px)').matches;
