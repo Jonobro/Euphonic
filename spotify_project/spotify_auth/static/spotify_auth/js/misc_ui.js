@@ -386,7 +386,8 @@ window.onclick = function(event) {
     const isIOSSafari =
         /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
         /Safari/i.test(navigator.userAgent) &&
-        !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS|GSA|GoogleApp/i.test(navigator.userAgent);
+        !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS|GSA|GoogleApp/i.test(navigator.userAgent) &&
+        !window.matchMedia('(display-mode: standalone)').matches;
     const isIOS26 = CSS.supports('color', 'contrast-color(white)');
 
     function computeKeyboardOpen() {
@@ -434,87 +435,88 @@ window.onclick = function(event) {
 })();
 
 (function () {
-  const chat = document.getElementById('chat-container');
-  if (!chat) return;
+    const chat = document.getElementById('chat-container');
+    if (!chat) return;
 
-  const isVisible = el => !!el && getComputedStyle(el).display !== 'none' && el.offsetParent !== null;
-  const toNumber = v => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : 0);
+    const isVisible = el => !!el && getComputedStyle(el).display !== 'none' && el.offsetParent !== null;
+    const toNumber = v => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : 0);
 
-  const isIOSSafari =
-      /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
-      /Safari/i.test(navigator.userAgent) &&
-      !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS|GSA|GoogleApp/i.test(navigator.userAgent);
-  const isIOS26 = CSS.supports('color', 'contrast-color(white)');
-  let headerPaddingAdjusted = false;
+    const isIOSSafari =
+        /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+        /Safari/i.test(navigator.userAgent) &&
+        !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS|GSA|GoogleApp/i.test(navigator.userAgent) &&
+        !window.matchMedia('(display-mode: standalone)').matches;
+    const isIOS26 = CSS.supports('color', 'contrast-color(white)');
+    let headerPaddingAdjusted = false;
 
-  function computeAndSetChatHeight() {
-    const keyboardOpen = document.body.classList.contains('keyboard-open');
-    
-    if (!keyboardOpen && isIOSSafari && isIOS26 && !headerPaddingAdjusted) {
-      const header = document.querySelector('.header-row');
-      if (header) {
-        const currentPadding = toNumber(getComputedStyle(header).paddingTop);
-        header.style.paddingTop = `${Math.max(0, currentPadding - 6)}px`;
-        headerPaddingAdjusted = true;
-      }
+    function computeAndSetChatHeight() {
+        const keyboardOpen = document.body.classList.contains('keyboard-open');
+        
+        if (!keyboardOpen && isIOSSafari && isIOS26 && !headerPaddingAdjusted) {
+        const header = document.querySelector('.header-row');
+        if (header) {
+            const currentPadding = toNumber(getComputedStyle(header).paddingTop);
+            header.style.paddingTop = `${Math.max(0, currentPadding - 6)}px`;
+            headerPaddingAdjusted = true;
+        }
+        }
+
+        if (keyboardOpen) return;
+        const vv = window.visualViewport;
+        const viewportHeight = vv?.height ?? window.innerHeight;
+        const chatRect = chat.getBoundingClientRect();
+        const spaceAbove = Math.max(0, chatRect.top);
+        let spaceBelow = 0;
+        spaceBelow += toNumber(getComputedStyle(document.body).paddingBottom);
+
+        const containerEl = document.querySelector('.container');
+        if (isVisible(containerEl)) {
+        const cs = getComputedStyle(containerEl);
+        spaceBelow += toNumber(cs.paddingBottom);
+        }
+
+        const onMobile = window.matchMedia('(max-width: 768px)').matches;
+        const footer = onMobile ? null : document.querySelector('.spotify-footer');
+        if (isVisible(footer)) {
+        const fs = getComputedStyle(footer);
+        spaceBelow += footer.offsetHeight + toNumber(fs.marginTop) + toNumber(fs.marginBottom);
+        }
+
+        let targetHeight = Math.max(250, Math.floor(viewportHeight - spaceAbove - spaceBelow - (onMobile ? 2 : 0)));
+
+        if (isIOSSafari && isIOS26 && !keyboardOpen) {
+            targetHeight = targetHeight + 6;
+        }
+        
+        chat.style.height = `${targetHeight}px`;
     }
 
-    if (keyboardOpen) return;
-    const vv = window.visualViewport;
-    const viewportHeight = vv?.height ?? window.innerHeight;
-    const chatRect = chat.getBoundingClientRect();
-    const spaceAbove = Math.max(0, chatRect.top);
-    let spaceBelow = 0;
-    spaceBelow += toNumber(getComputedStyle(document.body).paddingBottom);
+    let rafId = null;
+    const schedule = () => {
+        if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+        }
+        if (document.body.classList.contains('keyboard-open')) return;
 
-    const containerEl = document.querySelector('.container');
-    if (isVisible(containerEl)) {
-      const cs = getComputedStyle(containerEl);
-      spaceBelow += toNumber(cs.paddingBottom);
+        rafId = requestAnimationFrame(computeAndSetChatHeight);
+    };
+
+    document.addEventListener('DOMContentLoaded', schedule);
+    window.addEventListener('load', () => {
+        schedule();
+        setTimeout(schedule, 50);
+        setTimeout(schedule, 250);
+    });
+
+    window.addEventListener('resize', schedule);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', schedule);
+        window.visualViewport.addEventListener('geometrychange', schedule);
     }
 
-    const onMobile = window.matchMedia('(max-width: 768px)').matches;
-    const footer = onMobile ? null : document.querySelector('.spotify-footer');
-    if (isVisible(footer)) {
-      const fs = getComputedStyle(footer);
-      spaceBelow += footer.offsetHeight + toNumber(fs.marginTop) + toNumber(fs.marginBottom);
+    const textarea = document.getElementById('user-input');
+    if (textarea) {
+        textarea.addEventListener('blur', schedule);
     }
-
-    let targetHeight = Math.max(250, Math.floor(viewportHeight - spaceAbove - spaceBelow - (onMobile ? 2 : 0)));
-
-    if (isIOSSafari && isIOS26 && !keyboardOpen) {
-        targetHeight = targetHeight + 6;
-    }
-    
-    chat.style.height = `${targetHeight}px`;
-  }
-
-  let rafId = null;
-  const schedule = () => {
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-    }
-    if (document.body.classList.contains('keyboard-open')) return;
-
-    rafId = requestAnimationFrame(computeAndSetChatHeight);
-  };
-
-  document.addEventListener('DOMContentLoaded', schedule);
-  window.addEventListener('load', () => {
-    schedule();
-    setTimeout(schedule, 50);
-    setTimeout(schedule, 250);
-  });
-
-  window.addEventListener('resize', schedule);
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', schedule);
-    window.visualViewport.addEventListener('geometrychange', schedule);
-  }
-
-  const textarea = document.getElementById('user-input');
-  if (textarea) {
-    textarea.addEventListener('blur', schedule);
-  }
 })();

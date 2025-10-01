@@ -2290,7 +2290,7 @@ body.aria-intro-active .hamburger-menu-container {
 	    padding: 11px 22px 13px 22px;
 	    margin: 3%;
 	    width: 94%;
-	    height: calc(100vh - 6vw);
+	    height: calc(100dvh - 6vw);
 	    transform: var(--import-transform, translateX(-50%) translateY(10px) scale(0.98));
 	    opacity: 0;
 	    transition:
@@ -2321,6 +2321,10 @@ body.aria-intro-active .hamburger-menu-container {
 	    left: auto;
 	}
 
+    #importModal.open {
+        background-color: #0B0B0B;
+    }
+    
 	.import-modal-header {
 	    display: flex;
 	    justify-content: space-between;
@@ -2460,7 +2464,7 @@ body.aria-intro-active .hamburger-menu-container {
 	    width: 96%;
         max-width: 96%;
 	    margin: 2%;
-	    height: calc(100vh - 4vw);
+	    height: calc(100dvh - 4vw);
 	    box-sizing: border-box;
 	}
 
