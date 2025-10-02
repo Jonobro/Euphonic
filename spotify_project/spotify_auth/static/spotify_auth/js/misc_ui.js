@@ -77,15 +77,17 @@ function adjustImportModalBounds() {
         const panel = importModal.querySelector('.import-modal-content');
         const header = document.querySelector('.header-row');
         const list = document.getElementById('message-list');
-        if (!panel || !header || !list) return;
+        const chatInputArea = document.getElementById('chat-input-area');
+        if (!panel || !header || !list || !chatInputArea) return;
 
         const hr = header.getBoundingClientRect();
         const lr = list.getBoundingClientRect();
+        const cr = chatInputArea.getBoundingClientRect();
 
         const top = hr.top - 5;
         const left = Math.min(hr.left, lr.left);
         const right = Math.max(hr.right, lr.right);
-        const bottom = lr.bottom;
+        const bottom = cr.bottom;
 
         const width = Math.max(0, right - left);
         const height = Math.max(0, bottom - top) + 5;
