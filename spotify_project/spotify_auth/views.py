@@ -1816,9 +1816,9 @@ def chat_message_api(request):
             return JsonResponse({'message': LENGTH_TERMINATION_MSG})
 
         display_length_thresholds = {
-            'saved_songs': 100000,
-            'new_songs': 100000,
-            'analysis': 20000
+            'saved_songs': 150000,
+            'new_songs': 150000,
+            'analysis': 100000
         }
         final_history_key_map_display = {
             'saved_songs': 'final_saved_songs_chat_history',

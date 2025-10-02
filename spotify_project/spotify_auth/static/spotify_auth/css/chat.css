@@ -2064,6 +2064,23 @@ body.aria-intro-active .hamburger-menu-container {
         padding-bottom: 13px;
     }
 
+    .ai-message.long-convo-termination-options {
+        margin-left: auto;
+        margin-right: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 275px;
+        row-gap: 3px;
+        text-align: center;
+    }
+
+    .ai-message.previous-termination-message {
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: -21px;
+    }
+
     .message-container {
         display: flex;
         flex-direction: column;
