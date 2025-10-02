@@ -149,11 +149,12 @@ function setImportUiState() {
     const labelEl = document.querySelector('#import-music-link .dropdown-link-text');
     const tooltipEl = document.querySelector('#import-music-link .dropdown-tooltip');
     const headerEl = document.querySelector('#importModal .import-modal-header h2');
+    const isMobile = !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
 
     if (window.hasImportedPlaylists) {
         if (labelEl) labelEl.textContent = 'Edit Imported Playlists';
         if (tooltipEl) tooltipEl.textContent = 'Manage your previously imported playlists';
-        if (headerEl) headerEl.textContent = 'Update Your Imported Playlists';
+        if (headerEl) headerEl.textContent = isMobile ? 'Update Imported Playlists' : 'Update Your Imported Playlists';
     } else {
         if (labelEl) labelEl.textContent = 'Import My Music';
         if (tooltipEl) tooltipEl.textContent = 'Import your Spotify music collection to create personalized playlists and gain insights into your music';

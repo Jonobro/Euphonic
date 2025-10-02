@@ -2305,9 +2305,9 @@ body.aria-intro-active .hamburger-menu-container {
         background-color: #161616;
         padding: 11px 22px 13px 22px;
         position: fixed;
-        top: calc(env(safe-area-inset-top, 0) + 3%);
+        top: calc(env(safe-area-inset-top, 0) + 3vw);
         right: calc(env(safe-area-inset-right, 0) + 3%);
-        bottom: calc(env(safe-area-inset-bottom, 0) + 3%);
+        bottom: calc(env(safe-area-inset-bottom, 0) + 3vw);
         left: calc(env(safe-area-inset-left, 0) + 3%);
         margin: 0;
         width: auto;
@@ -2480,9 +2480,9 @@ body.aria-intro-active .hamburger-menu-container {
         border-radius: 10px;
         overflow-y: auto;
         position: fixed;
-        top: calc(env(safe-area-inset-top, 0) + 2%);
+        top: calc(env(safe-area-inset-top, 0) + 2vw);
         right: calc(env(safe-area-inset-right, 0) + 2%);
-        bottom: calc(env(safe-area-inset-bottom, 0) + 2%);
+        bottom: calc(env(safe-area-inset-bottom, 0) + 2vw);
         left: calc(env(safe-area-inset-left, 0) + 2%);
         margin: 0;
         width: auto;
