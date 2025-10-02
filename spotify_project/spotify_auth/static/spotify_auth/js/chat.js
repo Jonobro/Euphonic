@@ -430,6 +430,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const mode = (() => { try { return getChatMode(); } catch { return null; } })();
 
         if (userInput) {
+            if (disable && document.activeElement === userInput) {
+                try { userInput.blur(); } catch (_) {}
+            }
             userInput.disabled = disable;
             updateChatInputPlaceholder();
         }
@@ -1104,7 +1107,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             if (mode === 'saved_songs') {
                                 const msgTxt = (message.parts && message.parts[0] && typeof message.parts[0].text === 'string') ? message.parts[0].text.trim() : '';
-                                if (msgTxt === '~ Music Collection Updated & New Conversation Started ~') {
+                                if (msgTxt === '~ Music Collection Updated & New Conversation Started ~' || msgTxt === '~ Music Updated & New Chat Started ~') {
                                     messageElement.classList.add('music-collection-updated-message');
                                 }
                             }

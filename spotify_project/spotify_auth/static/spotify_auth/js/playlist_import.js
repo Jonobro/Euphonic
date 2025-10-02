@@ -228,6 +228,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (hasSavedSongsHistory) {
                         try {
+                            const backendBanner = '~ Music Collection Updated & New Conversation Started ~';
+                            const mobileBanner = '~ Music Updated & New Chat Started ~';
+                            const isMobile = !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+                            if (isMobile) {
+                                result.updated_messages_for_saved_songs = result.updated_messages_for_saved_songs.map(m => {
+                                    if (m?.role === 'model' && m.parts?.[0]?.text === backendBanner) {
+                                        return {
+                                            ...m,
+                                            parts: [{ ...(m.parts?.[0] || {}), text: mobileBanner }]
+                                        };
+                                    }
+                                    return m;
+                                });
+                            }
+
                             result.updated_messages_for_saved_songs.forEach(msg => {
                                 if (window.updateChatHistoryData) {
                                     window.updateChatHistoryData('saved_songs', msg);
