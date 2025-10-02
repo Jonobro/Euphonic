@@ -410,6 +410,7 @@ def _generate_musical_analysis(session_data):
             full_library_string = "\n".join(song_strings)
             if len(full_library_string) > max_prompt_length:
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
+        total_tracks = len(tracks_list) if tracks_list else 0
 
         initial_prompt = f"""At the bottom of this message, I have provided a list of all my imported tracks. Please conduct a comprehensive analysis of my music and provide insights about my preferences.
 
@@ -445,7 +446,7 @@ Provide three unique observations about my preferences and my imported tracks. I
 
 Don't ever mention this message or directly respond to it. Just perform the analysis and provide your insights.
 
-Here are all of my imported tracks:
+Here are all of my imported tracks ({total_tracks} total):
 
 {full_library_string}
 
