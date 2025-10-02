@@ -1183,13 +1183,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 300);
         } else if (mode === 'saved_songs') {
-            const initialMessage = `Cool – you got some music imported. Let’s craft some custom playlists using your tracks. I can filter through your music using any criteria you can imagine. Here are some examples:
+            const initialMessage = `Cool – you got some music imported. Let’s craft some custom playlists using your tracks. I can filter through your music using any criteria you can imagine. You could say:
 
 * Make a playlist of all my songs from the 90s
 * Make me a playlist of my most niche tracks
 * Create a playlist of all of the dream pop songs in my imported music
 * I’m on a road trip with my grandma – make a playlist of my songs that she might like
-* Give me a playlist of my most uplifting songs
+* Playlist of my most uplifting songs
 * Make a playlist of all my songs that are sung in Spanish`;
             setTimeout(() => {
                 const existingMessages = messageList.querySelectorAll('.message');
@@ -1201,12 +1201,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (mode === 'new_songs') {
             const initialMessage = `Let’s get to it. What kind of playlist can I make for you? I can handle requests like:
 
-* Make a playlist of chill lo-fi beats for studying
 * Make a playlist of songs released in 2014
+* Playlist of chill lo-fi beats for studying
 * Create a playlist of songs by Drake, Kendrick Lamar, and J. Cole
 * Road trip anthems to sing along to
-* Make a playlist of cover songs that became more famous than the originals
 * Playlist of songs that tell a complete story
+* Make a playlist of cover songs that became more famous than the originals
 * Make a playlist of international songs that blew up in the US`;
 
             const injectInitial = () => {
