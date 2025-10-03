@@ -240,8 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showAriaIntroSplash(done) {
         const introText1 = "Hey, I’m Aria.";
         const introText2 = "Here to help you craft your perfect playlist.";
-        // if (sessionStorage.getItem('ariaIntroShown')) {
-        if (true || sessionStorage.getItem('ariaIntroShown')) {
+        if (sessionStorage.getItem('ariaIntroShown')) {
             done && done();
             return;
         }
@@ -1606,6 +1605,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(() => animateStroke(newPathEl, 'paint', direction, cfg.paintSpeed))
                 .then(() => {
                     toBtn.classList.add('active');
+                    toBtn.classList.remove('tap-target');
                     oldPathEl.style.visibility = 'hidden';
                     newPathEl.style.visibility = 'hidden';
                     setTimeout(() => {
@@ -1672,6 +1672,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const toBtn = this;
                 modeSwitchCooldown = true;
                 buttons.forEach(b => b.style.pointerEvents='none');
+
+                const isMobile = (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) || window.innerWidth <= 768;
+                if (isMobile) {
+                    toBtn.classList.add('tap-target');
+                }
+
                 animateTransition(fromBtn, toBtn, () => {
                     switchChatMode(toBtn.dataset.mode);
                     setTimeout(() => {

@@ -537,3 +537,34 @@ window.onclick = function(event) {
         textarea.addEventListener('blur', schedule);
     }
 })();
+
+(function () {
+    const dropdown = document.getElementById('hamburger-dropdown');
+    if (!dropdown) return;
+
+    const startTap = (e) => {
+        const link = e.target.closest('a.dropdown-link');
+        if (!link) return;
+
+        const rect = link.getBoundingClientRect();
+        const clientX = (e.touches && e.touches[0] ? e.touches[0].clientX : e.clientX);
+        const clientY = (e.touches && e.touches[0] ? e.touches[0].clientY : e.clientY);
+        const x = Math.max(0, Math.min(rect.width,  clientX - rect.left));
+        const y = Math.max(0, Math.min(rect.height, clientY - rect.top));
+
+        link.style.setProperty('--tap-x', `${x}px`);
+        link.style.setProperty('--tap-y', `${y}px`);
+        link.classList.add('is-tapping');
+
+        const onEnd = (evt) => {
+            if (evt.animationName === 'tap-bounce') {
+                link.classList.remove('is-tapping');
+                link.removeEventListener('animationend', onEnd);
+            }
+        };
+        link.addEventListener('animationend', onEnd);
+    };
+
+    dropdown.addEventListener('pointerdown', startTap, { passive: true });
+    dropdown.addEventListener('touchstart', startTap, { passive: true });
+})();
