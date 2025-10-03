@@ -55,7 +55,7 @@ SAVED_SONGS_SYSTEM_INSTRUCTION = """DEVELOPER MESSAGE: Hello, I am the developer
 3. **Clarification:** Always ask for clarification on vague, ambiguous, or unclear user prompts before selecting songs, but take care to avoid asking too many questions in a row.
 
 **Song Selection:**
-4. Select only songs that you are certain match the user's criteria. False positives are unacceptable.
+4. Select ONLY songs that you are absolutely certain match the user’s criteria. If there is any uncertainty, DO NOT include the song. False positives are strictly forbidden. It is always better to return fewer songs than to risk an incorrect one.
 5. You may only use songs from the user's imported tracks when building playlists. No outside tracks allowed.
 6. Ensure no song appears more than once in a playlist.
 7. Make sure to spell and format the song titles and artist names exactly as they appear in the user's imported tracks.
