@@ -2057,7 +2057,7 @@ body.aria-intro-active .hamburger-menu-container {
 
     .ai-message.thinking-message {
         padding-top: 13px;
-        padding-bottom: 18px;
+        padding-bottom: 19px;
     }
 
     .ai-message.has-playlist-button.previous-conversation {
@@ -2099,11 +2099,11 @@ body.aria-intro-active .hamburger-menu-container {
     }
 
     body[data-chat-mode="new_songs"] .ai-message:first-child ul {
-        padding-left: 21px;
+        padding-left: 23px;
     }
 
     body[data-chat-mode="saved_songs"] .ai-message:first-child ul {
-        padding-left: 20px;
+        padding-left: 18px;
     }
 
     body[data-chat-mode="analysis"] .ai-message.analysis-first-message {
@@ -2132,7 +2132,7 @@ body.aria-intro-active .hamburger-menu-container {
     }
 
     body[data-chat-mode="analysis"] .ai-message.analysis-third-message ul {
-        padding-left: 30px;
+        padding-left: 25px;
     }
 
     .ai-message.music-collection-updated-message {

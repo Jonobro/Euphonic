@@ -1203,11 +1203,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 * Make a playlist of songs released in 2014
 * Playlist of chill lo-fi beats for studying
-* Create a playlist of songs by Drake, Kendrick Lamar, and J. Cole
+* Make me a playlist with songs by Drake, Kendrick Lamar, and J. Cole
 * Road trip anthems to sing along to
 * Playlist of songs that tell a complete story
-* Make a playlist of cover songs that became more famous than the originals
-* Make a playlist of international songs that blew up in the US`;
+* Create a playlist of cover songs that became more famous than the originals
+* Give me a playlist of international songs that blew up in the US`;
 
             const injectInitial = () => {
                 setTimeout(() => {
