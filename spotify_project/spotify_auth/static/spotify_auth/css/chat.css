@@ -196,7 +196,6 @@ h2, h3, h4, h5, h6 {
     }
 }
 
-/* Scrollbar fallback */
 @supports not selector(::-webkit-scrollbar) {
     #message-list,
     .modal-body,
@@ -514,7 +513,7 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     border-radius: 10px;
     margin-bottom: 7px;
     margin-top: 5px;
-    width: fit-content; /* 327px if you choose a fixed width */
+    width: fit-content;
 }
 
 .message-container p + p {
@@ -2146,7 +2145,7 @@ body.aria-intro-active .hamburger-menu-container {
         border-radius: 10px;
         margin-bottom: 5px;
         margin-top: 5px;
-        width: fit-content; /* 327px if you choose a fixed width */
+        width: fit-content;
     }
 
     body[data-chat-mode="new_songs"] .ai-message:first-child ul {

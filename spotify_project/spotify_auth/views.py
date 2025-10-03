@@ -73,8 +73,8 @@ RATE_LIMITS = {
 }
 
 GEMINI_CLIENT = None
-EXPENSIVE_MODEL_NAME = "gemini-2.5-flash"
-CHEAP_MODEL_NAME = "gemini-2.5-flash-lite"
+EXPENSIVE_MODEL_NAME = "gemini-flash-latest"
+CHEAP_MODEL_NAME = "gemini-flash-lite-latest"
 
 CACHE_KEY_GROUNDED_TIMESTAMPS = 'grounded_api_call_timestamps'
 GROUNDING_API_LIMIT = 1495
@@ -778,7 +778,6 @@ def initialize_chat_data_view(request):
 
         initial_prompt = ""
         
-        # If statement for analysis mode
         if chat_mode == 'analysis':
             user_id = request.session.get('euphonic_intelligence_user_id')
             in_progress = bool(user_id and cache.get(f'analysis_in_progress_{user_id}'))
@@ -788,7 +787,6 @@ def initialize_chat_data_view(request):
             _log_to_file(GENERAL_LOG_FILE, f"Unexpected error: initialize_chat_data_view invoked but no analysis in progress or stored in session {request.session.session_key}")
             return JsonResponse({'error': 'Unexpected error: analysis not available'}, status=400)
         
-        # If statement for saved songs mode
         if chat_mode == 'saved_songs':
             tracks_list = request.session.get('spotify_user_tracks')
             full_library_string = "No imported tracks found."
@@ -826,7 +824,6 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
 
             return JsonResponse({'first_ai_message': [initial_response], 'chat_mode': chat_mode})
 
-        # If statement for new songs mode
         if chat_mode == 'new_songs':
             initial_prompt = "Who are you and what can you do for me?"
             initial_response = """Let’s get to it. What kind of playlist can I make for you? I can handle requests like:
@@ -1623,7 +1620,6 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                             log_message_discarded = f"NOTE: The following text part(s) from Gemini were discarded (Removal Pass - Task {task_id}): {json.dumps(discarded_text)}"
                             _log_to_file(GEMINI_API_LOG_FILE, log_message_discarded)
 
-                    # Note: indentation of removal_content_parts is correct. Do not modify it or it will be unable to access split_index.
                     removal_content_parts = removal_content_parts[split_index:]
                 
                 final_ai_text_to_process_for_user = " ".join([p.text for p in removal_content_parts if hasattr(p, 'text')])

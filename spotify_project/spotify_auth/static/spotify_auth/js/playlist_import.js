@@ -92,10 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Prevent re-entry
         validating[id] = true;
         
-        // Update input only if changed
         const inputElement = document.querySelector(`input[data-playlist-id="${id}"]`);
         if (inputElement && inputElement.value !== parsedUrl) {
             const cursorPosition = inputElement.selectionStart;
