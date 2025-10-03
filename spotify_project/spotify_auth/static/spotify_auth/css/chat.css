@@ -2099,7 +2099,7 @@ body.aria-intro-active .hamburger-menu-container {
     }
 
     body[data-chat-mode="new_songs"] .ai-message:first-child ul {
-        padding-left: 23px;
+        padding-left: 25px;
     }
 
     body[data-chat-mode="saved_songs"] .ai-message:first-child ul {
