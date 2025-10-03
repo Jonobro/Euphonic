@@ -219,12 +219,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (playlistId) {
                                 if (isAndroid) {
                                     await new Promise(resolve => setTimeout(resolve, 1500));
-                                    const intentUrl = `intent://playlist/${playlistId}#Intent;scheme=spotify;package=com.spotify.music;S.browser_fallback_url=${encodeURIComponent(webUrl)};end`;
-                                    window.location.href = intentUrl;
+                                    const intentUrl = `intent://playlist/${playlistId}#Intent;scheme=spotify;package=com.spotify.music;end`;
+                                    try {
+                                        window.location.href = intentUrl;
+                                    } catch (_) {
+                                    }
                                 } else if (isIOS) {
                                     await new Promise(resolve => setTimeout(resolve, 1500));
                                     const appUrl = `spotify:playlist:${playlistId}`;
-                                    window.location.href = appUrl;
+                                    try {
+                                        window.location.href = appUrl;
+                                    } catch (_) {
+                                    }
                                 } else {
                                     if (pendingTab && !pendingTab.closed) {
                                         try {
