@@ -73,8 +73,8 @@ RATE_LIMITS = {
 }
 
 GEMINI_CLIENT = None
-EXPENSIVE_MODEL_NAME = "gemini-flash-latest"
-CHEAP_MODEL_NAME = "gemini-flash-lite-latest"
+EXPENSIVE_MODEL_NAME = "gemini-2.5-flash"
+CHEAP_MODEL_NAME = "gemini-2.5-flash-lite"
 
 CACHE_KEY_GROUNDED_TIMESTAMPS = 'grounded_api_call_timestamps'
 GROUNDING_API_LIMIT = 1495
