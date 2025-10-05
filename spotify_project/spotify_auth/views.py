@@ -73,8 +73,8 @@ RATE_LIMITS = {
 }
 
 GEMINI_CLIENT = None
-EXPENSIVE_MODEL_NAME = "gemini-2.5-flash"
-CHEAP_MODEL_NAME = "gemini-2.5-flash-lite"
+PRIMARY_MODEL_NAME = "gemini-2.5-flash"
+SECONDARY_MODEL_NAME = "gemini-2.5-flash-lite"
 
 CACHE_KEY_GROUNDED_TIMESTAMPS = 'grounded_api_call_timestamps'
 GROUNDING_API_LIMIT = 1495
@@ -407,7 +407,7 @@ def _generate_musical_analysis(session_data):
         if tracks_list:
             song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
             max_prompt_length = 40000
-            full_library_string = "\n".join(song_strings)
+            full_library_string = "* " + "\n* ".join(song_strings)
             if len(full_library_string) > max_prompt_length:
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
         total_tracks = len(tracks_list) if tracks_list else 0
@@ -466,19 +466,18 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             max_output_tokens=20000
         )
         chat = client.chats.create(
-            model=EXPENSIVE_MODEL_NAME,
+            model=PRIMARY_MODEL_NAME,
             config=chat_config
         )
 
         log_message_prompt_analysis = (
             f"Gemini API Call (_generate_musical_analysis for user {user_id}, gen {generation_id}):\n"
             f"  Initial Prompt: {initial_prompt[:500]}{'...' if len(initial_prompt) > 500 else ''}\n"
-            f"  Config: {{'tools': {current_tools}}}\n"
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_analysis}\n******************************\n")
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({EXPENSIVE_MODEL_NAME}) (analysis gen {generation_id})")
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({PRIMARY_MODEL_NAME}) (analysis gen {generation_id})")
         response = chat.send_message(initial_prompt)
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({EXPENSIVE_MODEL_NAME}) (analysis gen {generation_id})")
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({PRIMARY_MODEL_NAME}) (analysis gen {generation_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (analysis gen {generation_id}):\n{response}\n******************************\n")
 
         try:
@@ -793,7 +792,7 @@ def initialize_chat_data_view(request):
             if tracks_list:
                 song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
                 max_prompt_length = 40000
-                full_library_string = "\n".join(song_strings)
+                full_library_string = "* " + "\n* ".join(song_strings)
                 if len(full_library_string) > max_prompt_length:
                     full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
 
@@ -891,7 +890,7 @@ def reset_chat_history_api(request):
             tracks_list = request.session.get('spotify_user_tracks', [])
             song_strings = [f"{t['name']} by {t['artists']}" for t in tracks_list]
             max_prompt_length = 40000
-            full_library_string = "\n* ".join(song_strings)
+            full_library_string = "* " + "\n* ".join(song_strings)
             if len(full_library_string) > max_prompt_length:
                 full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
 
@@ -1173,7 +1172,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         )
         
         chat = client.chats.create(
-            model=EXPENSIVE_MODEL_NAME,
+            model=PRIMARY_MODEL_NAME,
             history=history_list,
             config=chat_config
         )
@@ -1181,12 +1180,11 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         log_message_prompt_first_pass = (
             f"Gemini API Call (chat_message_api - First Pass - Task {task_id}):\n"
             f"  User Message: {user_message}\n"
-            f"  Config: {{'tools': {chat_config.tools}}}\n"
             f"  History (at call time):\n{json.dumps(history_list, indent=2)}"
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
         
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({EXPENSIVE_MODEL_NAME}) (Task {task_id})")
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({PRIMARY_MODEL_NAME}) (Task {task_id})")
         try:
             response = chat.send_message(user_message)
         except Exception as e_first:
@@ -1197,7 +1195,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 status = 'failed'
                 return
             raise
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({EXPENSIVE_MODEL_NAME}) (Task {task_id})")
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({PRIMARY_MODEL_NAME}) (Task {task_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
 
         context_window_exceeded = False
@@ -1269,7 +1267,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             )
 
             formatting_chat = client.chats.create(
-                model=EXPENSIVE_MODEL_NAME,
+                model=PRIMARY_MODEL_NAME,
                 config=formatting_chat_config
             )
             
@@ -1278,7 +1276,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 f"  Formatting Prompt: {formatting_prompt}"
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_formatting_pass}\n******************************\n")
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({EXPENSIVE_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({PRIMARY_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
             try:
                 formatting_response = formatting_chat.send_message(formatting_prompt)
             except Exception as e_fmt:
@@ -1289,7 +1287,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     status = 'failed'
                     return
                 raise
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({EXPENSIVE_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({PRIMARY_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Formatting Pass - Task {task_id}):\n{formatting_response}\n******************************\n")
 
             try:
@@ -1450,17 +1448,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             )
 
             feedback_chat = client.chats.create(
-                model=CHEAP_MODEL_NAME,
+                model=SECONDARY_MODEL_NAME,
                 config=feedback_chat_config
             )
 
             log_message_prompt_feedback_pass = (
                 f"Gemini API Call (chat_message_api - Feedback Pass - Task {task_id}):\n"
                 f"  Feedback Prompt: {feedback_prompt_to_gemini}\n"
-                f"  Config: {{'tools': {feedback_chat_config.tools}}}"
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({CHEAP_MODEL_NAME}) (Task {task_id})")
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({SECONDARY_MODEL_NAME}) (Task {task_id})")
             try:
                 correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
             except Exception as e_fb:
@@ -1471,7 +1468,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     status = 'failed'
                     return
                 raise
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({CHEAP_MODEL_NAME}) (Task {task_id})")
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({SECONDARY_MODEL_NAME}) (Task {task_id})")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
             
             try:
@@ -1544,17 +1541,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 )
 
                 removal_chat = client.chats.create(
-                    model=CHEAP_MODEL_NAME,
+                    model=SECONDARY_MODEL_NAME,
                     config=removal_chat_config
                 )
 
                 log_message_prompt_removal_pass = (
                     f"Gemini API Call (chat_message_api - Removal Pass - Task {task_id}):\n"
                     f"  Removal Prompt: {removal_prompt_to_gemini}\n"
-                    f"  Config: {{'tools': {removal_chat_config.tools}}}"
                 )
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({CHEAP_MODEL_NAME}) (Task {task_id})")
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({SECONDARY_MODEL_NAME}) (Task {task_id})")
                 try:
                     final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
                 except Exception as e_rm:
@@ -1565,7 +1561,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         status = 'failed'
                         return
                     raise
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({CHEAP_MODEL_NAME}) (Task {task_id})")
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({SECONDARY_MODEL_NAME}) (Task {task_id})")
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass - Task {task_id}):\n{final_removal_response}\n******************************\n")
 
                 try:
@@ -2438,7 +2434,7 @@ def import_playlists_api(request):
                 full_library_string = ""
                 song_strings = [f"{t['name']} by {t['artists']}" for t in merged_tracks_list]
                 max_prompt_length = 40000
-                full_library_string = "\n* ".join(song_strings)
+                full_library_string = "* " + "\n* ".join(song_strings)
                 if len(full_library_string) > max_prompt_length:
                     full_library_string = full_library_string[:max_prompt_length] + "\n... (track list truncated)"
 
