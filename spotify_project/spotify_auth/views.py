@@ -73,8 +73,32 @@ RATE_LIMITS = {
 }
 
 GEMINI_CLIENT = None
-PRIMARY_MODEL_NAME = "gemini-2.5-flash"
-SECONDARY_MODEL_NAME = "gemini-2.5-flash-lite"
+
+# Models
+NEW_SONGS_MODEL_NAME = "gemini-2.5-flash-preview-09-2025"
+SAVED_SONGS_MODEL_NAME = "gemini-2.5-flash-preview-09-2025"
+ANALYSIS_MODEL_NAME = "gemini-2.5-flash"
+INITIAL_ANALYSIS_MODEL_NAME = "gemini-2.5-flash"
+FORMATTING_MODEL_NAME = "gemini-2.5-flash"
+FEEDBACK_REMOVAL_MODEL_NAME = "gemini-2.5-flash-lite"
+
+# Thinking Budgets
+NEW_SONGS_THINKING_BUDGET = -1
+SAVED_SONGS_THINKING_BUDGET = 2000
+ANALYSIS_CHAT_THINKING_BUDGET = 8000
+INITIAL_ANALYSIS_THINKING_BUDGET = 8000
+
+# Max Output Tokens
+NEW_SONGS_MAX_OUTPUT_TOKENS = 13000
+SAVED_SONGS_MAX_OUTPUT_TOKENS = 20000
+ANALYSIS_CHAT_MAX_OUTPUT_TOKENS = 13000
+INITIAL_ANALYSIS_MAX_OUTPUT_TOKENS = 20000
+
+# Temperature
+NEW_SONGS_TEMPERATURE = 0.8
+SAVED_SONGS_TEMPERATURE = 0.3
+ANALYSIS_CHAT_TEMPERATURE = 0.4
+INITIAL_ANALYSIS_TEMPERATURE = 0.6
 
 CACHE_KEY_GROUNDED_TIMESTAMPS = 'grounded_api_call_timestamps'
 GROUNDING_API_LIMIT = 1495
@@ -461,12 +485,12 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             tools=current_tools,
             response_modalities=["TEXT"],
             safety_settings=SAFETY_SETTINGS,
-            temperature=0.5,
-            thinking_config=types.ThinkingConfig(thinking_budget=8000),
-            max_output_tokens=20000
+            temperature=INITIAL_ANALYSIS_TEMPERATURE,
+            thinking_config=types.ThinkingConfig(thinking_budget=INITIAL_ANALYSIS_THINKING_BUDGET),
+            max_output_tokens=INITIAL_ANALYSIS_MAX_OUTPUT_TOKENS
         )
         chat = client.chats.create(
-            model=PRIMARY_MODEL_NAME,
+            model=INITIAL_ANALYSIS_MODEL_NAME,
             config=chat_config
         )
 
@@ -475,9 +499,9 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             f"  Initial Prompt: {initial_prompt[:500]}{'...' if len(initial_prompt) > 500 else ''}\n"
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_analysis}\n******************************\n")
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({PRIMARY_MODEL_NAME}) (analysis gen {generation_id})")
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({INITIAL_ANALYSIS_MODEL_NAME}) (analysis gen {generation_id})")
         response = chat.send_message(initial_prompt)
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({PRIMARY_MODEL_NAME}) (analysis gen {generation_id})")
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({INITIAL_ANALYSIS_MODEL_NAME}) (analysis gen {generation_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (analysis gen {generation_id}):\n{response}\n******************************\n")
 
         try:
@@ -1148,19 +1172,27 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             system_instruction_for_mode = system_instruction_map_not_editing.get(chat_mode)
         
         temperature_map = {
-            'analysis': 0.4,
-            'saved_songs': 0.3,
-            'new_songs': 0.8,
+            'analysis': ANALYSIS_CHAT_TEMPERATURE,
+            'saved_songs': SAVED_SONGS_TEMPERATURE,
+            'new_songs': NEW_SONGS_TEMPERATURE,
         }
         temperature_for_mode = temperature_map.get(chat_mode)
 
         # Can add "include_thoughts=True" to see thought summaries
         thinking_config_map = {
-            'analysis': types.ThinkingConfig(thinking_budget=8000),
-            'saved_songs': types.ThinkingConfig(thinking_budget=6000),
-            'new_songs': types.ThinkingConfig(thinking_budget=-1),
+            'analysis': types.ThinkingConfig(thinking_budget=ANALYSIS_CHAT_THINKING_BUDGET),
+            'saved_songs': types.ThinkingConfig(thinking_budget=SAVED_SONGS_THINKING_BUDGET),
+            'new_songs': types.ThinkingConfig(thinking_budget=NEW_SONGS_THINKING_BUDGET),
         }
         thinking_config_for_mode = thinking_config_map.get(chat_mode)
+
+        max_output_tokens_map = {
+            'analysis': ANALYSIS_CHAT_MAX_OUTPUT_TOKENS,
+            'saved_songs': SAVED_SONGS_MAX_OUTPUT_TOKENS,
+            'new_songs': NEW_SONGS_MAX_OUTPUT_TOKENS,
+        }
+        max_output_tokens_for_mode = max_output_tokens_map.get(chat_mode)
+
         chat_config = types.GenerateContentConfig(
             system_instruction=system_instruction_for_mode,
             tools=first_pass_tools,
@@ -1168,11 +1200,18 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             safety_settings=SAFETY_SETTINGS,
             temperature=temperature_for_mode,
             thinking_config=thinking_config_for_mode,
-            max_output_tokens=13000
+            max_output_tokens=max_output_tokens_for_mode
         )
         
+        model_name_map = {
+            'analysis': ANALYSIS_MODEL_NAME,
+            'saved_songs': SAVED_SONGS_MODEL_NAME,
+            'new_songs': NEW_SONGS_MODEL_NAME,
+        }
+        model_for_mode = model_name_map.get(chat_mode)
+
         chat = client.chats.create(
-            model=PRIMARY_MODEL_NAME,
+            model=model_for_mode,
             history=history_list,
             config=chat_config
         )
@@ -1184,7 +1223,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
         
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({PRIMARY_MODEL_NAME}) (Task {task_id})")
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({model_for_mode}) (Task {task_id})")
         try:
             response = chat.send_message(user_message)
         except Exception as e_first:
@@ -1195,7 +1234,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 status = 'failed'
                 return
             raise
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({PRIMARY_MODEL_NAME}) (Task {task_id})")
+        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({model_for_mode}) (Task {task_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
 
         context_window_exceeded = False
@@ -1267,7 +1306,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             )
 
             formatting_chat = client.chats.create(
-                model=PRIMARY_MODEL_NAME,
+                model=FORMATTING_MODEL_NAME,
                 config=formatting_chat_config
             )
             
@@ -1276,7 +1315,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 f"  Formatting Prompt: {formatting_prompt}"
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_formatting_pass}\n******************************\n")
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({PRIMARY_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({FORMATTING_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
             try:
                 formatting_response = formatting_chat.send_message(formatting_prompt)
             except Exception as e_fmt:
@@ -1287,7 +1326,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     status = 'failed'
                     return
                 raise
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({PRIMARY_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FORMATTING_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Formatting Pass - Task {task_id}):\n{formatting_response}\n******************************\n")
 
             try:
@@ -1448,7 +1487,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             )
 
             feedback_chat = client.chats.create(
-                model=SECONDARY_MODEL_NAME,
+                model=FEEDBACK_REMOVAL_MODEL_NAME,
                 config=feedback_chat_config
             )
 
@@ -1457,7 +1496,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 f"  Feedback Prompt: {feedback_prompt_to_gemini}\n"
             )
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({SECONDARY_MODEL_NAME}) (Task {task_id})")
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id})")
             try:
                 correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
             except Exception as e_fb:
@@ -1468,7 +1507,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     status = 'failed'
                     return
                 raise
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({SECONDARY_MODEL_NAME}) (Task {task_id})")
+            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id})")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
             
             try:
@@ -1541,7 +1580,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 )
 
                 removal_chat = client.chats.create(
-                    model=SECONDARY_MODEL_NAME,
+                    model=FEEDBACK_REMOVAL_MODEL_NAME,
                     config=removal_chat_config
                 )
 
@@ -1550,7 +1589,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     f"  Removal Prompt: {removal_prompt_to_gemini}\n"
                 )
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({SECONDARY_MODEL_NAME}) (Task {task_id})")
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id})")
                 try:
                     final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
                 except Exception as e_rm:
@@ -1561,7 +1600,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         status = 'failed'
                         return
                     raise
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({SECONDARY_MODEL_NAME}) (Task {task_id})")
+                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id})")
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass - Task {task_id}):\n{final_removal_response}\n******************************\n")
 
                 try:
