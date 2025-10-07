@@ -309,4 +309,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('#message-list .message').forEach(processMessageForPlaylist);
     observer.observe(messageList, { childList: true, subtree: true });
+    document.addEventListener('click', (e) => {
+        const titleEl = e.target.closest('.playlist-title');
+        if (!titleEl) return;
+        if (!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches)) return;
+        const list = document.getElementById('message-list');
+        if (!list) return;
+        list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+    });
 });

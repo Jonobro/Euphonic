@@ -114,10 +114,24 @@ SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
 if not SPOTIFY_CLIENT_ID:
     raise ValueError("SPOTIFY_CLIENT_ID environment variable is required. Please set it in your .env file.")
 
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY environment variable is required. Please set it in your .env file.")
+GEMINI_API_KEY_PRIMARY = os.environ.get('GEMINI_API_KEY_PRIMARY')
+GEMINI_API_KEY_FALLBACK = os.environ.get('GEMINI_API_KEY_FALLBACK')
+if not GEMINI_API_KEY_PRIMARY or not GEMINI_API_KEY_FALLBACK:
+    raise ValueError("Both GEMINI_API_KEY_PRIMARY and GEMINI_API_KEY_FALLBACK environment variables are required. Please set them in your .env file.")
     
 SPOTIFY_ID = os.environ.get('SPOTIFY_ID')
 
 SPOTIFY_HEADERS = json.loads(os.environ.get('SPOTIFY_HEADERS', '{}'))
+
+DEFAULT_EMAIL = os.environ.get('DEFAULT_EMAIL')
+EMAIL_HOST_PASSWORD = os.environ.get('DEFAULT_EMAIL_PASSWORD')
+DEFAULT_FROM_EMAIL = DEFAULT_EMAIL
+SERVER_EMAIL = DEFAULT_EMAIL
+EMAIL_HOST_USER = DEFAULT_EMAIL
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.privateemail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_SUBJECT_PREFIX = '[EuphonicIntelligence] '
+EMAIL_TIMEOUT = 15
