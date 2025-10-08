@@ -123,15 +123,10 @@ SPOTIFY_ID = os.environ.get('SPOTIFY_ID')
 
 SPOTIFY_HEADERS = json.loads(os.environ.get('SPOTIFY_HEADERS', '{}'))
 
-DEFAULT_EMAIL = os.environ.get('DEFAULT_EMAIL')
-EMAIL_HOST_PASSWORD = os.environ.get('DEFAULT_EMAIL_PASSWORD')
-DEFAULT_FROM_EMAIL = DEFAULT_EMAIL
-SERVER_EMAIL = DEFAULT_EMAIL
-EMAIL_HOST_USER = DEFAULT_EMAIL
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'mail.privateemail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
+EMAIL_BACKEND = 'spotify_project.mailgun_backend.MailgunEmailBackend'
+MAILGUN_API_KEY = os.environ.get('MAILGUN_API_KEY')
+MAILGUN_DOMAIN = os.environ.get('MAILGUN_DOMAIN')
+MAILGUN_FROM_EMAIL = os.environ.get('MAILGUN_FROM_EMAIL')
+DEFAULT_FROM_EMAIL = MAILGUN_FROM_EMAIL
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_SUBJECT_PREFIX = '[EuphonicIntelligence] '
-EMAIL_TIMEOUT = 15
