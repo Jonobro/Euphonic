@@ -118,7 +118,7 @@ GEMINI_API_KEY_PRIMARY = os.environ.get('GEMINI_API_KEY_PRIMARY')
 GEMINI_API_KEY_FALLBACK = os.environ.get('GEMINI_API_KEY_FALLBACK')
 if not GEMINI_API_KEY_PRIMARY or not GEMINI_API_KEY_FALLBACK:
     raise ValueError("Both GEMINI_API_KEY_PRIMARY and GEMINI_API_KEY_FALLBACK environment variables are required. Please set them in your .env file.")
-    
+
 SPOTIFY_ID = os.environ.get('SPOTIFY_ID')
 
 SPOTIFY_HEADERS = json.loads(os.environ.get('SPOTIFY_HEADERS', '{}'))

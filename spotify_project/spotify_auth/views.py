@@ -143,7 +143,7 @@ def _classify_gemini_model(model_name: str):
 
 def _send_gemini_rate_limit_alert(tier, model_name, daily_count, minute_count, limits, triggered_types):
     try:
-        alert_email = getattr(settings, 'DEFAULT_EMAIL', None)
+        alert_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
         if not alert_email:
             return
         triggered_label = "+".join(triggered_types)
@@ -384,7 +384,7 @@ def _incr_with_expire(store, key, window):
 
 def _send_rate_limit_alert(scope, key_type, ident, count, limit, window, block_duration):
     try:
-        alert_email = getattr(settings, 'DEFAULT_EMAIL', None)
+        alert_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
         if not alert_email:
             return
         if _redis_available():
