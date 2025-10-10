@@ -144,6 +144,7 @@ def _classify_gemini_model(model_name: str):
 def _send_gemini_rate_limit_alert(tier, model_name, daily_count, minute_count, limits, triggered_types):
     try:
         alert_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+        recipient_email = getattr(settings, 'DEFAULT_TO_EMAIL', None)
         if not alert_email:
             return
         triggered_label = "+".join(triggered_types)
@@ -167,7 +168,7 @@ def _send_gemini_rate_limit_alert(tier, model_name, daily_count, minute_count, l
             f"Daily Usage: {daily_count}/{limits['RPD']}\n"
             f"Time (Pacific): {_pacific_now().isoformat()}\n"
         )
-        send_mail(subject, body, alert_email, [alert_email], fail_silently=True)
+        send_mail(subject, body, alert_email, [recipient_email], fail_silently=True)
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Failed to send Gemini rate limit alert (tier={tier}): {e}")
 
@@ -385,6 +386,7 @@ def _incr_with_expire(store, key, window):
 def _send_rate_limit_alert(scope, key_type, ident, count, limit, window, block_duration):
     try:
         alert_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+        recipient_email = getattr(settings, 'DEFAULT_TO_EMAIL', None)
         if not alert_email:
             return
         if _redis_available():
@@ -404,7 +406,7 @@ def _send_rate_limit_alert(scope, key_type, ident, count, limit, window, block_d
             f"Window (s): {window}\n"
             f"Block Duration (s): {block_duration or 'window'}\n"
         )
-        send_mail(subject, body, alert_email, [alert_email], fail_silently=True)
+        send_mail(subject, body, alert_email, [recipient_email], fail_silently=True)
     except Exception as e:
         _log_to_file(GENERAL_LOG_FILE, f"Failed to send rate limit alert (scope={scope}, key_type={key_type}, ident={ident}): {e}")
 
