@@ -84,8 +84,6 @@ FORMATTING_MODEL_NAME = "gemini-2.5-flash"
 FEEDBACK_REMOVAL_MODEL_NAME = "gemini-2.5-flash-lite"
 PRO_MODEL_NAME = "gemini-2.5-pro"
 
-ERROR_TRIGGER_SUBSTRING = "{'error': {'code':"
-
 GEMINI_CLIENT_CACHE = {}
 PACIFIC_TZ = ZoneInfo('America/Los_Angeles')
 
@@ -140,6 +138,114 @@ def _classify_gemini_model(model_name: str):
     if 'flash' in m:
         return 'flash'
     return 'flash'
+
+def _is_transient_gemini_error(e: Exception):
+    http_status = None
+    code_name = None
+
+    try:
+        for attr in ('status', 'code', 'error_code', 'reason'):
+            val = getattr(e, attr, None)
+            if isinstance(val, str) and val.strip():
+                code_name = val.strip().upper()
+                break
+
+        for attr in ('status', 'status_code', 'http_status', 'code'):
+            val = getattr(e, attr, None)
+            if isinstance(val, int):
+                http_status = val
+                break
+
+        if http_status is None and hasattr(e, 'response'):
+            resp = getattr(e, 'response', None)
+            http_status = getattr(resp, 'status_code', None)
+            try:
+                j = resp.json() if callable(getattr(resp, 'json', None)) else None
+                if isinstance(j, dict):
+                    inner = j.get('error') or {}
+                    if isinstance(inner, dict):
+                        status_name = inner.get('status')
+                        if isinstance(status_name, str) and status_name.strip():
+                            code_name = status_name.strip().upper()
+                        code_int = inner.get('code')
+                        if isinstance(code_int, int) and http_status is None:
+                            http_status = code_int
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    NON_TRANSIENT_NAMES = {
+        'INVALID_ARGUMENT',       # 400
+        'FAILED_PRECONDITION',    # 400
+        'PERMISSION_DENIED',      # 403
+        'NOT_FOUND',              # 404
+    }
+    TRANSIENT_NAMES = {
+        'RESOURCE_EXHAUSTED',     # 429
+        'UNAVAILABLE',            # 503
+        'DEADLINE_EXCEEDED',      # 504
+        'INTERNAL',               # 500
+        'UNKNOWN',                # 500
+        'CANCELLED',              # 499
+    }
+
+    if isinstance(code_name, str):
+        if code_name in TRANSIENT_NAMES:
+            return True
+        if code_name in NON_TRANSIENT_NAMES:
+            return False
+
+    NON_TRANSIENT_HTTP = {400, 403, 404}
+    TRANSIENT_HTTP = {429, 500, 503, 504, 499}
+
+    if isinstance(http_status, int):
+        if http_status in TRANSIENT_HTTP:
+            return True
+        if http_status in NON_TRANSIENT_HTTP:
+            return False
+
+    return False
+
+def _is_resource_exhausted_error(e: Exception):
+    http_status = None
+    code_name = None
+
+    try:
+        for attr in ('status', 'code', 'error_code', 'reason'):
+            val = getattr(e, attr, None)
+            if isinstance(val, str) and val.strip():
+                code_name = val.strip().upper()
+                break
+
+        for attr in ('status', 'status_code', 'http_status', 'code'):
+            val = getattr(e, attr, None)
+            if isinstance(val, int):
+                http_status = val
+                break
+
+        if (http_status is None or code_name is None) and hasattr(e, 'response'):
+            resp = getattr(e, 'response', None)
+            if resp is not None:
+                http_status = getattr(resp, 'status_code', http_status)
+                try:
+                    j = resp.json() if callable(getattr(resp, 'json', None)) else None
+                    if isinstance(j, dict):
+                        inner = j.get('error') or {}
+                        if isinstance(inner, dict):
+                            status_name = inner.get('status')
+                            if isinstance(status_name, str) and status_name.strip():
+                                code_name = status_name.strip().upper()
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    if isinstance(code_name, str) and code_name == 'RESOURCE_EXHAUSTED':
+        return True
+    if isinstance(http_status, int) and http_status == 429:
+        return True
+    return False
 
 def _send_gemini_rate_limit_alert(tier, model_name, daily_count, minute_count, limits, triggered_types):
     try:
@@ -678,20 +784,25 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
         )
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_analysis}\n******************************\n")
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({INITIAL_ANALYSIS_MODEL_NAME}) (analysis gen {generation_id})")
-        response = chat.send_message(initial_prompt)
-        if ERROR_TRIGGER_SUBSTRING in str(response):
-            try:
-                if 'fallback' not in GEMINI_CLIENT_CACHE:
-                    GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
-                _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Error substring detected (analysis gen {generation_id}). Retrying with FALLBACK key.")
-                fallback_client = GEMINI_CLIENT_CACHE['fallback']
-                chat = fallback_client.chats.create(
-                    model=INITIAL_ANALYSIS_MODEL_NAME,
-                    config=chat_config
-                )
-                response = chat.send_message(initial_prompt)
-            except Exception as e_fb:
-                _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY_FAILED] Fallback retry failed (analysis gen {generation_id}): {e_fb}")
+        try:
+            response = chat.send_message(initial_prompt)
+        except Exception as e_send:
+            if _is_transient_gemini_error(e_send):
+                try:
+                    _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (analysis gen {generation_id}): {e_send}. Retrying with FALLBACK key.")
+                    if 'fallback' not in GEMINI_CLIENT_CACHE:
+                        GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
+                    fallback_client = GEMINI_CLIENT_CACHE['fallback']
+                    chat = fallback_client.chats.create(
+                        model=INITIAL_ANALYSIS_MODEL_NAME,
+                        config=chat_config
+                    )
+                    response = chat.send_message(initial_prompt)
+                except Exception as e_fb:
+                    _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY_FAILED] Fallback retry failed (analysis gen {generation_id}): {e_fb}")
+                    raise
+            else:
+                raise
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({INITIAL_ANALYSIS_MODEL_NAME}) (analysis gen {generation_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (analysis gen {generation_id}):\n{response}\n******************************\n")
 
@@ -1430,32 +1541,35 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         try:
             response = chat.send_message(user_message)
         except Exception as e_first:
-            if 'RESOURCE_EXHAUSTED' in str(e_first):
-                _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (first pass) task {task_id}: {e_first}")
-                _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"f"Gemini API Error (chat_message_api - First Pass - Task {task_id}):\n"f"Quota / rate limit error: {e_first}\n""******************************\n")
-                cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
-                status = 'failed'
-                return
-            raise
+            if _is_transient_gemini_error(e_first):
+                try:
+                    _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (First Pass - Task {task_id}): {e_first}. Retrying with FALLBACK key.")
+                    if 'fallback' not in GEMINI_CLIENT_CACHE:
+                        GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
+                    fallback_client = GEMINI_CLIENT_CACHE['fallback']
+                    chat = fallback_client.chats.create(
+                        model=model_for_mode,
+                        history=history_list,
+                        config=chat_config
+                    )
+                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({model_for_mode}) (Task {task_id}) [Fallback Retry due to exception]")
+                    response = chat.send_message(user_message)
+                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({model_for_mode}) (Task {task_id}) [Fallback Retry due to exception]")
+                except Exception as e_fb:
+                    if _is_resource_exhausted_error(e_fb):
+                        _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (first pass fallback) task {task_id}: {e_fb}")
+                        _log_to_file(GEMINI_API_LOG_FILE, "\n******************************\n"
+                                     f"Gemini API Error (chat_message_api - First Pass - Task {task_id}):\n"
+                                     f"Quota / rate limit error on fallback: {e_fb}\n"
+                                     "******************************\n")
+                        cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
+                        status = 'failed'
+                        return
+                    raise
+            else:
+                raise
         _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({model_for_mode}) (Task {task_id})")
         _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
-        try:
-            if ERROR_TRIGGER_SUBSTRING in str(response):
-                _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Detected error substring in FIRST PASS response (Task {task_id}). Retrying with FALLBACK key.")
-                if 'fallback' not in GEMINI_CLIENT_CACHE:
-                    GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
-                fallback_client = GEMINI_CLIENT_CACHE['fallback']
-                chat = fallback_client.chats.create(
-                    model=model_for_mode,
-                    history=history_list,
-                    config=chat_config
-                )
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({model_for_mode}) (Task {task_id}) [Fallback Retry]")
-                response = chat.send_message(user_message)
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({model_for_mode}) (Task {task_id}) [Fallback Retry]")
-                _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass Fallback Retry - Task {task_id}):\n{response}\n******************************\n")
-        except Exception as retry_err:
-            _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY_FAILED] First pass fallback retry failed (Task {task_id}): {retry_err}")
 
         context_window_exceeded = False
         prompt_token_count = None
@@ -1540,31 +1654,34 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             try:
                 formatting_response = formatting_chat.send_message(formatting_prompt)
             except Exception as e_fmt:
-                if 'RESOURCE_EXHAUSTED' in str(e_fmt):
-                    _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (formatting pass) task {task_id}: {e_fmt}")
-                    _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"f"Gemini API Error (chat_message_api - Formatting Pass - Task {task_id}):\n"f"Quota / rate limit error: {e_fmt}\n""******************************\n")
-                    cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
-                    status = 'failed'
-                    return
-                raise
+                if _is_transient_gemini_error(e_fmt):
+                    try:
+                        _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (Formatting Pass - Task {task_id}): {e_fmt}. Retrying with FALLBACK key.")
+                        if 'fallback' not in GEMINI_CLIENT_CACHE:
+                            GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
+                        formatting_fallback_client = GEMINI_CLIENT_CACHE['fallback']
+                        formatting_chat = formatting_fallback_client.chats.create(
+                            model=FORMATTING_MODEL_NAME,
+                            config=formatting_chat_config
+                        )
+                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({FORMATTING_MODEL_NAME}) (Task {task_id}) (Formatting Pass Fallback Retry due to exception)")
+                        formatting_response = formatting_chat.send_message(formatting_prompt)
+                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FORMATTING_MODEL_NAME}) (Task {task_id}) (Formatting Pass Fallback Retry due to exception)")
+                    except Exception as e_fmt_fb:
+                        if _is_resource_exhausted_error(e_fmt_fb):
+                            _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (formatting pass) task {task_id}: {e_fmt_fb}")
+                            _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"
+                                         f"Gemini API Error (chat_message_api - Formatting Pass - Task {task_id}):\n"
+                                         f"Quota / rate limit error: {e_fmt_fb}\n"
+                                         "******************************\n")
+                            cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
+                            status = 'failed'
+                            return
+                        raise
+                else:
+                    raise
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FORMATTING_MODEL_NAME}) (Task {task_id}) (Formatting Pass)")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Formatting Pass - Task {task_id}):\n{formatting_response}\n******************************\n")
-            try:
-                if ERROR_TRIGGER_SUBSTRING in str(formatting_response):
-                    _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Detected error substring in FORMATTING PASS (Task {task_id}). Retrying with FALLBACK key.")
-                    if 'fallback' not in GEMINI_CLIENT_CACHE:
-                        GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
-                    formatting_fallback_client = GEMINI_CLIENT_CACHE['fallback']
-                    formatting_chat = formatting_fallback_client.chats.create(
-                        model=FORMATTING_MODEL_NAME,
-                        config=formatting_chat_config
-                    )
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({FORMATTING_MODEL_NAME}) (Task {task_id}) (Formatting Pass Fallback Retry)")
-                    formatting_response = formatting_chat.send_message(formatting_prompt)
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FORMATTING_MODEL_NAME}) (Task {task_id}) (Formatting Pass Fallback Retry)")
-                    _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Formatting Pass Fallback Retry - Task {task_id}):\n{formatting_response}\n******************************\n")
-            except Exception as fmt_retry_err:
-                _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY_FAILED] Formatting pass fallback retry failed (Task {task_id}): {fmt_retry_err}")
 
             try:
                 if (getattr(formatting_response, "candidates", None) and formatting_response.candidates and
@@ -1741,31 +1858,34 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             try:
                 correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
             except Exception as e_fb:
-                if 'RESOURCE_EXHAUSTED' in str(e_fb):
-                    _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (feedback pass) task {task_id}: {e_fb}")
-                    _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"f"Gemini API Error (chat_message_api - Feedback Pass - Task {task_id}):\n"f"Quota / rate limit error: {e_fb}\n""******************************\n")
-                    cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
-                    status = 'failed'
-                    return
-                raise
+                if _is_transient_gemini_error(e_fb):
+                    try:
+                        _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (Feedback Pass - Task {task_id}): {e_fb}. Retrying with FALLBACK key.")
+                        if 'fallback' not in GEMINI_CLIENT_CACHE:
+                            GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
+                        feedback_fallback_client = GEMINI_CLIENT_CACHE['fallback']
+                        feedback_chat = feedback_fallback_client.chats.create(
+                            model=FEEDBACK_REMOVAL_MODEL_NAME,
+                            config=feedback_chat_config
+                        )
+                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id}) (Feedback Pass Fallback Retry due to exception)")
+                        correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
+                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id}) (Feedback Pass Fallback Retry due to exception)")
+                    except Exception as e_fb_fb:
+                        if _is_resource_exhausted_error(e_fb_fb):
+                            _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (feedback pass) task {task_id}: {e_fb_fb}")
+                            _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"
+                                         f"Gemini API Error (chat_message_api - Feedback Pass - Task {task_id}):\n"
+                                         f"Quota / rate limit error: {e_fb_fb}\n"
+                                         "******************************\n")
+                            cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
+                            status = 'failed'
+                            return
+                        raise
+                else:
+                    raise
             _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id})")
             _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
-            try:
-                if ERROR_TRIGGER_SUBSTRING in str(correction_response):
-                    _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Detected error substring in FEEDBACK PASS (Task {task_id}). Retrying with FALLBACK key.")
-                    if 'fallback' not in GEMINI_CLIENT_CACHE:
-                        GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
-                    feedback_fallback_client = GEMINI_CLIENT_CACHE['fallback']
-                    feedback_chat = feedback_fallback_client.chats.create(
-                        model=FEEDBACK_REMOVAL_MODEL_NAME,
-                        config=feedback_chat_config
-                    )
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id}) (Feedback Pass Fallback Retry)")
-                    correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id}) (Feedback Pass Fallback Retry)")
-                    _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass Fallback Retry - Task {task_id}):\n{correction_response}\n******************************\n")
-            except Exception as fb_retry_err:
-                _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY_FAILED] Feedback pass fallback retry failed (Task {task_id}): {fb_retry_err}")
             
             try:
                 if (getattr(correction_response, "candidates", None) and correction_response.candidates and
@@ -1851,31 +1971,34 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 try:
                     final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
                 except Exception as e_rm:
-                    if 'RESOURCE_EXHAUSTED' in str(e_rm):
-                        _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (removal pass) task {task_id}: {e_rm}")
-                        _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"f"Gemini API Error (chat_message_api - Removal Pass - Task {task_id}):\n"f"Quota / rate limit error: {e_rm}\n""******************************\n")
-                        cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
-                        status = 'failed'
-                        return
-                    raise
+                    if _is_transient_gemini_error(e_rm):
+                        try:
+                            _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (Removal Pass - Task {task_id}): {e_rm}. Retrying with FALLBACK key.")
+                            if 'fallback' not in GEMINI_CLIENT_CACHE:
+                                GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
+                            removal_fallback_client = GEMINI_CLIENT_CACHE['fallback']
+                            removal_chat = removal_fallback_client.chats.create(
+                                model=FEEDBACK_REMOVAL_MODEL_NAME,
+                                config=removal_chat_config
+                            )
+                            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id}) (Removal Pass Fallback Retry due to exception)")
+                            final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
+                            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id}) (Removal Pass Fallback Retry due to exception)")
+                        except Exception as e_rm_fb:
+                            if _is_resource_exhausted_error(e_rm_fb):
+                                _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (removal pass) task {task_id}: {e_rm_fb}")
+                                _log_to_file(GEMINI_API_LOG_FILE, "\n******************************\n"
+                                             f"Gemini API Error (chat_message_api - Removal Pass - Task {task_id}):\n"
+                                             f"Quota / rate limit error: {e_rm_fb}\n"
+                                             "******************************\n")
+                                cache.set(task_id, {'error': HIGH_TRAFFIC_ERROR_MESSAGE}, timeout=300)
+                                status = 'failed'
+                                return
+                            raise
+                    else:
+                        raise
                 _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id})")
                 _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass - Task {task_id}):\n{final_removal_response}\n******************************\n")
-                try:
-                    if ERROR_TRIGGER_SUBSTRING in str(final_removal_response):
-                        _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Detected error substring in REMOVAL PASS (Task {task_id}). Retrying with FALLBACK key.")
-                        if 'fallback' not in GEMINI_CLIENT_CACHE:
-                            GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
-                        removal_fallback_client = GEMINI_CLIENT_CACHE['fallback']
-                        removal_chat = removal_fallback_client.chats.create(
-                            model=FEEDBACK_REMOVAL_MODEL_NAME,
-                            config=removal_chat_config
-                        )
-                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id}) (Removal Pass Fallback Retry)")
-                        final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
-                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({FEEDBACK_REMOVAL_MODEL_NAME}) (Task {task_id}) (Removal Pass Fallback Retry)")
-                        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass Fallback Retry - Task {task_id}):\n{final_removal_response}\n******************************\n")
-                except Exception as rm_retry_err:
-                    _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY_FAILED] Removal pass fallback retry failed (Task {task_id}): {rm_retry_err}")
 
                 try:
                     if (getattr(final_removal_response, "candidates", None) and final_removal_response.candidates and
