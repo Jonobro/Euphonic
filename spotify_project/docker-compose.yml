@@ -22,6 +22,16 @@ services:
     entrypoint: ""
     command: ["python", "token_refresher.py"]
 
+  daily-reporter:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    entrypoint: ""
+    command: ["python", "report_scheduler.py"]
+
   nginx:
     image: nginx:1.27-alpine
     ports:
