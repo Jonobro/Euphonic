@@ -119,6 +119,24 @@ GEMINI_API_KEY_FALLBACK = os.environ.get('GEMINI_API_KEY_FALLBACK')
 if not GEMINI_API_KEY_PRIMARY or not GEMINI_API_KEY_FALLBACK:
     raise ValueError("Both GEMINI_API_KEY_PRIMARY and GEMINI_API_KEY_FALLBACK environment variables are required. Please set them in your .env file.")
 
+GEMINI_PRICING = {
+    "flash": {
+        "input_per_million": 0.30,
+        "output_per_million": 2.50,
+        "cached_per_million": 0.03,
+    },
+    "flash-preview": {
+        "input_per_million": 0.30,
+        "output_per_million": 2.50,
+        "cached_per_million": 0.0375,
+    },
+    "flash-lite": {
+        "input_per_million": 0.10,
+        "output_per_million": 0.40,
+        "cached_per_million": 0.025,
+    },    
+}
+
 SPOTIFY_ID = os.environ.get('SPOTIFY_ID')
 
 SPOTIFY_HEADERS = json.loads(os.environ.get('SPOTIFY_HEADERS', '{}'))
