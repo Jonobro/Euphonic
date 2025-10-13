@@ -307,6 +307,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 200);
                 }
             } else {
+                if (result && result.error_code === 'NO_TRACKS_IMPORTED') {
+                    alert('No tracks could be imported from your playlist. Please try again with a different playlist. Note that we do not support Spotify-generated playlists at this time.');
+                    return;
+                }
                 throw new Error(result.error || 'Failed to import playlists');
             }
         } catch (error) {

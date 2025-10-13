@@ -2989,6 +2989,16 @@ def import_playlists_api(request):
 
         merged_tracks_list = list(existing_by_id.values())
         _log_to_file(GENERAL_LOG_FILE, f"Import cycle completed for session {session_key}: {len(merged_tracks_list)} unique tracks total")
+
+        if not merged_tracks_list:
+            return JsonResponse(
+                {
+                    'error': 'No tracks could be imported from your playlist. Please try again with a different playlist. Note that we do not support Spotify-generated playlists at this time.',
+                    'error_code': 'NO_TRACKS_IMPORTED'
+                },
+                status=400
+            )
+        
         playlists_changed = bool(playlist_additions or playlist_removals)
         updated_messages_for_saved_songs = None
         if merged_tracks_list and user_id and playlists_changed:

@@ -33,14 +33,14 @@ class Command(BaseCommand):
         unique_users = m.get("unique_users", [])
         unique_users_count = len(unique_users)
 
-        subject = f"Daily Gemini Report - {day_str}"
+        subject = f"Daily Euphonic Intelligence Report - {day_str}"
         body_lines = [
             f"Date: {day_str}",
             "",
-            f"Total Gemini requests: {m.get('gemini_requests', 0)}",
-            f"Total token cost: ${m.get('token_cost', 0.0):,.2f}",
-            f"Total Spotify playlists created: {m.get('playlists_created', 0)}",
-            f"Total unique users: {unique_users_count}",
+            f"Total Gemini Requests: {m.get('gemini_requests', 0)}",
+            f"Total Token Cost: ${m.get('token_cost', 0.0):,.2f}",
+            f"Total Spotify Playlists Created: {m.get('playlists_created', 0)}",
+            f"Total Unique Users: {unique_users_count}",
         ]
         body = "\n".join(body_lines)
 
