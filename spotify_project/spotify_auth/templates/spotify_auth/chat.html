@@ -214,6 +214,33 @@
     {{chat_history|json_script:"chat-history-data"}}
     {{clear_storage|json_script:"clear-storage-data"}}
 
+    <div id="pwaModal" class="general-modal" style="display: none;">
+        <div class="legal-modal-content">
+            <div class="legal-modal-header">
+                <h2>Add to Home Screen</h2>
+                <span id="pwa-modal-close" class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p><strong>Enjoying Euphonic Intelligence?</strong> Add it to your home screen.</p>
+
+                <div id="pwa-android-section" hidden>
+                    <p>You can install it for quick access.</p>
+                    <button type="button" id="pwa-install-btn" class="button">Add to Home Screen</button>
+                </div>
+
+                <div id="pwa-ios-section" hidden>
+                    <p>To install Euphonic Intelligence on iOS:</p>
+                    <ul>
+                        <li>Tap the Share icon in Safari</li>
+                        <li>Scroll and tap “Add to Home Screen”</li>
+                        <li>Tap “Add”</li>
+                    </ul>
+                    <button type="button" id="pwa-ios-close-btn" class="button secondary-button">Got it</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="privacy-template" hidden>
         {% include 'spotify_auth/legal/privacy_policy_fragment.html' %}
     </div>

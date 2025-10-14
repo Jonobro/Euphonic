@@ -568,3 +568,134 @@ window.onclick = function(event) {
     dropdown.addEventListener('pointerdown', startTap, { passive: true });
     dropdown.addEventListener('touchstart', startTap, { passive: true });
 })();
+
+(function setupPwaPrompt() {
+    // Store the deferred beforeinstallprompt event (Android/Chrome)
+    window.deferredPWAInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent auto-mini-infobar; we'll show our own UI
+        e.preventDefault();
+        window.deferredPWAInstallPrompt = e;
+    });
+
+    window.addEventListener('appinstalled', () => {
+        try { localStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
+        const modal = document.getElementById('pwaModal');
+        if (modal && modal.classList.contains('open')) {
+            closePwaModal();
+        }
+    });
+
+    function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+
+    function isAndroid() {
+        return /Android/i.test(navigator.userAgent || '');
+    }
+
+    function isIOS() {
+        return /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    }
+
+    function openPwaModal() {
+        const modal = document.getElementById('pwaModal');
+        if (!modal) return;
+
+        // Toggle platform sections
+        const androidEl = document.getElementById('pwa-android-section');
+        const iosEl = document.getElementById('pwa-ios-section');
+
+        const onAndroid = isAndroid();
+        const oniOS = isIOS();
+
+        if (androidEl) androidEl.hidden = !onAndroid;
+        if (iosEl) iosEl.hidden = !oniOS;
+
+        // Show modal
+        modal.style.display = 'block';
+        requestAnimationFrame(() => {
+            modal.classList.add('open');
+        });
+    }
+
+    function closePwaModal() {
+        const modal = document.getElementById('pwaModal');
+        if (!modal) return;
+
+        modal.classList.remove('open');
+        const tidy = () => {
+            modal.style.display = 'none';
+            modal.removeEventListener('transitionend', tidy);
+        };
+        modal.addEventListener('transitionend', tidy);
+    }
+
+    // Expose for direct call after first playlist creation
+    window.showPwaPrompt = function showPwaPrompt() {
+        // Only once
+        try {
+            if (localStorage.getItem('ei_pwa_prompt_shown') === '1') return;
+        } catch (_) {}
+
+        // Only on mobile platforms where this makes sense
+        if (!isAndroid() && !isIOS()) return;
+
+        // Skip if already installed / in standalone
+        if (isStandalone()) return;
+
+        openPwaModal();
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const closeBtn = document.getElementById('pwa-modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                try { localStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
+                closePwaModal();
+            });
+        }
+
+        const iosCloseBtn = document.getElementById('pwa-ios-close-btn');
+        if (iosCloseBtn) {
+            iosCloseBtn.addEventListener('click', () => {
+                try { localStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
+                closePwaModal();
+            });
+        }
+
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                const promptEvent = window.deferredPWAInstallPrompt;
+                if (!promptEvent) {
+                    // Not available (maybe already installed or not eligible)
+                    installBtn.disabled = true;
+                    installBtn.textContent = 'Install not available';
+                    return;
+                }
+                try {
+                    promptEvent.prompt();
+                    const choice = await promptEvent.userChoice;
+                    window.deferredPWAInstallPrompt = null;
+                    if (choice && choice.outcome === 'accepted') {
+                        try { localStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
+                        closePwaModal();
+                    }
+                } catch (_) {
+                    // Keep modal open; user may try later
+                }
+            });
+        }
+    });
+
+    // Close modal when clicking backdrop
+    window.addEventListener('click', (event) => {
+        const modal = document.getElementById('pwaModal');
+        if (event.target === modal) {
+            try { localStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
+            closePwaModal();
+        }
+    });
+})();

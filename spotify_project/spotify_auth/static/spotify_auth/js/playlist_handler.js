@@ -261,8 +261,19 @@ document.addEventListener('DOMContentLoaded', () => {
                             openButtonWrapper.replaceWith(messageContainer);
 
                             const savedPlaylists = JSON.parse(sessionStorage.getItem('savedPlaylists') || '{}');
+                            const wasEmpty = Object.keys(savedPlaylists).length === 0;
                             savedPlaylists[playlistIdentifier] = result.playlist_url;
                             sessionStorage.setItem('savedPlaylists', JSON.stringify(savedPlaylists));
+
+                            if (wasEmpty) {
+                                try {
+                                    if (!localStorage.getItem('ei_pwa_prompt_shown')) {
+                                        setTimeout(() => {
+                                            if (window.showPwaPrompt) window.showPwaPrompt();
+                                        }, 10000);
+                                    }
+                                } catch (_) {}
+                            }
                         } else {
                             let errorText = `Server error: ${response.status}`;
                             try {
