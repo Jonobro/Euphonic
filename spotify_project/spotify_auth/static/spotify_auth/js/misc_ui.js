@@ -580,8 +580,10 @@ window.onclick = function(event) {
     window.addEventListener('beforeinstallprompt', (e) => {
         if (isFirefox()) return;
         if (!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches)) return;
-        e.preventDefault();
-        window.deferredPWAInstallPrompt = e;
+        if (typeof e.prompt === 'function') {
+            e.preventDefault();
+            window.deferredPWAInstallPrompt = e;
+        }
     });
 
     window.addEventListener('appinstalled', () => {
@@ -635,13 +637,15 @@ window.onclick = function(event) {
     }
 
     window.showPwaPrompt = function showPwaPrompt() {
-        if (isFirefox()) return;
         try {
             if (sessionStorage.getItem('ei_pwa_prompt_shown') === '1') return;
         } catch (_) {}
         if (!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches)) return;
         if (!isAndroid() && !isIOS()) return;
         if (isStandalone()) return;
+        const oniOS = isIOS();
+        const hasDeferred = !!window.deferredPWAInstallPrompt;
+        if (!oniOS && !hasDeferred) return;
         openPwaModal();
     };
 
