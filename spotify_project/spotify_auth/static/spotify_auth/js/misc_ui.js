@@ -579,6 +579,7 @@ window.onclick = function(event) {
 
     window.addEventListener('beforeinstallprompt', (e) => {
         if (isFirefox()) return;
+        if (!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches)) return;
         e.preventDefault();
         window.deferredPWAInstallPrompt = e;
     });

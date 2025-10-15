@@ -217,20 +217,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             } catch (_) {}
 
                             if (playlistId) {
-                                if (isAndroid) {
+                                const isMobileViewport = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+
+                                if (isMobileViewport && isAndroid) {
                                     await new Promise(resolve => setTimeout(resolve, 1500));
                                     const intentUrl = `intent://playlist/${playlistId}#Intent;scheme=spotify;package=com.spotify.music;end`;
                                     try {
                                         window.location.href = intentUrl;
-                                    } catch (_) {
-                                    }
-                                } else if (isIOS) {
+                                    } catch (_) {}
+                                } else if (isMobileViewport && isIOS) {
                                     await new Promise(resolve => setTimeout(resolve, 1500));
                                     const appUrl = `spotify:playlist:${playlistId}`;
                                     try {
                                         window.location.href = appUrl;
-                                    } catch (_) {
-                                    }
+                                    } catch (_) {}
                                 } else {
                                     if (pendingTab && !pendingTab.closed) {
                                         try {
