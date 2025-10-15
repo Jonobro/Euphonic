@@ -517,8 +517,8 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
 }
 
 .message-container p + p {
-    margin-top: -4px;
-    margin-bottom: -4px;
+    margin-top: 9px;
+    margin-bottom: 10px;
 }
 
 .create-playlist-success {
@@ -2707,10 +2707,21 @@ body.aria-intro-active .hamburger-menu-container {
         margin-left: -15px;
     }
 
-    #pwa-ios-section {
+    #pwa-ios-section:not([hidden]) {
         display: flex;
         flex-direction: column;
         align-items: center;
+    }
+
+    #pwa-android-section:not([hidden]) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #pwa-install-btn {
+        margin-top: 8px;
+        margin-bottom: 8px;
     }
 
     #pwa-ios-section svg {

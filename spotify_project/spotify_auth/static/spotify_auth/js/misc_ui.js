@@ -572,7 +572,13 @@ window.onclick = function(event) {
 (function setupPwaPrompt() {
     window.deferredPWAInstallPrompt = null;
 
+    function isFirefox() {
+        const ua = navigator.userAgent || '';
+        return /Firefox|FxiOS/i.test(ua);
+    }
+
     window.addEventListener('beforeinstallprompt', (e) => {
+        if (isFirefox()) return;
         e.preventDefault();
         window.deferredPWAInstallPrompt = e;
     });
@@ -628,6 +634,7 @@ window.onclick = function(event) {
     }
 
     window.showPwaPrompt = function showPwaPrompt() {
+        if (isFirefox()) return;
         try {
             if (sessionStorage.getItem('ei_pwa_prompt_shown') === '1') return;
         } catch (_) {}
