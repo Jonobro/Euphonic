@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             if (wasEmpty) {
                                 try {
-                                    if (!localStorage.getItem('ei_pwa_prompt_shown')) {
+                                    if (!sessionStorage.getItem('ei_pwa_prompt_shown')) {
                                         setTimeout(() => {
                                             if (window.showPwaPrompt) window.showPwaPrompt();
                                         }, 10000);

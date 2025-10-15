@@ -578,7 +578,7 @@ window.onclick = function(event) {
     });
 
     window.addEventListener('appinstalled', () => {
-        try { localStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
+        try { sessionStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
         const modal = document.getElementById('pwaModal');
         if (modal && modal.classList.contains('open')) {
             closePwaModal();
@@ -629,7 +629,7 @@ window.onclick = function(event) {
 
     window.showPwaPrompt = function showPwaPrompt() {
         try {
-            if (localStorage.getItem('ei_pwa_prompt_shown') === '1') return;
+            if (sessionStorage.getItem('ei_pwa_prompt_shown') === '1') return;
         } catch (_) {}
         if (!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches)) return;
         if (!isAndroid() && !isIOS()) return;
@@ -641,7 +641,7 @@ window.onclick = function(event) {
         const closeBtn = document.getElementById('pwa-modal-close');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
-                try { localStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
+                try { sessionStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
                 closePwaModal();
             });
         }
@@ -649,7 +649,7 @@ window.onclick = function(event) {
         const iosCloseBtn = document.getElementById('pwa-ios-close-btn');
         if (iosCloseBtn) {
             iosCloseBtn.addEventListener('click', () => {
-                try { localStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
+                try { sessionStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
                 closePwaModal();
             });
         }
@@ -668,7 +668,7 @@ window.onclick = function(event) {
                     const choice = await promptEvent.userChoice;
                     window.deferredPWAInstallPrompt = null;
                     if (choice && choice.outcome === 'accepted') {
-                        try { localStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
+                        try { sessionStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
                         closePwaModal();
                     }
                 } catch (_) {
@@ -680,7 +680,7 @@ window.onclick = function(event) {
     window.addEventListener('click', (event) => {
         const modal = document.getElementById('pwaModal');
         if (event.target === modal) {
-            try { localStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
+            try { sessionStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
             closePwaModal();
         }
     });
