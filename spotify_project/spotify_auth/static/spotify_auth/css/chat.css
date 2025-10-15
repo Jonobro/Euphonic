@@ -561,9 +561,9 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     border-radius: 25px;
     cursor: pointer;
     box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.35), 1.5px 2px 3px rgba(0, 0, 0, 0.2);
-    transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: padding, opacity, box-shadow, margin;
     position: relative;
@@ -1249,7 +1249,7 @@ body[data-chat-mode="analysis"] .ai-message.analysis-third-message {
     filter: blur(8px);
     transform: scale(0.95);
     z-index: 1;
-    transition: 
+    transition:
         opacity 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94),
         filter 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94),
         /* Using 0.725s instead of 0.75s for transform fixes an issue with text snapping at the end of the animation */
@@ -1695,128 +1695,6 @@ body.aria-intro-active .hamburger-menu-container {
 
 .segment-icon--analysis {
     width: 12.5px;
-}
-
-.pwa-modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 1100;
-    background-color: rgba(0, 0, 0, 0);
-    opacity: 0;
-    pointer-events: none;
-    transition:
-        background-color 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
-        opacity 180ms ease-out;
-}
-
-.pwa-modal.open {
-    background-color: rgba(0, 0, 0, 0.65);
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.pwa-modal-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: min(420px, 92vw);
-    background-color: #161616;
-    border: 1px solid #535353;
-    border-radius: 12px;
-    box-shadow: 1px 4px 8px rgba(0,0,0,0.4);
-    transform: translate(-50%, -50%) scale(0.98);
-    opacity: 0;
-    transition:
-        transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
-        opacity 180ms ease-out;
-    will-change: transform, opacity;
-    padding: 18px 18px 16px 18px;
-    background-image: radial-gradient(
-        ellipse 300% 70% at 50% 48%,
-        rgba(30, 200, 90, 0.11) 0%,
-        rgba(30, 200, 90, 0.08) 38%,
-        rgba(30, 200, 90, 0.04) 58%,
-        rgba(30, 200, 90, 0.01) 88%,
-        transparent 100%
-    );
-    background-repeat: no-repeat;
-    background-size: 100% 100%;
-    background-position: center;
-}
-
-.pwa-modal.open .pwa-modal-content {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-}
-
-.pwa-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #444;
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-}
-
-.pwa-modal-header h2 {
-    color: rgb(30, 200, 90);
-    margin: 0;
-    font-weight: 600;
-    font-size: 1.05rem;
-}
-
-.pwa-close {
-    background: transparent;
-    border: none;
-    color: #aaa;
-    font-size: 24px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 6px 10px;
-    border-radius: 9999px;
-    transition: color 0.2s, background-color 0.2s;
-}
-
-@media (min-width: 769px) {
-    .pwa-close:hover {
-        color: #fff;
-        background-color: #232323;
-    }
-}
-
-.pwa-modal-body {
-    color: #e0e0e0;
-    font-size: 0.9rem;
-}
-
-.pwa-modal-body p {
-    margin-top: 0;
-    margin-bottom: 10px;
-}
-
-.pwa-modal-body ul {
-    margin: 8px 0 12px 20px;
-}
-
-@media (max-width: 768px) {
-    .pwa-modal-content {
-        width: min(360px, 92vw);
-        padding: 14px 14px 12px 14px;
-    }
-
-    .pwa-modal-header h2 {
-        font-size: 1rem;
-    }
-
-    .pwa-close {
-        font-size: 22px;
-        padding: 6px 8px;
-    }
-
-    .pwa-modal-body {
-        font-size: 0.9rem;
-    }
 }
 
 @media (min-width: 769px) {
@@ -2737,5 +2615,101 @@ body.aria-intro-active .hamburger-menu-container {
     .musical-analysis-title {
         text-align: center;
         font-size: 1.4em;
+    }
+    
+    .pwa-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1100;
+        background-color: rgba(0, 0, 0, 0);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+            background-color 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+            opacity 180ms ease-out;
+    }
+
+    .pwa-modal.open {
+        background-color: rgba(0, 0, 0, 0.65);
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .pwa-modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        background-color: #161616;
+        border: 1px solid #535353;
+        border-radius: 12px;
+        box-shadow: 1px 4px 8px rgba(0,0,0,0.4);
+        transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 180ms ease-out;
+        will-change: transform, opacity;
+        background-image: radial-gradient(
+            ellipse 300% 70% at 50% 48%,
+            rgba(30, 200, 90, 0.11) 0%,
+            rgba(30, 200, 90, 0.08) 38%,
+            rgba(30, 200, 90, 0.04) 58%,
+            rgba(30, 200, 90, 0.01) 88%,
+            transparent 100%);
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        background-position: center;
+        width: 250px;
+        padding: 15px 30px 15px 30px;
+    }
+
+    .pwa-modal.open .pwa-modal-content {
+        transform: translate(-50%, -59%);
+        opacity: 1;
+    }
+
+    .pwa-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #444;
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+    }
+
+    .pwa-modal-header h2 {
+        color: rgb(30, 200, 90);
+        margin: 0;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .pwa-close {
+        background: transparent;
+        border: none;
+        color: #aaa;
+        line-height: 1;
+        cursor: pointer;
+        border-radius: 9999px;
+        font-size: 23px;
+        padding: 6px 10px;
+    }
+
+    .pwa-modal-body {
+        color: #e0e0e0;
+        font-size: 0.9rem;
+    }
+
+    .pwa-modal-body p {
+        margin-top: 0px;
+        margin-bottom: 8px;
+    }
+
+    .pwa-modal-body ul {
+        margin: 8px;
+        margin-left: -15px;
+    }
+
+    #pwa-ios-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
 }

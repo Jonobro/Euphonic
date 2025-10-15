@@ -187,19 +187,19 @@ document.addEventListener('DOMContentLoaded', () => {
     window.EMPTY_PLAYLIST_ERROR = EMPTY_PLAYLIST_ERROR;
 
     const clearStorageDataElement = document.getElementById('clear-storage-data');
-        if (clearStorageDataElement) {
-            const shouldClearStorage = JSON.parse(clearStorageDataElement.textContent);
-            if (shouldClearStorage) {
-                try {
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    console.log("Browser storage cleared during reset.");
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } catch (e) {
-                    console.error("Failed to clear browser storage:", e);
-                }
+    if (clearStorageDataElement) {
+        const shouldClearStorage = JSON.parse(clearStorageDataElement.textContent);
+        if (shouldClearStorage) {
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+                console.log("Browser storage cleared during reset.");
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } catch (e) {
+                console.error("Failed to clear browser storage:", e);
             }
         }
+    }
 
     let suppressHistoryUpdate = false;
     let initialAnalysisEventSource = null;

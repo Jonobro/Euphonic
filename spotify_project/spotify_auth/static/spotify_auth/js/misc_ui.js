@@ -570,11 +570,9 @@ window.onclick = function(event) {
 })();
 
 (function setupPwaPrompt() {
-    // Store the deferred beforeinstallprompt event (Android/Chrome)
     window.deferredPWAInstallPrompt = null;
 
     window.addEventListener('beforeinstallprompt', (e) => {
-        // Prevent auto-mini-infobar; we'll show our own UI
         e.preventDefault();
         window.deferredPWAInstallPrompt = e;
     });
@@ -588,7 +586,7 @@ window.onclick = function(event) {
     });
 
     function isStandalone() {
-        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        return window.matchMedia('(display-mode: standalone)').matches;
     }
 
     function isAndroid() {
@@ -603,17 +601,14 @@ window.onclick = function(event) {
         const modal = document.getElementById('pwaModal');
         if (!modal) return;
 
-        // Toggle platform sections
         const androidEl = document.getElementById('pwa-android-section');
         const iosEl = document.getElementById('pwa-ios-section');
-
         const onAndroid = isAndroid();
         const oniOS = isIOS();
-
+        
         if (androidEl) androidEl.hidden = !onAndroid;
         if (iosEl) iosEl.hidden = !oniOS;
 
-        // Show modal
         modal.style.display = 'block';
         requestAnimationFrame(() => {
             modal.classList.add('open');
@@ -632,19 +627,13 @@ window.onclick = function(event) {
         modal.addEventListener('transitionend', tidy);
     }
 
-    // Expose for direct call after first playlist creation
     window.showPwaPrompt = function showPwaPrompt() {
-        // Only once
         try {
             if (localStorage.getItem('ei_pwa_prompt_shown') === '1') return;
         } catch (_) {}
-
-        // Only on mobile platforms where this makes sense
+        if (!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches)) return;
         if (!isAndroid() && !isIOS()) return;
-
-        // Skip if already installed / in standalone
         if (isStandalone()) return;
-
         openPwaModal();
     };
 
@@ -670,7 +659,6 @@ window.onclick = function(event) {
             installBtn.addEventListener('click', async () => {
                 const promptEvent = window.deferredPWAInstallPrompt;
                 if (!promptEvent) {
-                    // Not available (maybe already installed or not eligible)
                     installBtn.disabled = true;
                     installBtn.textContent = 'Install not available';
                     return;
@@ -684,13 +672,11 @@ window.onclick = function(event) {
                         closePwaModal();
                     }
                 } catch (_) {
-                    // Keep modal open; user may try later
                 }
             });
         }
     });
 
-    // Close modal when clicking backdrop
     window.addEventListener('click', (event) => {
         const modal = document.getElementById('pwaModal');
         if (event.target === modal) {
