@@ -214,13 +214,13 @@
     {{chat_history|json_script:"chat-history-data"}}
     {{clear_storage|json_script:"clear-storage-data"}}
 
-    <div id="pwaModal" class="general-modal" style="display: none;">
-        <div class="legal-modal-content">
-            <div class="legal-modal-header">
-                <h2>Add to Home Screen</h2>
-                <span id="pwa-modal-close" class="close-modal">&times;</span>
+    <div id="pwaModal" class="pwa-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="pwa-modal-title">
+        <div class="pwa-modal-content">
+            <div class="pwa-modal-header">
+                <h2 id="pwa-modal-title">Add to Home Screen</h2>
+                <button id="pwa-modal-close" type="button" class="pwa-close" aria-label="Close">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="pwa-modal-body">
                 <p><strong>Enjoying Euphonic Intelligence?</strong> Add it to your home screen.</p>
 
                 <div id="pwa-android-section" hidden>
