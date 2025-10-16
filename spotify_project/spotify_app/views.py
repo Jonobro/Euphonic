@@ -26,7 +26,7 @@ from urllib.parse import urlparse
 from functools import wraps
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from ..scripts.metrics_store import record_gemini_request, record_playlist_created
+from scripts.metrics_store import record_gemini_request, record_playlist_created
 from .instructions import (
     NEW_SONGS_SYSTEM_INSTRUCTION,
     SAVED_SONGS_SYSTEM_INSTRUCTION,
