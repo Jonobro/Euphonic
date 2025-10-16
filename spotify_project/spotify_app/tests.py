@@ -27,7 +27,7 @@ load_dotenv(dotenv_path=_project_root / '.env', override=False)
 from google import genai
 from google.genai import types
 from google.genai.types import Tool, HarmCategory, HarmBlockThreshold, FinishReason
-from spotify_app.instructions import SAVED_SONGS_SYSTEM_INSTRUCTION, FORMATTING_SYSTEM_INSTRUCTION, ANALYSIS_SYSTEM_INSTRUCTION
+from spotify_project.spotify_app.config.instructions import SAVED_SONGS_SYSTEM_INSTRUCTION, FORMATTING_SYSTEM_INSTRUCTION, ANALYSIS_SYSTEM_INSTRUCTION
 
 LOG_DIR = _project_root / 'logs' / 'custom_logs'
 GEMINI_TESTING_LOG_FILE = LOG_DIR / 'gemini_testing.log'
