@@ -54,11 +54,6 @@ html, body {
     }
 }
 
-/* Added this class due to issues with the background gradient on older Macs, but disabling due to testing on newer Macs */
-/* html.mac-chrome .container::before {
-    background: #161616 !important;
-} */
-
 .container.loaded {
     visibility: visible;
     opacity: 1;
@@ -110,7 +105,6 @@ h2, h3, h4, h5, h6 {
     border: none;
     border-radius: 20px;
     text-decoration: none;
-    /* Poppins SemiBold */
     font-weight: 600;
     font-size: 13px;
     transition: background-color 0.3s;
@@ -238,7 +232,6 @@ h2, h3, h4, h5, h6 {
     color: #e0e0e0;
     align-self: flex-start;
     font-size: 0.86em;
-    /* Poppins Regular */
     font-weight: 400;
     min-width: 10%;
     margin-bottom: 18px;
@@ -332,7 +325,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     margin-left: auto;
     border-bottom-right-radius: 5px;
     font-size: 0.86em;
-    /* Poppins Medium */
     font-weight: 500;
     box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.45);
     text-shadow: 0.75px 0.75px 1.6px rgba(27, 112, 57, 0.4);
@@ -1204,7 +1196,6 @@ body[data-chat-mode="analysis"] .ai-message.second-message {
     to {transform: rotate(360deg);}
 }
 
-/* Special spacing for analysis page AI messages */
 body[data-chat-mode="analysis"] .ai-message.analysis-first-message {
     margin-bottom: 8px;
     margin-top: 9px;
@@ -2085,7 +2076,6 @@ body.aria-intro-active .hamburger-menu-container {
         color: #e0e0e0;
         align-self: center;
         font-size: 14.75px;
-        /* Poppins Regular */
         font-weight: 400;
         min-width: 10%;
         margin-bottom: 0px;
@@ -2199,7 +2189,6 @@ body.aria-intro-active .hamburger-menu-container {
         margin-left: auto;
         border-bottom-right-radius: 5px;
         font-size: 14.75px;
-        /* Poppins Medium */
         font-weight: 500;
         box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.45);
         text-shadow: 0.75px 0.75px 1.6px rgba(27, 112, 57, 0.4);

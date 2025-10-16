@@ -9,23 +9,23 @@
   "background_color": "#101010",
   "icons": [
     {
-      "src": "/static/spotify_auth/images/web-app-manifest-192x192.png",
+      "src": "/static/spotify_app/images/web-app-manifest-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/static/spotify_auth/images/web-app-manifest-192x192.png",
+      "src": "/static/spotify_app/images/web-app-manifest-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/static/spotify_auth/images/web-app-manifest-512x512.png",
+      "src": "/static/spotify_app/images/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/static/spotify_auth/images/web-app-manifest-512x512.png",
+      "src": "/static/spotify_app/images/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -33,12 +33,12 @@
   ],
   "screenshots": [
     {
-      "src": "/static/spotify_auth/images/pwa-screenshot-mobile-375x720.png",
+      "src": "/static/spotify_app/images/pwa-screenshot-mobile-375x720.png",
       "sizes": "375x720",
       "type": "image/png"
     },
     {
-      "src": "/static/spotify_auth/images/pwa-screenshot-wide-1280x720.png",
+      "src": "/static/spotify_app/images/pwa-screenshot-wide-1280x720.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide"

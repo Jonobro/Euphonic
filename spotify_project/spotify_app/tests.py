@@ -27,7 +27,7 @@ load_dotenv(dotenv_path=_project_root / '.env', override=False)
 from google import genai
 from google.genai import types
 from google.genai.types import Tool, HarmCategory, HarmBlockThreshold, FinishReason
-from spotify_auth.instructions import SAVED_SONGS_SYSTEM_INSTRUCTION, FORMATTING_SYSTEM_INSTRUCTION, ANALYSIS_SYSTEM_INSTRUCTION
+from spotify_app.instructions import SAVED_SONGS_SYSTEM_INSTRUCTION, FORMATTING_SYSTEM_INSTRUCTION, ANALYSIS_SYSTEM_INSTRUCTION
 
 LOG_DIR = _project_root / 'logs' / 'custom_logs'
 GEMINI_TESTING_LOG_FILE = LOG_DIR / 'gemini_testing.log'
@@ -96,6 +96,7 @@ SAVED_SONGS_PROMPT_1="Make a playlist of all of my songs from the 90s"
 SAVED_SONGS_PROMPT_2="Make a playlist of all of my songs that are sung in Spanish"
 SAVED_SONGS_PROMPT_3="Make a playlist of all of the dream pop songs in my collection"
 
+# Use the below test cases to control the playlist output and compare against the hard-coded test strings.
 CORRECT_PROMPT_FOR_TESTING_1="""Make a playlist of these songs:
 Crutch by Pinback
 Between the Bars by Elliott Smith
@@ -114,8 +115,8 @@ Karma Police by Radiohead
 The Hairbrush Song by VeggieTales
 Rape Me - 2023 Remaster by Nirvana
 Nena, Me Gustas Así by Viejas Locas
-Anemone by The Brian Jonestown Massacre"""
-
+Anemone by The Brian Jonestown Massacre
+"""
 CORRECT_PROMPT_FOR_TESTING_2="""Make a playlist of these songs:
 La Reina - Bachata Version by DJ Tony Pecino, Roman
 Cosas Invisibles by Celest
@@ -150,7 +151,6 @@ Otra Como Tu by Eros Ramazzotti
 Curiosa by Alaï
 TQG by KAROL G, Shakira
 """
-
 CORRECT_PROMPT_FOR_TESTING_3="""Make a playlist of these songs:
 A Kiss Before Dying by Still Corners
 Always a Relief by The Radio Dept.
@@ -201,6 +201,7 @@ SAVED_SONG_TEST_CASES = [
         "prompt": SAVED_SONGS_PROMPT_3,
         "expected": SAVED_SONGS_PROMPT_3_CORRECT_RESPONSE
     },
+    # Use the below test cases to control the playlist output and compare against the hard-coded test strings.
     # {
     #     "name": "CorrectSongsTest1",
     #     "prompt": CORRECT_PROMPT_FOR_TESTING_1,
@@ -1274,7 +1275,8 @@ def main():
     elif "--optimize-analysis" in sys.argv:
         best = optimize_analysis_hyperparams(n_trials=150)
         print(json.dumps(best, indent=2))
-    # Note: The below function is designed to assess optimizations that include multiple trials per configuration (minimum of 3 trials/config)
+    # Note: The below function is designed to assess optimizations that include multiple trials per configuration (minimum of 3 trials/config).
+    # Need to adjust the current code to accommodate this.
     elif "--assess-analysis-optimization-data" in sys.argv:
         assess_analysis_optimization_data()
     elif "--summarize-analysis-study-ranges" in sys.argv:

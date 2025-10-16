@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.core.mail import send_mail
 from django.utils import timezone
-from spotify_auth.metrics_store import get_metrics_for_date
+from scripts.metrics_store import get_metrics_for_date
 from zoneinfo import ZoneInfo
 class Command(BaseCommand):
     help = "Send a daily email report of Gemini usage and Spotify activity."

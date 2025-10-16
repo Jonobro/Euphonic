@@ -26,7 +26,7 @@ from urllib.parse import urlparse
 from functools import wraps
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from .metrics_store import record_gemini_request, record_playlist_created
+from ..scripts.metrics_store import record_gemini_request, record_playlist_created
 from .instructions import (
     NEW_SONGS_SYSTEM_INSTRUCTION,
     SAVED_SONGS_SYSTEM_INSTRUCTION,
@@ -721,7 +721,7 @@ def chat_view(request):
 
     final_chat_history = [final_new_songs_chat_history, final_saved_songs_chat_history, final_analysis_chat_history]
 
-    return render(request, 'spotify_auth/chat.html', {
+    return render(request, 'spotify_app/chat.html', {
         'chat_history': final_chat_history,
         'clear_storage': clear_storage
     })

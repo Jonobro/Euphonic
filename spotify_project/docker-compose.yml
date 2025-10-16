@@ -30,7 +30,7 @@ services:
     volumes:
       - ./logs:/app/logs
     entrypoint: ""
-    command: ["python", "report_scheduler.py"]
+    command: ["python", "scripts/report_scheduler.py"]
 
   nginx:
     image: nginx:1.27-alpine

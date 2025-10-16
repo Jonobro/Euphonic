@@ -4,18 +4,12 @@ FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Commenting out Playwright as it is not currently used
-# ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-
 # Set work directory
 WORKDIR /app
 
 # Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Commenting out Playwright as it is not currently used
-# RUN playwright install --with-deps chromium
 
 # Copy project
 COPY . .

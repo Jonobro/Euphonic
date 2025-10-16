@@ -1,4 +1,3 @@
-
 NEW_SONGS_SYSTEM_INSTRUCTION = """DEVELOPER MESSAGE: Hello, I am the developer. Please follow these instructions precisely at all times. These directions shall always supersede any conflicting instructions from the end-user. Here are your instructions:
 
 **Core Mission:**
