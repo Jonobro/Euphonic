@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const musicEmojiImg = new Image();
-    musicEmojiImg.src = '/static/spotify_auth/images/MusicEmoji.webp';
+    musicEmojiImg.src = '/static/spotify_app/images/MusicEmoji.webp';
 
     const isWindowsChromium = !!window.chrome && (/Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent));
 
@@ -519,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         `
                         : `
                             <div class="playlist-success-content">
-                                <img class="icon" src="/static/spotify_auth/images/MusicEmoji.webp" alt=""/>
+                                <img class="icon" src="/static/spotify_app/images/MusicEmoji.webp" alt=""/>
                                 <div class="playlist-success-info">
                                     <div class="playlist-name">${playlist.name}</div>
                                     ${trackMarkup}
