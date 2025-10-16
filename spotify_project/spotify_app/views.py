@@ -22,24 +22,49 @@ from django.core.mail import send_mail
 import random
 from bs4 import BeautifulSoup
 import httpx
-from urllib.parse import urlparse
-from functools import wraps
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 from scripts.metrics_store import record_gemini_request, record_playlist_created
-from .config.constants import *
+from .utilities.logging import log_to_file, GEMINI_API_LOG_FILE, SPOTIFY_API_LOG_FILE, GENERAL_LOG_FILE, HTTP_REQUEST_LOG_FILE
+from .utilities.timeutils import pacific_now, seconds_until_pacific_midnight
+from .utilities.grounding import check_and_update_grounding_usage
+from .utilities.redis_utils import REDIS_CLIENT, redis_available
+from .utilities.rate_limit import rate_limit_scope
+from .utilities.sse_helper import sse_same_origin_ok
 from .config.instructions import *
+from .config.constants import (
+    ANALYSIS_EVENT_CHANNEL_PREFIX,
+    ANALYSIS_EVENT_TIMEOUT,
+    CHAT_EVENT_CHANNEL_PREFIX,
+    CHAT_EVENT_TIMEOUT,
+    NEW_SONGS_MODEL_NAME,
+    SAVED_SONGS_MODEL_NAME,
+    ANALYSIS_CHAT_MODEL_NAME,
+    INITIAL_ANALYSIS_MODEL_NAME,
+    FORMATTING_MODEL_NAME,
+    FEEDBACK_REMOVAL_MODEL_NAME,
+    PRO_MODEL_NAME,
+    GEMINI_RATE_LIMITS,
+    GEMINI_LIMIT_LUA,
+    NEW_SONGS_THINKING_BUDGET,
+    SAVED_SONGS_THINKING_BUDGET,
+    ANALYSIS_CHAT_THINKING_BUDGET,
+    INITIAL_ANALYSIS_THINKING_BUDGET,
+    NEW_SONGS_MAX_OUTPUT_TOKENS,
+    SAVED_SONGS_MAX_OUTPUT_TOKENS,
+    ANALYSIS_CHAT_MAX_OUTPUT_TOKENS,
+    INITIAL_ANALYSIS_MAX_OUTPUT_TOKENS,
+    NEW_SONGS_TEMPERATURE,
+    SAVED_SONGS_TEMPERATURE,
+    ANALYSIS_CHAT_TEMPERATURE,
+    INITIAL_ANALYSIS_TEMPERATURE,
+    GOOGLE_SEARCH_TOOL,
+    SAFETY_SETTINGS,
+    MAX_TOKENS_ERROR_MESSAGE,
+    HIGH_TRAFFIC_ERROR_MESSAGE,
+    LENGTH_TERMINATION_MSG,
+    EMPTY_PLAYLIST_ERROR_MESSAGE,
+)
 
-REDIS_CLIENT = settings.REDIS_CLIENT
 GEMINI_CLIENT_CACHE = {}
-
-def _pacific_now():
-    return datetime.now(PACIFIC_TZ)
-
-def _seconds_until_pacific_midnight():
-    now = _pacific_now()
-    tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-    return int((tomorrow - now).total_seconds())
 
 def _classify_gemini_model(model_name: str):
     m = (model_name or "").lower()
@@ -109,7 +134,7 @@ def _record_gemini_usage_safe(user_id, response, gemini_key):
         record_gemini_request(user_id, cost)
     except Exception as e:
         try:
-            _log_to_file(GENERAL_LOG_FILE, f"Failed to record Gemini metrics: {e}")
+            log_to_file(GENERAL_LOG_FILE, f"Failed to record Gemini metrics: {e}")
         except Exception:
             pass
 
@@ -228,11 +253,11 @@ def _send_gemini_rate_limit_alert(tier, model_name, daily_count, minute_count, l
         if not alert_email:
             return
         triggered_label = "+".join(triggered_types)
-        date_str = _pacific_now().strftime('%Y%m%d')
+        date_str = pacific_now().strftime('%Y%m%d')
         suppress_key = f"gemini_rl_alert:{date_str}:{tier}:{triggered_label}"
-        ttl_seconds = 60 if 'minute' in triggered_types and 'daily' not in triggered_types else _seconds_until_pacific_midnight()
+        ttl_seconds = 60 if 'minute' in triggered_types and 'daily' not in triggered_types else seconds_until_pacific_midnight()
         try:
-            if _redis_available():
+            if redis_available():
                 if REDIS_CLIENT.get(suppress_key):
                     return
                 REDIS_CLIENT.set(suppress_key, 1, ex=ttl_seconds)
@@ -246,11 +271,11 @@ def _send_gemini_rate_limit_alert(tier, model_name, daily_count, minute_count, l
             f"Triggered: {triggered_label}\n"
             f"Minute Usage: {minute_count}/{limits['RPM']}\n"
             f"Daily Usage: {daily_count}/{limits['RPD']}\n"
-            f"Time (Pacific): {_pacific_now().isoformat()}\n"
+            f"Time (Pacific): {pacific_now().isoformat()}\n"
         )
         send_mail(subject, body, alert_email, [recipient_email], fail_silently=True)
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Failed to send Gemini rate limit alert (tier={tier}): {e}")
+        log_to_file(GENERAL_LOG_FILE, f"Failed to send Gemini rate limit alert (tier={tier}): {e}")
 
 def _choose_gemini_client(model_name: str):
     tier = _classify_gemini_model(model_name)
@@ -263,18 +288,18 @@ def _choose_gemini_client(model_name: str):
             GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
         return GEMINI_CLIENT_CACHE['fallback'], 'fallback'
     
-    if not _redis_available():
+    if not redis_available():
         if 'fallback' not in GEMINI_CLIENT_CACHE:
             GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
-        _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_FALLBACK] Redis unavailable -> using FALLBACK key for model {model_name}")
+        log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_FALLBACK] Redis unavailable -> using FALLBACK key for model {model_name}")
         return GEMINI_CLIENT_CACHE['fallback'], 'fallback'
     
-    date_str = _pacific_now().strftime('%Y%m%d')
-    current_minute = _pacific_now().strftime('%Y%m%d%H%M')
+    date_str = pacific_now().strftime('%Y%m%d')
+    current_minute = pacific_now().strftime('%Y%m%d%H%M')
     daily_key = f"gemini:usage:{date_str}:{tier}:daily"
     minute_key = f"gemini:usage:{date_str}:{tier}:min:{current_minute}"
     
-    ttl_daily_ms = _seconds_until_pacific_midnight() * 1000
+    ttl_daily_ms = seconds_until_pacific_midnight() * 1000
     minute_ttl_s = 90
     
     try:
@@ -285,7 +310,7 @@ def _choose_gemini_client(model_name: str):
             limits['RPD'], limits['RPM'], ttl_daily_ms, minute_ttl_s
         )
     except Exception as e:
-        _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_FALLBACK] Redis eval error '{e}' -> using FALLBACK key for {model_name}")
+        log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_FALLBACK] Redis eval error '{e}' -> using FALLBACK key for {model_name}")
         if 'fallback' not in GEMINI_CLIENT_CACHE:
             GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
         return GEMINI_CLIENT_CACHE['fallback'], 'fallback'
@@ -293,7 +318,7 @@ def _choose_gemini_client(model_name: str):
     if allowed == 1:
         if 'primary' not in GEMINI_CLIENT_CACHE:
             GEMINI_CLIENT_CACHE['primary'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_PRIMARY', None))
-        _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_USAGE] PRIMARY key used | model={model_name} tier={tier} daily={daily_count}/{limits['RPD']} minute={minute_count}/{limits['RPM']}")
+        log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_USAGE] PRIMARY key used | model={model_name} tier={tier} daily={daily_count}/{limits['RPD']} minute={minute_count}/{limits['RPM']}")
         return GEMINI_CLIENT_CACHE['primary'], 'primary'
     else:
         triggered = []
@@ -305,21 +330,10 @@ def _choose_gemini_client(model_name: str):
             _send_gemini_rate_limit_alert(tier, model_name, daily_count, minute_count, limits, triggered)
         if 'fallback' not in GEMINI_CLIENT_CACHE:
             GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
-        _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_FALLBACK] Switching to FALLBACK key | model={model_name} tier={tier} daily={daily_count}/{limits['RPD']} minute={minute_count}/{limits['RPM']} triggered={'+'.join(triggered) or 'unknown'}")
+        log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_FALLBACK] Switching to FALLBACK key | model={model_name} tier={tier} daily={daily_count}/{limits['RPD']} minute={minute_count}/{limits['RPM']} triggered={'+'.join(triggered) or 'unknown'}")
         return GEMINI_CLIENT_CACHE['fallback'], 'fallback'
 
 SPOTIFY_ID = settings.SPOTIFY_ID
-
-def _log_to_file(log_file_path, message):
-    try:
-        log_file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(log_file_path, 'a') as f:
-            timestamp = time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(time.time()))
-            f.write(f"{timestamp} - {message}\n")
-    except Exception as e:
-        print(f"Error writing to log file {log_file_path}: {e}")
-        with open(GENERAL_LOG_FILE, 'a') as general_log_file:
-            general_log_file.write(f"Error writing to log file {log_file_path}: {e}\n")
 
 def get_spotify_access_token():
     token_file_path = Path(__file__).parent.parent / ".tokens"
@@ -328,7 +342,7 @@ def get_spotify_access_token():
     try:
         current_mtime = token_file_path.stat().st_mtime
     except FileNotFoundError:
-        _log_to_file(GENERAL_LOG_FILE, f"Could not find the '.tokens' file. Searched directory: {token_file_path.parent}")
+        log_to_file(GENERAL_LOG_FILE, f"Could not find the '.tokens' file. Searched directory: {token_file_path.parent}")
         return None
 
     cached_data = cache.get(cache_key)
@@ -342,148 +356,20 @@ def get_spotify_access_token():
     return token
 
 def _get_token_line(tokens_file, line_number):
-    _log_to_file(GENERAL_LOG_FILE, f"_get_token_line called with file: {tokens_file}, line_number: {line_number}")
+    log_to_file(GENERAL_LOG_FILE, f"_get_token_line called with file: {tokens_file}, line_number: {line_number}")
     try:
         with open(tokens_file, "r") as f:
-            _log_to_file(GENERAL_LOG_FILE, f"Successfully opened tokens file: {tokens_file}")
+            log_to_file(GENERAL_LOG_FILE, f"Successfully opened tokens file: {tokens_file}")
             for i, line in enumerate(f):
                 if i == line_number:
                     token_preview = line.strip()[:10] + "..." if len(line.strip()) > 10 else line.strip()
-                    _log_to_file(GENERAL_LOG_FILE, f"Found token at line {line_number}: {token_preview}")
+                    log_to_file(GENERAL_LOG_FILE, f"Found token at line {line_number}: {token_preview}")
                     return line.strip()
-        _log_to_file(GENERAL_LOG_FILE, f"Line {line_number} not found in file {tokens_file} (file has fewer lines)")
+        log_to_file(GENERAL_LOG_FILE, f"Line {line_number} not found in file {tokens_file} (file has fewer lines)")
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error reading tokens file {tokens_file}: {e}")
-    _log_to_file(GENERAL_LOG_FILE, f"_get_token_line returning None for file: {tokens_file}, line: {line_number}")
+        log_to_file(GENERAL_LOG_FILE, f"Error reading tokens file {tokens_file}: {e}")
+    log_to_file(GENERAL_LOG_FILE, f"_get_token_line returning None for file: {tokens_file}, line: {line_number}")
     return None
-
-def _sse_same_origin_ok(request):
-    origin = request.META.get("HTTP_ORIGIN")
-    referer = request.META.get("HTTP_REFERER")
-    if origin:
-        if origin.rstrip("/") in ALLOWED_SSE_ORIGINS:
-            return True
-    if referer:
-        try:
-            p = urlparse(referer)
-            base = f"{p.scheme}://{p.netloc}"
-            if base in ALLOWED_SSE_ORIGINS:
-                return True
-        except Exception:
-            pass
-    return False
-
-def _rl_keys(request, scope, key_type):
-    ip = (request.META.get('HTTP_CF_CONNECTING_IP')
-          or request.META.get('HTTP_X_REAL_IP')
-          or request.META.get('REMOTE_ADDR')
-          or 'unknown')
-    session_key = request.session.session_key or 'no-session'
-    base_map = {
-        'ip': ip,
-        'session': session_key,
-        'global': 'global'
-    }
-    ident = base_map[key_type]
-    return f"rl:{scope}:{key_type}:{ident}", f"rlblk:{scope}:{key_type}:{ident}"
-
-def _redis_available():
-    try:
-        REDIS_CLIENT.ping()
-        return True
-    except Exception:
-        return False
-
-def _incr_with_expire(store, key, window):
-    if _redis_available() and store is REDIS_CLIENT:
-        lua_script = """
-        local current = redis.call('INCR', KEYS[1])
-        if current == 1 then
-            redis.call('EXPIRE', KEYS[1], ARGV[1])
-        end
-        return current
-        """
-        try:
-            return store.eval(lua_script, 1, key, window)
-        except Exception:
-            count = store.incr(key)
-            if count == 1:
-                store.expire(key, window)
-            return count
-    val = cache.get(key, 0) + 1
-    cache.set(key, val, timeout=window)
-    return val
-
-def _send_rate_limit_alert(scope, key_type, ident, count, limit, window, block_duration):
-    try:
-        alert_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-        recipient_email = getattr(settings, 'DEFAULT_TO_EMAIL', None)
-        if not alert_email:
-            return
-        if _redis_available():
-            suppress_ttl = block_duration or window
-            rl_alert_key = f"rlalert:{scope}:{key_type}:{ident}"
-            if REDIS_CLIENT.get(rl_alert_key):
-                return
-            REDIS_CLIENT.set(rl_alert_key, 1, ex=suppress_ttl)
-        subject = f"[Rate Limit Triggered] scope={scope} type={key_type}"
-        body = (
-            f"Rate limit exceeded.\n"
-            f"Scope: {scope}\n"
-            f"Key Type: {key_type}\n"
-            f"Identifier: {ident}\n"
-            f"Count: {count}\n"
-            f"Limit: {limit}\n"
-            f"Window (s): {window}\n"
-            f"Block Duration (s): {block_duration or 'window'}\n"
-        )
-        send_mail(subject, body, alert_email, [recipient_email], fail_silently=True)
-    except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Failed to send rate limit alert (scope={scope}, key_type={key_type}, ident={ident}): {e}")
-
-def rate_limit_scope(scope):
-    rules = RATE_LIMITS.get(scope, [])
-    def decorator(view_func):
-        @wraps(view_func)
-        def wrapper(request, *args, **kwargs):
-            for key_type, limit, window, block in rules:
-                counter_key, block_key = _rl_keys(request, scope, key_type)
-                try:
-                    if REDIS_CLIENT.get(block_key):
-                        msg = (HIGH_TRAFFIC_ERROR_MESSAGE
-                               if key_type == 'global'
-                               else 'Rate limit exceeded. Please try again later.')
-                        return JsonResponse({'error': msg}, status=429)
-                except Exception:
-                    pass
-                count = _incr_with_expire(REDIS_CLIENT, counter_key, window)
-                if count > limit:
-                    try:
-                        block_duration = block
-                        if block_duration is None:
-                            try:
-                                ttl = REDIS_CLIENT.ttl(counter_key)
-                            except Exception:
-                                ttl = -1
-                            if ttl is None or ttl < 0:
-                                ttl = window
-                            block_duration = ttl
-                        REDIS_CLIENT.set(block_key, 1, ex=block_duration)
-                        try:
-                            ident = counter_key.split(':')[-1]
-                            _send_rate_limit_alert(scope, key_type, ident, count, limit, window, block_duration)
-                        except Exception as alert_err:
-                            _log_to_file(GENERAL_LOG_FILE, f"Error scheduling rate limit alert: {alert_err}")
-                    except Exception:
-                        pass
-                    _log_to_file(GENERAL_LOG_FILE,f"Rate limit exceeded ({scope}:{key_type}) key={counter_key} count={count} limit={limit}")
-                    msg = (HIGH_TRAFFIC_ERROR_MESSAGE
-                           if key_type == 'global'
-                           else 'Rate limit exceeded. Please try again later.')
-                    return JsonResponse({'error': msg}, status=429)
-            return view_func(request, *args, **kwargs)
-        return wrapper
-    return decorator
 
 def _is_crawler(request):
     user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
@@ -501,7 +387,7 @@ def _is_crawler(request):
 
 def _ensure_euphonic_intelligence_user_id(request):
     if _is_crawler(request):
-        _log_to_file(GENERAL_LOG_FILE, f"Crawler detected, skipping user ID generation. UA: {request.META.get('HTTP_USER_AGENT', '')}")
+        log_to_file(GENERAL_LOG_FILE, f"Crawler detected, skipping user ID generation. UA: {request.META.get('HTTP_USER_AGENT', '')}")
         return None
 
     if not request.session.get('euphonic_intelligence_user_id'):
@@ -510,7 +396,7 @@ def _ensure_euphonic_intelligence_user_id(request):
         request.session.modified = True
         if not request.session.session_key:
             request.session.save()
-        _log_to_file(GENERAL_LOG_FILE, f"Generated new euphonic_intelligence_user_id: {euphonic_user_id} for session {request.session.session_key}")
+        log_to_file(GENERAL_LOG_FILE, f"Generated new euphonic_intelligence_user_id: {euphonic_user_id} for session {request.session.session_key}")
     return request.session['euphonic_intelligence_user_id']
 
 @csrf_protect
@@ -525,40 +411,8 @@ def check_import_status_api(request):
     
     return JsonResponse({'completed': bool(tracks_list)})
 
-def check_and_update_grounding_usage():
-    try:
-        today_str = _pacific_now().strftime('%Y%m%d')
-    except Exception:
-        today_str = time.strftime('%Y%m%d', time.gmtime())
-
-    cache_key = f"grounding_usage_count:{today_str}"
-    count = cache.get(cache_key)
-    if count is None:
-        count = 0
-        cache.set(cache_key, count, timeout=_seconds_until_pacific_midnight() + 300)
-
-    can_use_grounding = count < GROUNDING_API_LIMIT
-
-    if can_use_grounding:
-        count += 1
-        cache.set(cache_key, count, timeout=_seconds_until_pacific_midnight() + 300)
-
-    try:
-        current_time = time.time()
-        log_timestamp = time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(current_time))
-        GROUNDING_USAGE_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(GROUNDING_USAGE_LOG_FILE, 'a') as f:
-            f.write(f"{log_timestamp} - Grounding usage (Pacific day {today_str}) BEFORE request: {count - (1 if can_use_grounding else 0)} / {GROUNDING_API_LIMIT}\n")
-            if can_use_grounding:
-                f.write(f"{log_timestamp} - Grounding USED for this request. New count: {count}\n")
-            else:
-                f.write(f"{log_timestamp} - Grounding NOT USED (daily limit reached). Count: {count}\n")
-    except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error writing to grounding usage log: {e}")
-    return can_use_grounding
-
 def index(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     _ensure_euphonic_intelligence_user_id(request)
     if request.GET.get('clear_storage') == 'true':
         chat_url = f"{reverse('chat')}?clear_storage=true"
@@ -569,7 +423,7 @@ def index(request):
 @require_http_methods(["GET"])
 @never_cache
 def chat_view(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     _ensure_euphonic_intelligence_user_id(request)
 
     clear_storage = request.GET.get('clear_storage') == 'true'
@@ -586,7 +440,7 @@ def chat_view(request):
     })
 
 def reset_view(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     user_id = request.session.get('euphonic_intelligence_user_id')
     if user_id:
         cache.delete(f'analysis_in_progress_{user_id}')
@@ -599,14 +453,14 @@ def _generate_musical_analysis(session_data):
     def _publish(status):
         session_key = session_data.get('session_key')
         if not session_key:
-            _log_to_file(GENERAL_LOG_FILE, f"Cannot publish analysis status '{status}': session_key missing in session_data.")
+            log_to_file(GENERAL_LOG_FILE, f"Cannot publish analysis status '{status}': session_key missing in session_data.")
             return
         channel = f"{ANALYSIS_EVENT_CHANNEL_PREFIX}{session_key}"
         try:
             REDIS_CLIENT.publish(channel, status)
-            _log_to_file(GENERAL_LOG_FILE, f"Published analysis status '{status}' to channel {channel}")
+            log_to_file(GENERAL_LOG_FILE, f"Published analysis status '{status}' to channel {channel}")
         except Exception as redis_error:
-            _log_to_file(GENERAL_LOG_FILE, f"Failed to publish analysis status '{status}' to Redis for session {session_key}: {redis_error}")
+            log_to_file(GENERAL_LOG_FILE, f"Failed to publish analysis status '{status}' to Redis for session {session_key}: {redis_error}")
 
     class MockRequest:
         def __init__(self, session_dict):
@@ -620,7 +474,7 @@ def _generate_musical_analysis(session_data):
     status = 'failed'
 
     if not user_id:
-        _log_to_file(GENERAL_LOG_FILE, "Analysis generation aborted: user_id not in session.")
+        log_to_file(GENERAL_LOG_FILE, "Analysis generation aborted: user_id not in session.")
         status = 'failed'
         _publish(status)
         return
@@ -628,7 +482,7 @@ def _generate_musical_analysis(session_data):
     try:
         tracks_list = mock_request.session.get('spotify_user_tracks')
         if tracks_list is None:
-            _log_to_file(GENERAL_LOG_FILE, f"Analysis generation aborted for user {user_id}: library not found.")
+            log_to_file(GENERAL_LOG_FILE, f"Analysis generation aborted for user {user_id}: library not found.")
             status = 'failed'
             return
 
@@ -688,7 +542,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             selected_model = PRO_MODEL_NAME
         else:
             client, gemini_key_type = _choose_gemini_client(selected_model)
-            _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_SELECTION] Key is not PRIMARY for PRO model. Using {selected_model} with {gemini_key_type} key for initial analysis.")
+            log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_SELECTION] Key is not PRIMARY for PRO model. Using {selected_model} with {gemini_key_type} key for initial analysis.")
 
         use_grounding = False
         if gemini_key_type == 'primary' and selected_model == INITIAL_ANALYSIS_MODEL_NAME:
@@ -720,16 +574,16 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
             f"Gemini API Call (_generate_musical_analysis for user {user_id}, gen {generation_id}):\n"
             f"  Initial Prompt: {initial_prompt[:500]}{'...' if len(initial_prompt) > 500 else ''}\n"
         )
-        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_analysis}\n******************************\n")
+        log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_analysis}\n******************************\n")
         used_model_for_call = selected_model
         already_logged_http_in = False
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (analysis gen {generation_id})")
+        log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (analysis gen {generation_id})")
         try:
             response = chat.send_message(initial_prompt)
         except Exception as e_send:
             if _is_transient_gemini_error(e_send):
                 try:
-                    _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (analysis gen {generation_id}): {e_send}. Retrying with FALLBACK key.")
+                    log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (analysis gen {generation_id}): {e_send}. Retrying with FALLBACK key.")
                     if 'fallback' not in GEMINI_CLIENT_CACHE:
                         GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
                     fallback_client = GEMINI_CLIENT_CACHE['fallback']
@@ -739,18 +593,18 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
                     )
                     final_gemini_key_type_used = 'fallback'
                     used_model_for_call = INITIAL_ANALYSIS_MODEL_NAME
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (analysis gen {generation_id}) [Fallback Retry due to exception]")
+                    log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (analysis gen {generation_id}) [Fallback Retry due to exception]")
                     response = chat.send_message(initial_prompt)
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (analysis gen {generation_id}) [Fallback Retry due to exception]")
+                    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (analysis gen {generation_id}) [Fallback Retry due to exception]")
                     already_logged_http_in = True
                 except Exception as e_fb:
-                    _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY_FAILED] Fallback retry failed (analysis gen {generation_id}): {e_fb}")
+                    log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY_FAILED] Fallback retry failed (analysis gen {generation_id}): {e_fb}")
                     raise
             else:
                 raise
         if not already_logged_http_in:
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (analysis gen {generation_id})")
-        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (analysis gen {generation_id}):\n{response}\n******************************\n")
+            log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (analysis gen {generation_id})")
+        log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (analysis gen {generation_id}):\n{response}\n******************************\n")
         _record_gemini_usage_safe(user_id, response, final_gemini_key_type_used)
 
         try:
@@ -762,7 +616,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
                     if getattr(part, "thought", False) and getattr(part, "text", None):
                         thought_summaries.append(part.text)
             if thought_summaries:
-                _log_to_file(
+                log_to_file(
                     GEMINI_API_LOG_FILE,
                     "\n******************************\n"
                     f"Thought Summaries (analysis gen {generation_id}):\n"
@@ -770,7 +624,7 @@ DEVELOPER MESSAGE: ANALYZE THE USER'S IMPORTED TRACKS AND PROVIDE YOUR INSIGHTS 
                     "******************************\n"
                 )
         except Exception as e:
-            _log_to_file(GENERAL_LOG_FILE, f"Error extracting thought summaries (analysis gen {generation_id}) for user {user_id}: {e}")
+            log_to_file(GENERAL_LOG_FILE, f"Error extracting thought summaries (analysis gen {generation_id}) for user {user_id}: {e}")
 
         if response.candidates and response.candidates[0].content and response.candidates[0].content.parts and response.text and response.text.strip():
             initial_text_from_gemini = response.text
@@ -805,7 +659,7 @@ For example, you might ask:
         session_store = Session.get_session_store_class()
         session_key_from_data = mock_request.session.get('session_key')
         if not session_key_from_data:
-            _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis (gen {generation_id}) for user {user_id}: session_key missing.")
+            log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis (gen {generation_id}) for user {user_id}: session_key missing.")
             status = 'failed'
             return
         
@@ -814,17 +668,17 @@ For example, you might ask:
         current_gen = current_session_data.get('analysis_generation_id')
 
         if current_gen != generation_id:
-            _log_to_file(GENERAL_LOG_FILE, f"Discarding obsolete analysis result gen {generation_id} (current gen {current_gen}) for user {user_id}")
+            log_to_file(GENERAL_LOG_FILE, f"Discarding obsolete analysis result gen {generation_id} (current gen {current_gen}) for user {user_id}")
             status = 'obsolete'
             return
 
         session['analysis_chat_history'] = mock_request.session.get('analysis_chat_history', [])
         session['final_analysis_chat_history'] = mock_request.session.get('final_analysis_chat_history', [])
         session.save()
-        _log_to_file(GENERAL_LOG_FILE, f"Saved musical analysis gen {generation_id} for user {user_id}")
+        log_to_file(GENERAL_LOG_FILE, f"Saved musical analysis gen {generation_id} for user {user_id}")
         status = 'completed'
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis (gen {generation_id}) for user {user_id}: {e}")
+        log_to_file(GENERAL_LOG_FILE, f"Error in _generate_musical_analysis (gen {generation_id}) for user {user_id}: {e}")
         status = 'failed'
     finally:
         try:
@@ -840,7 +694,7 @@ def _reset_and_start_analysis(request):
     try:
         user_id = request.session.get('euphonic_intelligence_user_id')
         if not user_id:
-            _log_to_file(GENERAL_LOG_FILE, "Cannot start analysis: missing user_id")
+            log_to_file(GENERAL_LOG_FILE, "Cannot start analysis: missing user_id")
             return
 
         request.session.pop('analysis_chat_history', None)
@@ -866,10 +720,10 @@ def _reset_and_start_analysis(request):
             daemon=True
         )
         thread.start()
-        _log_to_file(GENERAL_LOG_FILE, f"Started new musical analysis generation {new_generation_id} for session {request.session.session_key}")
+        log_to_file(GENERAL_LOG_FILE, f"Started new musical analysis generation {new_generation_id} for session {request.session.session_key}")
         return
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Failed to schedule musical analysis: {e}")
+        log_to_file(GENERAL_LOG_FILE, f"Failed to schedule musical analysis: {e}")
         return
 
 def _get_spotify_track_url_with_backoff(request, song_title, artist_name, chat_mode, max_retries=5):
@@ -888,13 +742,13 @@ def _get_spotify_track_url_with_backoff(request, song_title, artist_name, chat_m
             
             if response_obj and getattr(response_obj,"status_code",None) in NON_RETRYABLE_HTTP_CODES:
                 should_retry = False
-                _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: Non-retryable HTTP {response_obj.status_code} for '{song_title}' by '{artist_name}'. Stopping retries.")
+                log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: Non-retryable HTTP {response_obj.status_code} for '{song_title}' by '{artist_name}'. Stopping retries.")
             if should_retry:
                 delay = 2 ** attempt + random.uniform(0, 1)
                 if response_obj is not None and getattr(response_obj,"status_code",None) == 429:
                     retry_after = int(response_obj.headers.get('Retry-After', delay))
                     delay = retry_after + random.uniform(0, 1)
-                _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: Retryable error for '{song_title}' by '{artist_name}'. Waiting {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: Retryable error for '{song_title}' by '{artist_name}'. Waiting {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                 time.sleep(delay)
             else:
                 break
@@ -908,13 +762,13 @@ def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
     if chat_mode == 'saved_songs':
         user_id = request.session.get('euphonic_intelligence_user_id')
         if not user_id:
-            _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [APP_ERROR] User ID missing for saved songs search. Song: '{song_title}', Artist: '{artist_name}'")
+            log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [APP_ERROR] User ID missing for saved songs search. Song: '{song_title}', Artist: '{artist_name}'")
             return 'app_error', None, None
         
         simplified_tracks = request.session.get('spotify_user_tracks')
 
         if simplified_tracks is None:
-            _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [APP_ERROR] Cached library not found for user {user_id}. Song: '{song_title}', Artist: '{artist_name}'")
+            log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [APP_ERROR] Cached library not found for user {user_id}. Song: '{song_title}', Artist: '{artist_name}'")
             return 'app_error', None, None
 
         search_title = song_title.strip().lower()
@@ -926,15 +780,15 @@ def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
             
             if track_title == search_title and any(sa in track_artists for sa in search_artists):
                 track_id = track['id']
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [CACHE_SEARCH_SUCCESS] Song: '{song_title}', Artist: '{artist_name}'. Track ID: {track_id}.")
+                log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [CACHE_SEARCH_SUCCESS] Song: '{song_title}', Artist: '{artist_name}'. Track ID: {track_id}.")
                 return 'success', f"https://open.spotify.com/track/{track_id}", None
 
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [CACHE_SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'.")
+        log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [CACHE_SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'.")
         return 'not_found', None, None
 
     access_token = get_spotify_access_token()
     if not access_token:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [APP_ERROR] Access token missing. Song: '{song_title}', Artist: '{artist_name}'")
+        log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [APP_ERROR] Access token missing. Song: '{song_title}', Artist: '{artist_name}'")
         return 'app_error', None, None
 
     search_url = 'https://api.spotify.com/v1/search'
@@ -950,18 +804,18 @@ def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
     }
     
     prepared_request_attempt1 = requests.Request('GET', search_url, headers=current_headers, params=params).prepare()
-    _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [SEARCH_ATTEMPT_1] Song: '{song_title}', Artist: '{artist_name}'. URL: {prepared_request_attempt1.url}")
+    log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [SEARCH_ATTEMPT_1] Song: '{song_title}', Artist: '{artist_name}'. URL: {prepared_request_attempt1.url}")
 
     response = None
     try:
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {prepared_request_attempt1.url}")
+        log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {prepared_request_attempt1.url}")
         response = requests.get(search_url, headers=current_headers, params=params, timeout=10)
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {prepared_request_attempt1.url} | Status: {response.status_code}")
+        log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {prepared_request_attempt1.url} | Status: {response.status_code}")
 
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [RAW_API_CALL_ATTEMPT_1] URL: {prepared_request_attempt1.url}, Headers: {prepared_request_attempt1.headers}, Response Status: {response.status_code}, Response Body:\n{response.text}")
+        log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [RAW_API_CALL_ATTEMPT_1] URL: {prepared_request_attempt1.url}, Headers: {prepared_request_attempt1.headers}, Response Status: {response.status_code}, Response Body:\n{response.text}")
 
         if response.status_code == 401:
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [AUTH_EXPIRED_ATTEMPT_1] Song: '{song_title}', Artist: '{artist_name}'.")
+            log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [AUTH_EXPIRED_ATTEMPT_1] Song: '{song_title}', Artist: '{artist_name}'.")
             return 'auth_error', None, response
 
         if response.status_code == 429:
@@ -971,17 +825,17 @@ def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
             return 'error', None, response
 
         if response.status_code in {400, 403, 404, 422}:
-            _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [APP_ERROR_HTTP_{response.status_code}] Song: '{song_title}', Artist: '{artist_name}'.")
+            log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [APP_ERROR_HTTP_{response.status_code}] Song: '{song_title}', Artist: '{artist_name}'.")
             return 'app_error', None, response
 
         response.raise_for_status()
         data = response.json()
         if data.get('tracks', {}).get('items'):
             track_id = data['tracks']['items'][0]['id']
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [SEARCH_SUCCESS] Song: '{song_title}', Artist: '{artist_name}'. Track ID: {track_id}.")
+            log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [SEARCH_SUCCESS] Song: '{song_title}', Artist: '{artist_name}'. Track ID: {track_id}.")
             return 'success', f"https://open.spotify.com/track/{track_id}", response
         else:
-            _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'. Query: {query_string}")
+            log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [SEARCH_NO_RESULTS] Song: '{song_title}', Artist: '{artist_name}'. Query: {query_string}")
             return 'not_found', None, response
 
     except requests.exceptions.HTTPError as http_err:
@@ -989,19 +843,19 @@ def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
         status_code = getattr(err_response, "status_code", None)
         if status_code and 400 <= status_code < 500 and status_code not in {429}:
             err_text = err_response.text if err_response else 'No response text'
-            _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [HTTP_ERROR_APP] Song: '{song_title}', Artist: '{artist_name}'. Error: {http_err}, Response: {err_text}")
+            log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [HTTP_ERROR_APP] Song: '{song_title}', Artist: '{artist_name}'. Error: {http_err}, Response: {err_text}")
             return 'app_error', None, err_response
         err_text = err_response.text if err_response else 'No response text'
-        _log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [HTTP_ERROR_RETRYABLE] Song: '{song_title}', Artist: '{artist_name}'. Error: {http_err}, Response: {err_text}")
+        log_to_file(SPOTIFY_API_LOG_FILE,f"Worker {worker_id}: [HTTP_ERROR_RETRYABLE] Song: '{song_title}', Artist: '{artist_name}'. Error: {http_err}, Response: {err_text}")
         return 'error', None, err_response
     except requests.exceptions.RequestException as e:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [REQUEST_EXCEPTION_RETRYABLE] Song: '{song_title}', Artist: '{artist_name}'. Error: {e}")
+        log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [REQUEST_EXCEPTION_RETRYABLE] Song: '{song_title}', Artist: '{artist_name}'. Error: {e}")
         return 'error', None, None
     except Exception as e_unexp:
         log_url = prepared_request_attempt1.url if 'prepared_request_attempt1' in locals() else "N/A"
         log_headers = prepared_request_attempt1.headers if 'prepared_request_attempt1' in locals() else current_headers
         response_text = response.text if response and hasattr(response, 'text') else "No response text."
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [UNEXPECTED_APP_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {e_unexp}. URL: {log_url}, Headers: {log_headers}, Response: {response_text}")
+        log_to_file(SPOTIFY_API_LOG_FILE, f"Worker {worker_id}: [UNEXPECTED_APP_ERROR] Song: '{song_title}', Artist: '{artist_name}'. Error: {e_unexp}. URL: {log_url}, Headers: {log_headers}, Response: {response_text}")
         return 'app_error', None, response
 
 @csrf_protect
@@ -1009,7 +863,7 @@ def _get_spotify_track_url(request, song_title, artist_name, chat_mode):
 @never_cache
 @rate_limit_scope('chat_initialize')
 def initialize_chat_data_view(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     _ensure_euphonic_intelligence_user_id(request)
     
     try:
@@ -1045,7 +899,7 @@ def initialize_chat_data_view(request):
 
     try:
         if not request.session.get('euphonic_intelligence_user_id'):
-            _log_to_file(GENERAL_LOG_FILE, f"Error in initialize_chat_data_view: user_id missing from session")
+            log_to_file(GENERAL_LOG_FILE, f"Error in initialize_chat_data_view: user_id missing from session")
             return JsonResponse({'error': 'Session error. Please refresh the page.'}, status=500)
 
         initial_prompt = ""
@@ -1054,9 +908,9 @@ def initialize_chat_data_view(request):
             user_id = request.session.get('euphonic_intelligence_user_id')
             in_progress = bool(user_id and cache.get(f'analysis_in_progress_{user_id}'))
             if in_progress:
-                _log_to_file(GENERAL_LOG_FILE, f"initialize_chat_data_view (analysis): analysis already in progress for session {request.session.session_key}")
+                log_to_file(GENERAL_LOG_FILE, f"initialize_chat_data_view (analysis): analysis already in progress for session {request.session.session_key}")
                 return JsonResponse({'analysis_started': True, 'chat_mode': chat_mode})
-            _log_to_file(GENERAL_LOG_FILE, f"Unexpected error: initialize_chat_data_view invoked but no analysis in progress or stored in session {request.session.session_key}")
+            log_to_file(GENERAL_LOG_FILE, f"Unexpected error: initialize_chat_data_view invoked but no analysis in progress or stored in session {request.session.session_key}")
             return JsonResponse({'error': 'Unexpected error: analysis not available'}, status=400)
         
         if chat_mode == 'saved_songs':
@@ -1118,14 +972,14 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
             return JsonResponse({'first_ai_message': [initial_response], 'chat_mode': chat_mode})
 
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error in initialize_chat_data_view: {e}")
+        log_to_file(GENERAL_LOG_FILE, f"Error in initialize_chat_data_view: {e}")
         return JsonResponse({'error': 'An unexpected error occurred during chat initialization.'}, status=500)
 
 @csrf_protect
 @require_http_methods(["POST"])
 @never_cache
 def reset_chat_history_api(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
 
     try:
         data = json.loads(request.body)
@@ -1246,21 +1100,21 @@ DEVELOPER MESSAGE: REVIEW THE INITIAL SYSTEM INSTRUCTIONS FROM THE DEVELOPER AND
         return JsonResponse({'success': True, 'initial_response': initial_response, 'chat_mode': chat_mode})
 
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error in reset_chat_history_api: {e}")
+        log_to_file(GENERAL_LOG_FILE, f"Error in reset_chat_history_api: {e}")
         return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
 
 @csrf_protect
 @require_http_methods(["POST"])
 @never_cache
 def create_playlist_api(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
+    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     if not get_spotify_access_token():
-        _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token in create_playlist_api for session {request.session.session_key}")
+        log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token in create_playlist_api for session {request.session.session_key}")
         return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
     
     user_id = SPOTIFY_ID
     if not user_id:
-        _log_to_file(GENERAL_LOG_FILE, f"SPOTIFY_ID not configured in create_playlist_api for session {request.session.session_key}")
+        log_to_file(GENERAL_LOG_FILE, f"SPOTIFY_ID not configured in create_playlist_api for session {request.session.session_key}")
         return JsonResponse({'error': 'Error connecting to Spotify'}, status=500)
 
     try:
@@ -1270,10 +1124,10 @@ def create_playlist_api(request):
         description = data.get('description', f'Playlist created by Aria.')
 
         if not playlist_name or not track_uris:
-            _log_to_file(GENERAL_LOG_FILE, f"Missing required fields in create_playlist_api. Session: {request.session.session_key}, has_name: {bool(playlist_name)}, has_track_uris: {bool(track_uris)}")
+            log_to_file(GENERAL_LOG_FILE, f"Missing required fields in create_playlist_api. Session: {request.session.session_key}, has_name: {bool(playlist_name)}, has_track_uris: {bool(track_uris)}")
             return JsonResponse({'error': 'Error creating playlist'}, status=400)
 
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Creating playlist '{playlist_name}' with {len(track_uris)} tracks for session {request.session.session_key}")
+        log_to_file(SPOTIFY_API_LOG_FILE, f"Creating playlist '{playlist_name}' with {len(track_uris)} tracks for session {request.session.session_key}")
 
         create_playlist_url = f'https://api.spotify.com/v1/users/{user_id}/playlists'
         playlist_data = {
@@ -1285,37 +1139,37 @@ def create_playlist_api(request):
         access_token = get_spotify_access_token()
         headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
 
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {create_playlist_url} | Body: {json.dumps(playlist_data)}")
+        log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {create_playlist_url} | Body: {json.dumps(playlist_data)}")
         response = requests.post(create_playlist_url, headers=headers, json=playlist_data, timeout=10)
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {create_playlist_url} | Status: {response.status_code} | Body: {response.text}")
+        log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {create_playlist_url} | Status: {response.status_code} | Body: {response.text}")
 
         if response.status_code != 201:
-            _log_to_file(GENERAL_LOG_FILE, f"Failed to create playlist on Spotify. Session: {request.session.session_key}, Status: {response.status_code}, Response: {response.text}")
+            log_to_file(GENERAL_LOG_FILE, f"Failed to create playlist on Spotify. Session: {request.session.session_key}, Status: {response.status_code}, Response: {response.text}")
             return JsonResponse({'error': 'Error creating playlist'}, status=500)
 
         playlist_info = response.json()
         playlist_id = playlist_info['id']
         playlist_url = playlist_info['external_urls']['spotify']
 
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully created playlist '{playlist_name}' (ID: {playlist_id}) for session {request.session.session_key}")
+        log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully created playlist '{playlist_name}' (ID: {playlist_id}) for session {request.session.session_key}")
 
         try:
             app_user_id = request.session.get('euphonic_intelligence_user_id')
             record_playlist_created(app_user_id)
         except Exception as e_record:
-            _log_to_file(GENERAL_LOG_FILE, f"Failed to record playlist_created: {e_record}")
+            log_to_file(GENERAL_LOG_FILE, f"Failed to record playlist_created: {e_record}")
 
         add_tracks_url = f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks'
         for i in range(0, len(track_uris), 100):
             chunk = track_uris[i:i+100]
             tracks_data = {'uris': chunk}
             
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {add_tracks_url} | Body: {json.dumps(tracks_data)}")
+            log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {add_tracks_url} | Body: {json.dumps(tracks_data)}")
             add_tracks_response = requests.post(add_tracks_url, headers=headers, json=tracks_data, timeout=15)
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {add_tracks_url} | Status: {add_tracks_response.status_code} | Body: {add_tracks_response.text}")
+            log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {add_tracks_url} | Status: {add_tracks_response.status_code} | Body: {add_tracks_response.text}")
 
             if add_tracks_response.status_code != 201:
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Error adding tracks to playlist {playlist_id}: {add_tracks_response.status_code} - {add_tracks_response.text}")
+                log_to_file(SPOTIFY_API_LOG_FILE, f"Error adding tracks to playlist {playlist_id}: {add_tracks_response.status_code} - {add_tracks_response.text}")
                 return JsonResponse({'error': f'Playlist created, but failed to add some tracks.', 'playlist_url': playlist_url}, status=207)
 
         threading.Thread(
@@ -1327,10 +1181,10 @@ def create_playlist_api(request):
         return JsonResponse({'playlist_url': playlist_url})
 
     except json.JSONDecodeError:
-        _log_to_file(GENERAL_LOG_FILE, f"Invalid JSON in create_playlist_api request. Session: {request.session.session_key}, Body: {request.body.decode('utf-8')}")
+        log_to_file(GENERAL_LOG_FILE, f"Invalid JSON in create_playlist_api request. Session: {request.session.session_key}, Body: {request.body.decode('utf-8')}")
         return JsonResponse({'error': 'Invalid request format'}, status=400)
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in create_playlist_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
+        log_to_file(GENERAL_LOG_FILE, f"Unexpected error in create_playlist_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
 
 def _process_chat_message_thread(session_data, user_message, task_id, chat_mode):
@@ -1338,9 +1192,9 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         channel = f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}"
         try:
             REDIS_CLIENT.publish(channel, status)
-            _log_to_file(GENERAL_LOG_FILE, f"Published chat status '{status}' to channel {channel} (task {task_id})")
+            log_to_file(GENERAL_LOG_FILE, f"Published chat status '{status}' to channel {channel} (task {task_id})")
         except Exception as redis_error:
-            _log_to_file(GENERAL_LOG_FILE, f"Failed to publish chat status '{status}' for task {task_id}: {redis_error}")
+            log_to_file(GENERAL_LOG_FILE, f"Failed to publish chat status '{status}' for task {task_id}: {redis_error}")
     
     status = 'failed'
 
@@ -1400,7 +1254,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 model_for_mode = PRO_MODEL_NAME
             else:
                 client, gemini_key_type = _choose_gemini_client(model_for_mode)
-                _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_SELECTION] Key is not PRIMARY for PRO model. Using {model_for_mode} with {gemini_key_type} key for analysis chat.")
+                log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_SELECTION] Key is not PRIMARY for PRO model. Using {model_for_mode} with {gemini_key_type} key for analysis chat.")
         else:
             client, gemini_key_type = _choose_gemini_client(model_for_mode)
         
@@ -1426,7 +1280,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         corrected_tally = newline_count - 4
                         if corrected_tally > 25:
                             use_grounding_for_first_pass = False
-                            _log_to_file(GENERAL_LOG_FILE, f"Large library detected; disabling Google Search. Newline count after phrase: {newline_count}")
+                            log_to_file(GENERAL_LOG_FILE, f"Large library detected; disabling Google Search. Newline count after phrase: {newline_count}")
         except Exception:
             pass
 
@@ -1492,17 +1346,17 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             f"  User Message: {user_message}\n"
             f"  History (at call time):\n{json.dumps(history_list, indent=2)}"
         )
-        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
+        log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
         
         used_model_for_call = model_for_mode
         already_logged_http_in = False
-        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id})")
+        log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id})")
         try:
             response = chat.send_message(user_message)
         except Exception as e_first:
             if _is_transient_gemini_error(e_first):
                 try:
-                    _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (First Pass - Task {task_id}): {e_first}. Retrying with FALLBACK key.")
+                    log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (First Pass - Task {task_id}): {e_first}. Retrying with FALLBACK key.")
                     if 'fallback' not in GEMINI_CLIENT_CACHE:
                         GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
                     fallback_client = GEMINI_CLIENT_CACHE['fallback']
@@ -1518,14 +1372,14 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     )
                     final_first_pass_gemini_key_type_used = 'fallback'
                     used_model_for_call = retry_model
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id}) [Fallback Retry due to exception]")
+                    log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id}) [Fallback Retry due to exception]")
                     response = chat.send_message(user_message)
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id}) [Fallback Retry due to exception]")
+                    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id}) [Fallback Retry due to exception]")
                     already_logged_http_in = True
                 except Exception as e_fb:
                     if _is_resource_exhausted_error(e_fb):
-                        _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (first pass fallback) task {task_id}: {e_fb}")
-                        _log_to_file(GEMINI_API_LOG_FILE, "\n******************************\n"
+                        log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (first pass fallback) task {task_id}: {e_fb}")
+                        log_to_file(GEMINI_API_LOG_FILE, "\n******************************\n"
                                      f"Gemini API Error (chat_message_api - First Pass - Task {task_id}):\n"
                                      f"Quota / rate limit error on fallback: {e_fb}\n"
                                      "******************************\n")
@@ -1536,8 +1390,8 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
             else:
                 raise
         if not already_logged_http_in:
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id})")
-        _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
+            log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id})")
+        log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - First Pass - Task {task_id}):\n{response}\n******************************\n")
         _record_gemini_usage_safe(user_id, response, final_first_pass_gemini_key_type_used)
 
         context_window_exceeded = False
@@ -1554,20 +1408,20 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 if usage_md:
                     prompt_token_count = getattr(usage_md, "prompt_token_count", None)
             except Exception as e_tok:
-                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting prompt_token_count: {e_tok}")
+                log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting prompt_token_count: {e_tok}")
             context_window_exceeded = bool(prompt_token_count and prompt_token_count > 20000)
             if context_window_exceeded and context_flag_name:
-                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Context window exceeded (prompt_token_count={prompt_token_count})")
+                log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Context window exceeded (prompt_token_count={prompt_token_count})")
 
         try:
             if (getattr(response, "candidates", None) and response.candidates and
                 getattr(response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
-                _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS first pass Task {task_id}.")
+                log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS first pass Task {task_id}.")
                 cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=300)
                 status = 'failed'
                 return
         except Exception as e_mt:
-            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (first pass): {e_mt}")
+            log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (first pass): {e_mt}")
 
         try:
             thought_summaries = []
@@ -1578,7 +1432,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     if getattr(part, "thought", False) and getattr(part, "text", None):
                         thought_summaries.append(part.text)
             if thought_summaries:
-                _log_to_file(
+                log_to_file(
                     GEMINI_API_LOG_FILE,
                     "\n******************************\n"
                     f"Thought Summaries (chat_message_api - First Pass - Task {task_id}):\n"
@@ -1586,7 +1440,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     "******************************\n"
                 )
         except Exception as e:
-            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (first pass): {e}")
+            log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (first pass): {e}")
 
         ai_response_text = None
         if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
@@ -1619,16 +1473,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 f"Gemini API Call (chat_message_api - Formatting Pass - Task {task_id}):\n"
                 f"  Formatting Prompt: {formatting_prompt}"
             )
-            _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_formatting_pass}\n******************************\n")
+            log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_formatting_pass}\n******************************\n")
             used_model_for_call = FORMATTING_MODEL_NAME
             already_logged_http_in = False
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id}) (Formatting Pass)")
+            log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id}) (Formatting Pass)")
             try:
                 formatting_response = formatting_chat.send_message(formatting_prompt)
             except Exception as e_fmt:
                 if _is_transient_gemini_error(e_fmt):
                     try:
-                        _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (Formatting Pass - Task {task_id}): {e_fmt}. Retrying with FALLBACK key.")
+                        log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (Formatting Pass - Task {task_id}): {e_fmt}. Retrying with FALLBACK key.")
                         if 'fallback' not in GEMINI_CLIENT_CACHE:
                             GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
                         formatting_fallback_client = GEMINI_CLIENT_CACHE['fallback']
@@ -1638,14 +1492,14 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         )
                         final_formatting_gemini_key_type_used = 'fallback'
                         used_model_for_call = FORMATTING_MODEL_NAME
-                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id}) (Formatting Pass Fallback Retry due to exception)")
+                        log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id}) (Formatting Pass Fallback Retry due to exception)")
                         formatting_response = formatting_chat.send_message(formatting_prompt)
-                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id}) (Formatting Pass Fallback Retry due to exception)")
+                        log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id}) (Formatting Pass Fallback Retry due to exception)")
                         already_logged_http_in = True
                     except Exception as e_fmt_fb:
                         if _is_resource_exhausted_error(e_fmt_fb):
-                            _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (formatting pass) task {task_id}: {e_fmt_fb}")
-                            _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"
+                            log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (formatting pass) task {task_id}: {e_fmt_fb}")
+                            log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"
                                          f"Gemini API Error (chat_message_api - Formatting Pass - Task {task_id}):\n"
                                          f"Quota / rate limit error: {e_fmt_fb}\n"
                                          "******************************\n")
@@ -1656,19 +1510,19 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 else:
                     raise
             if not already_logged_http_in:
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id}) (Formatting Pass)")
-            _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Formatting Pass - Task {task_id}):\n{formatting_response}\n******************************\n")
+                log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id}) (Formatting Pass)")
+            log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Formatting Pass - Task {task_id}):\n{formatting_response}\n******************************\n")
             _record_gemini_usage_safe(user_id, formatting_response, final_formatting_gemini_key_type_used)
 
             try:
                 if (getattr(formatting_response, "candidates", None) and formatting_response.candidates and
                     getattr(formatting_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
-                    _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS formatting pass Task {task_id}.")
+                    log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS formatting pass Task {task_id}.")
                     cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=300)
                     status = 'failed'
                     return
             except Exception as e_fmt_mt:
-                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (formatting pass): {e_fmt_mt}")
+                log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (formatting pass): {e_fmt_mt}")
 
             try:
                 thought_summaries = []
@@ -1679,7 +1533,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         if getattr(part, "thought", False) and getattr(part, "text", None):
                             thought_summaries.append(part.text)
                 if thought_summaries:
-                    _log_to_file(
+                    log_to_file(
                         GEMINI_API_LOG_FILE,
                         "\n******************************\n"
                         f"Thought Summaries (chat_message_api - Formatting Pass - Task {task_id}):\n"
@@ -1687,16 +1541,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         "******************************\n"
                     )
             except Exception as e:
-                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (formatting pass): {e}")
+                log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (formatting pass): {e}")
 
             if formatting_response.candidates and formatting_response.candidates[0].content and formatting_response.candidates[0].content.parts:
                 ai_response_text = formatting_response.text
             else:
-                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Formatting pass returned no content. Using original response.")
+                log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Formatting pass returned no content. Using original response.")
 
         if ai_response_text is None:
             ai_response_text = ""
-            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: ai_response_text was None, setting to empty string")
+            log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: ai_response_text was None, setting to empty string")
 
         if chat_mode == 'analysis':
             if (not isinstance(ai_response_text, str) or not ai_response_text.strip()):
@@ -1748,7 +1602,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         url = future.result()
                         track_url_cache[cache_key] = url
                     except Exception as e:
-                        _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error processing search result for {track['title']}: {e}")
+                        log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error processing search result for {track['title']}: {e}")
                         track_url_cache[cache_key] = None
                         failed_searches.append(track)
 
@@ -1831,16 +1685,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 f"Gemini API Call (chat_message_api - Feedback Pass - Task {task_id}):\n"
                 f"  Feedback Prompt: {feedback_prompt_to_gemini}\n"
             )
-            _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
+            log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_feedback_pass}\n******************************\n")
             used_model_for_call = FEEDBACK_REMOVAL_MODEL_NAME
             already_logged_http_in = False
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id})")
+            log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id})")
             try:
                 correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
             except Exception as e_fb:
                 if _is_transient_gemini_error(e_fb):
                     try:
-                        _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (Feedback Pass - Task {task_id}): {e_fb}. Retrying with FALLBACK key.")
+                        log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (Feedback Pass - Task {task_id}): {e_fb}. Retrying with FALLBACK key.")
                         if 'fallback' not in GEMINI_CLIENT_CACHE:
                             GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
                         feedback_fallback_client = GEMINI_CLIENT_CACHE['fallback']
@@ -1850,14 +1704,14 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         )
                         final_feedback_gemini_key_type_used = 'fallback'
                         used_model_for_call = FEEDBACK_REMOVAL_MODEL_NAME
-                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id}) (Feedback Pass Fallback Retry due to exception)")
+                        log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id}) (Feedback Pass Fallback Retry due to exception)")
                         correction_response = feedback_chat.send_message(feedback_prompt_to_gemini)
-                        _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id}) (Feedback Pass Fallback Retry due to exception)")
+                        log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id}) (Feedback Pass Fallback Retry due to exception)")
                         already_logged_http_in = True
                     except Exception as e_fb_fb:
                         if _is_resource_exhausted_error(e_fb_fb):
-                            _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (feedback pass) task {task_id}: {e_fb_fb}")
-                            _log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"
+                            log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (feedback pass) task {task_id}: {e_fb_fb}")
+                            log_to_file(GEMINI_API_LOG_FILE,"\n******************************\n"
                                          f"Gemini API Error (chat_message_api - Feedback Pass - Task {task_id}):\n"
                                          f"Quota / rate limit error: {e_fb_fb}\n"
                                          "******************************\n")
@@ -1868,19 +1722,19 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                 else:
                     raise
             if not already_logged_http_in:
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id})")
-            _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
+                log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id})")
+            log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Feedback Pass - Task {task_id}):\n{correction_response}\n******************************\n")
             _record_gemini_usage_safe(user_id, correction_response, final_feedback_gemini_key_type_used)
             
             try:
                 if (getattr(correction_response, "candidates", None) and correction_response.candidates and
                     getattr(correction_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
-                    _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS feedback pass Task {task_id}.")
+                    log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS feedback pass Task {task_id}.")
                     cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=300)
                     status = 'failed'
                     return
             except Exception as e_fb_mt:
-                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (feedback pass): {e_fb_mt}")
+                log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (feedback pass): {e_fb_mt}")
 
             try:
                 thought_summaries = []
@@ -1891,7 +1745,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         if getattr(part, "thought", False) and getattr(part, "text", None):
                             thought_summaries.append(part.text)
                 if thought_summaries:
-                    _log_to_file(
+                    log_to_file(
                         GEMINI_API_LOG_FILE,
                         "\n******************************\n"
                         f"Thought Summaries (chat_message_api - Feedback Pass - Task {task_id}):\n"
@@ -1899,14 +1753,14 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         "******************************\n"
                     )
             except Exception as e:
-                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (feedback pass): {e}")
+                log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (feedback pass): {e}")
             
             correction_content_parts = (correction_response.candidates[0].content.parts if correction_response.candidates and correction_response.candidates[0].content and correction_response.candidates[0].content.parts else []) or []
             final_ai_text_to_process_for_user = " ".join([p.text for p in correction_content_parts if hasattr(p, 'text')])
 
             if final_ai_text_to_process_for_user is None:
                 final_ai_text_to_process_for_user = ""
-                _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: final_ai_text_to_process_for_user was None after feedback, setting to empty string")
+                log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: final_ai_text_to_process_for_user was None after feedback, setting to empty string")
             
             still_unfound_tracks_for_removal = []
             corrected_song_mentions = specific_pattern.findall(final_ai_text_to_process_for_user)
@@ -1952,16 +1806,16 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     f"Gemini API Call (chat_message_api - Removal Pass - Task {task_id}):\n"
                     f"  Removal Prompt: {removal_prompt_to_gemini}\n"
                 )
-                _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
+                log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\n{log_message_prompt_removal_pass}\n******************************\n")
                 used_model_for_call = FEEDBACK_REMOVAL_MODEL_NAME
                 already_logged_http_in = False
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id})")
+                log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id})")
                 try:
                     final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
                 except Exception as e_rm:
                     if _is_transient_gemini_error(e_rm):
                         try:
-                            _log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (Removal Pass - Task {task_id}): {e_rm}. Retrying with FALLBACK key.")
+                            log_to_file(GEMINI_API_LOG_FILE, f"[GEMINI_ERROR_RETRY] Transient exception detected (Removal Pass - Task {task_id}): {e_rm}. Retrying with FALLBACK key.")
                             if 'fallback' not in GEMINI_CLIENT_CACHE:
                                 GEMINI_CLIENT_CACHE['fallback'] = genai.Client(api_key=getattr(settings, 'GEMINI_API_KEY_FALLBACK', None))
                             removal_fallback_client = GEMINI_CLIENT_CACHE['fallback']
@@ -1971,14 +1825,14 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                             )
                             final_removal_gemini_key_type_used = 'fallback'
                             used_model_for_call = FEEDBACK_REMOVAL_MODEL_NAME
-                            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id}) (Removal Pass Fallback Retry due to exception)")
+                            log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST to Gemini API ({used_model_for_call}) (Task {task_id}) (Removal Pass Fallback Retry due to exception)")
                             final_removal_response = removal_chat.send_message(removal_prompt_to_gemini)
-                            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id}) (Removal Pass Fallback Retry due to exception)")
+                            log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id}) (Removal Pass Fallback Retry due to exception)")
                             already_logged_http_in = True
                         except Exception as e_rm_fb:
                             if _is_resource_exhausted_error(e_rm_fb):
-                                _log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (removal pass) task {task_id}: {e_rm_fb}")
-                                _log_to_file(GEMINI_API_LOG_FILE, "\n******************************\n"
+                                log_to_file(GENERAL_LOG_FILE, f"Quota / rate limit error (removal pass) task {task_id}: {e_rm_fb}")
+                                log_to_file(GEMINI_API_LOG_FILE, "\n******************************\n"
                                              f"Gemini API Error (chat_message_api - Removal Pass - Task {task_id}):\n"
                                              f"Quota / rate limit error: {e_rm_fb}\n"
                                              "******************************\n")
@@ -1989,19 +1843,19 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                     else:
                         raise
                 if not already_logged_http_in:
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id})")
-                _log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass - Task {task_id}):\n{final_removal_response}\n******************************\n")
+                    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from Gemini API ({used_model_for_call}) (Task {task_id})")
+                log_to_file(GEMINI_API_LOG_FILE, f"\n******************************\nRaw Gemini Response (chat_message_api - Removal Pass - Task {task_id}):\n{final_removal_response}\n******************************\n")
                 _record_gemini_usage_safe(user_id, final_removal_response, final_removal_gemini_key_type_used)
 
                 try:
                     if (getattr(final_removal_response, "candidates", None) and final_removal_response.candidates and
                         getattr(final_removal_response.candidates[0], "finish_reason", None) == FinishReason.MAX_TOKENS):
-                        _log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS removal pass Task {task_id}.")
+                        log_to_file(GENERAL_LOG_FILE, f"MAX_TOKENS removal pass Task {task_id}.")
                         cache.set(task_id, {'error': MAX_TOKENS_ERROR_MESSAGE}, timeout=300)
                         status = 'failed'
                         return
                 except Exception as e_rm_mt:
-                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (removal pass): {e_rm_mt}")
+                    log_to_file(GENERAL_LOG_FILE, f"Task {task_id} MAX_TOKENS handling error (removal pass): {e_rm_mt}")
 
                 try:
                     thought_summaries = []
@@ -2012,7 +1866,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                             if getattr(part, "thought", False) and getattr(part, "text", None):
                                 thought_summaries.append(part.text)
                     if thought_summaries:
-                        _log_to_file(
+                        log_to_file(
                             GEMINI_API_LOG_FILE,
                             "\n******************************\n"
                             f"Thought Summaries (chat_message_api - Removal Pass - Task {task_id}):\n"
@@ -2020,7 +1874,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                             "******************************\n"
                         )
                 except Exception as e:
-                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (removal pass): {e}")
+                    log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: Error extracting thought summaries (removal pass): {e}")
 
                 # Logic to strip away "thinking" text that Gemini sometimes adds (in violation of the system instructions)
                 removal_content_parts = (final_removal_response.candidates[0].content.parts if final_removal_response.candidates and final_removal_response.candidates[0].content and final_removal_response.candidates[0].content.parts else []) or []
@@ -2039,11 +1893,11 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
                         discarded_text = [p.text for p in parts_to_discard if hasattr(p, 'text')]
 
                         log_message = f"Removal response has extra parts. Removing first {split_index} parts."
-                        _log_to_file(GEMINI_API_LOG_FILE, log_message)
+                        log_to_file(GEMINI_API_LOG_FILE, log_message)
 
                         if discarded_text:
                             log_message_discarded = f"NOTE: The following text part(s) from Gemini were discarded (Removal Pass - Task {task_id}): {json.dumps(discarded_text)}"
-                            _log_to_file(GEMINI_API_LOG_FILE, log_message_discarded)
+                            log_to_file(GEMINI_API_LOG_FILE, log_message_discarded)
 
                     removal_content_parts = removal_content_parts[split_index:]
                 
@@ -2051,11 +1905,11 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 
                 if final_ai_text_to_process_for_user is None:
                     final_ai_text_to_process_for_user = ""
-                    _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: final_ai_text_to_process_for_user was None after removal, setting to empty string")
+                    log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: final_ai_text_to_process_for_user was None after removal, setting to empty string")
         
         if final_ai_text_to_process_for_user is None:
             final_ai_text_to_process_for_user = ai_response_text or ""
-            _log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: final_ai_text_to_process_for_user was None, using ai_response_text or empty string")
+            log_to_file(GENERAL_LOG_FILE, f"Task {task_id}: final_ai_text_to_process_for_user was None, using ai_response_text or empty string")
         
         playlist_for_cache = []
         def final_replacer_fn(match):
@@ -2174,7 +2028,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
         cache.set(task_id, result, timeout=300)
         status = 'completed'
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error in chat processing thread for task {task_id}: {e}")
+        log_to_file(GENERAL_LOG_FILE, f"Error in chat processing thread for task {task_id}: {e}")
         cache.set(task_id, {'error': 'An unexpected error occurred processing your message.'}, timeout=300)
         status = 'failed'
     finally:
@@ -2185,7 +2039,7 @@ def _process_chat_message_thread(session_data, user_message, task_id, chat_mode)
 @never_cache
 @rate_limit_scope('chat_message')
 def chat_message_api(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
+    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     try:
         data = json.loads(request.body)
 
@@ -2215,7 +2069,7 @@ def chat_message_api(request):
         
         for pattern in dangerous_patterns:
             if re.search(pattern, user_message, re.IGNORECASE | re.DOTALL):
-                _log_to_file(GENERAL_LOG_FILE, f"Potentially malicious input detected from session {request.session.session_key}: {user_message[:100]}...")
+                log_to_file(GENERAL_LOG_FILE, f"Potentially malicious input detected from session {request.session.session_key}: {user_message[:100]}...")
                 return JsonResponse({'error': 'Invalid message content'}, status=400)
 
         if chat_mode == 'new_songs' and not request.session.get('new_songs_chat_history'):
@@ -2259,7 +2113,7 @@ def chat_message_api(request):
                     request.session['max_display_history_reached'] = True
                     request.session.save()
                 except Exception as persist_len_err:
-                    _log_to_file(GENERAL_LOG_FILE, f"Error persisting length termination message: {persist_len_err}")
+                    log_to_file(GENERAL_LOG_FILE, f"Error persisting length termination message: {persist_len_err}")
                 return JsonResponse({'message': length_termination_msg})
 
 
@@ -2284,7 +2138,7 @@ def chat_message_api(request):
                     request.session[fh_key] = final_hist
                     request.session.save()
             except Exception as persist_err:
-                _log_to_file(GENERAL_LOG_FILE, f"Error persisting long convo message: {persist_err}")
+                log_to_file(GENERAL_LOG_FILE, f"Error persisting long convo message: {persist_err}")
             return JsonResponse({
                 'message': long_convo_msg
             })
@@ -2304,16 +2158,16 @@ def chat_message_api(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error in chat_message_api POST: {e}")
+        log_to_file(GENERAL_LOG_FILE, f"Error in chat_message_api POST: {e}")
         return JsonResponse({'error': 'An unexpected error occurred processing your message.'}, status=500)
 
 @require_http_methods(["GET"])
 @never_cache
 def stream_initial_analysis(request):
-    if not _sse_same_origin_ok(request):
+    if not sse_same_origin_ok(request):
         origin = request.META.get('HTTP_ORIGIN')
         referer = request.META.get('HTTP_REFERER')
-        _log_to_file(GENERAL_LOG_FILE, f"Forbidden SSE request to stream_initial_analysis. Origin: {origin}, Referer: {referer}")
+        log_to_file(GENERAL_LOG_FILE, f"Forbidden SSE request to stream_initial_analysis. Origin: {origin}, Referer: {referer}")
         return JsonResponse({'error': 'Forbidden'}, status=403)
 
     session_key = request.session.session_key
@@ -2323,18 +2177,18 @@ def stream_initial_analysis(request):
     try:
         REDIS_CLIENT.set(slot_key, stream_id, ex=slot_ttl)
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: failed to set slot key {slot_key}: {e}")
+        log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: failed to set slot key {slot_key}: {e}")
 
     def event_stream():
         try:
             final_history = request.session.get('final_analysis_chat_history')
             if final_history:
-                _log_to_file(GENERAL_LOG_FILE, "stream_initial_analysis: final_analysis_chat_history already present; sending session data.")
+                log_to_file(GENERAL_LOG_FILE, "stream_initial_analysis: final_analysis_chat_history already present; sending session data.")
                 yield f"data: {json.dumps({'response': final_history})}\n\n"
                 return
 
             if not session_key:
-                _log_to_file(GENERAL_LOG_FILE, "stream_initial_analysis: No valid session_key found; aborting SSE stream.")
+                log_to_file(GENERAL_LOG_FILE, "stream_initial_analysis: No valid session_key found; aborting SSE stream.")
                 yield f"event: stream_error\ndata: {json.dumps({'message': 'No valid session.'})}\n\n"
                 return
 
@@ -2342,9 +2196,9 @@ def stream_initial_analysis(request):
             pubsub = REDIS_CLIENT.pubsub()
             try:
                 pubsub.subscribe(channel)
-                _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Subscribed to Redis channel '{channel}'.")
+                log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Subscribed to Redis channel '{channel}'.")
             except Exception as sub_err:
-                _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Error subscribing to channel '{channel}': {sub_err}")
+                log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Error subscribing to channel '{channel}': {sub_err}")
                 yield f"event: stream_error\ndata: {json.dumps({'message': 'Subscription error.'})}\n\n"
                 return
 
@@ -2361,16 +2215,16 @@ def stream_initial_analysis(request):
                         if isinstance(owner, bytes):
                             owner = owner.decode('utf-8')
                         if owner != stream_id:
-                            _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: stream replaced for session {session_key}; exiting.")
+                            log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: stream replaced for session {session_key}; exiting.")
                             return
                         if now - last_ttl_refresh >= 10:
                             REDIS_CLIENT.expire(slot_key, slot_ttl)
                             last_ttl_refresh = now
                     except Exception as e:
-                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: slot check/refresh failed for {slot_key}: {e}")
+                        log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: slot check/refresh failed for {slot_key}: {e}")
 
                     if now - start_time > ANALYSIS_EVENT_TIMEOUT:
-                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Timeout ({ANALYSIS_EVENT_TIMEOUT}s) waiting for analysis on channel '{channel}'.")
+                        log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Timeout ({ANALYSIS_EVENT_TIMEOUT}s) waiting for analysis on channel '{channel}'.")
                         yield f"event: stream_error\ndata: {json.dumps({'message': 'Timeout waiting for musical analysis.'})}\n\n"
                         return
 
@@ -2381,7 +2235,7 @@ def stream_initial_analysis(request):
                     try:
                         message = pubsub.get_message(timeout=1.0)
                     except Exception as get_msg_err:
-                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Error retrieving Redis message on '{channel}': {get_msg_err}")
+                        log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Error retrieving Redis message on '{channel}': {get_msg_err}")
                         continue
 
                     if not message or message.get('type') != 'message':
@@ -2391,23 +2245,23 @@ def stream_initial_analysis(request):
                     if isinstance(payload, bytes):
                         payload = payload.decode('utf-8')
 
-                    _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Received payload '{payload}' on '{channel}'.")
+                    log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Received payload '{payload}' on '{channel}'.")
 
                     if payload == 'completed':
                         try:
                             session_obj = Session.objects.get(session_key=session_key)
                             session_data = session_obj.get_decoded()
                         except Session.DoesNotExist:
-                            _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Session.DoesNotExist for key {session_key}; falling back to request.session.")
+                            log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Session.DoesNotExist for key {session_key}; falling back to request.session.")
                             session_data = request.session
                         except Exception as sess_err:
-                            _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Unexpected error loading session {session_key}: {sess_err}")
+                            log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Unexpected error loading session {session_key}: {sess_err}")
                             session_data = request.session
 
                         final_history = session_data.get('final_analysis_chat_history', [])
 
                         if not final_history:
-                            _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: final_analysis_chat_history empty after 'completed'; retrying.")
+                            log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: final_analysis_chat_history empty after 'completed'; retrying.")
                             max_retries = 5
                             for attempt in range(max_retries):
                                 time.sleep(0.1)
@@ -2416,37 +2270,37 @@ def stream_initial_analysis(request):
                                     session_data_retry = session_obj_retry.get_decoded()
                                     final_history = session_data_retry.get('final_analysis_chat_history', [])
                                     if final_history:
-                                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: final_analysis_chat_history loaded on retry {attempt+1}.")
+                                        log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: final_analysis_chat_history loaded on retry {attempt+1}.")
                                         break
                                 except Exception as retry_err:
-                                    _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: retry {attempt+1} error: {retry_err}")
+                                    log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: retry {attempt+1} error: {retry_err}")
                             if not final_history:
-                                _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: final_analysis_chat_history still empty after retries; sending stream_error.")
+                                log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: final_analysis_chat_history still empty after retries; sending stream_error.")
                                 yield f"event: stream_error\ndata: {json.dumps({'message': 'Musical analysis not available.'})}\n\n"
                                 return
                         yield f"data: {json.dumps({'response': final_history})}\n\n"
                         return
                     elif payload == 'in_progress':
-                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Received 'in_progress' status for session {session_key}.")
+                        log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Received 'in_progress' status for session {session_key}.")
                         yield f"data: {json.dumps({'status': 'in_progress'})}\n\n"
                         continue
                     elif payload == 'failed':
-                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Received 'failed' status for session {session_key}.")
+                        log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Received 'failed' status for session {session_key}.")
                         yield f"event: stream_error\ndata: {json.dumps({'message': 'Musical analysis failed.'})}\n\n"
                         return
                     else:
-                        _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Ignoring unknown payload '{payload}' on '{channel}'.")
+                        log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Ignoring unknown payload '{payload}' on '{channel}'.")
             finally:
                 try:
                     pubsub.close()
-                    _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Closed Redis pubsub for channel '{channel}'.")
+                    log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Closed Redis pubsub for channel '{channel}'.")
                 except Exception as close_err:
-                    _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Error closing pubsub for channel '{channel}': {close_err}")
+                    log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: Error closing pubsub for channel '{channel}': {close_err}")
         except GeneratorExit:
-            _log_to_file(GENERAL_LOG_FILE, "stream_initial_analysis: GeneratorExit (client disconnected).")
+            log_to_file(GENERAL_LOG_FILE, "stream_initial_analysis: GeneratorExit (client disconnected).")
             raise
         except Exception as e:
-            _log_to_file(GENERAL_LOG_FILE, f"SSE error in stream_initial_analysis outer handler: {e}")
+            log_to_file(GENERAL_LOG_FILE, f"SSE error in stream_initial_analysis outer handler: {e}")
             yield f"event: stream_error\ndata: {json.dumps({'message': 'Server error during streaming.'})}\n\n"
         finally:
             try:
@@ -2456,7 +2310,7 @@ def stream_initial_analysis(request):
                 if owner == stream_id:
                     REDIS_CLIENT.delete(slot_key)
             except Exception as e:
-                _log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: failed to release slot {slot_key}: {e}")
+                log_to_file(GENERAL_LOG_FILE, f"stream_initial_analysis: failed to release slot {slot_key}: {e}")
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'
@@ -2466,10 +2320,10 @@ def stream_initial_analysis(request):
 @require_http_methods(["GET"])
 @never_cache
 def stream_chat_response(request, task_id):
-    if not _sse_same_origin_ok(request):
+    if not sse_same_origin_ok(request):
         origin = request.META.get('HTTP_ORIGIN')
         referer = request.META.get('HTTP_REFERER')
-        _log_to_file(GENERAL_LOG_FILE, f"Forbidden SSE request to stream_chat_response. Origin: {origin}, Referer: {referer}, Task: {task_id}")
+        log_to_file(GENERAL_LOG_FILE, f"Forbidden SSE request to stream_chat_response. Origin: {origin}, Referer: {referer}, Task: {task_id}")
         return JsonResponse({'error': 'Forbidden'}, status=403)
 
     stream_id = str(uuid.uuid4())
@@ -2478,11 +2332,11 @@ def stream_chat_response(request, task_id):
     try:
         REDIS_CLIENT.set(slot_key, stream_id, ex=slot_ttl)
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] failed to set slot key {slot_key}: {e}")
+        log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] failed to set slot key {slot_key}: {e}")
 
     def event_stream():
         channel = f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}"
-        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Opening stream for task {task_id} on channel '{channel}'")
+        log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Opening stream for task {task_id} on channel '{channel}'")
         pubsub = REDIS_CLIENT.pubsub()
         start_time = time.time()
         last_keepalive = start_time
@@ -2490,20 +2344,20 @@ def stream_chat_response(request, task_id):
         try:
             try:
                 pubsub.subscribe(channel)
-                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Subscribed to Redis channel '{channel}' (task {task_id})")
+                log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Subscribed to Redis channel '{channel}' (task {task_id})")
             except Exception as sub_err:
-                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Failed to subscribe to channel '{channel}' (task {task_id}): {sub_err}")
+                log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Failed to subscribe to channel '{channel}' (task {task_id}): {sub_err}")
                 yield f"event: stream_error\ndata: {json.dumps({'message': 'Subscription error.'})}\n\n"
                 return
 
             try:
                 pre_result = cache.get(task_id)
             except Exception as cache_err:
-                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error reading initial cache for task {task_id}: {cache_err}")
+                log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error reading initial cache for task {task_id}: {cache_err}")
                 pre_result = None
 
             if pre_result:
-                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Found pre_result in cache for task {task_id} (keys: {list(pre_result.keys())})")
+                log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Found pre_result in cache for task {task_id} (keys: {list(pre_result.keys())})")
                 if 'error' in pre_result:
                     yield f"event: stream_error\ndata: {json.dumps({'message': pre_result['error']})}\n\n"
                 else:
@@ -2524,9 +2378,9 @@ def stream_chat_response(request, task_id):
                             if k in pre_result:
                                 request.session[k] = pre_result[k]
                         request.session.save()
-                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Session updated from pre_result for task {task_id}")
+                        log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Session updated from pre_result for task {task_id}")
                     except Exception as sess_err:
-                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error saving session (pre_result) for task {task_id}: {sess_err}")
+                        log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error saving session (pre_result) for task {task_id}: {sess_err}")
                     data = {
                         'response': pre_result.get('response'),
                         'chat_mode': pre_result.get('chat_mode')
@@ -2542,16 +2396,16 @@ def stream_chat_response(request, task_id):
                     if isinstance(owner, bytes):
                         owner = owner.decode('utf-8')
                     if owner != stream_id:
-                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] stream replaced for task {task_id}; exiting.")
+                        log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] stream replaced for task {task_id}; exiting.")
                         return
                     if now - last_ttl_refresh >= 10:
                         REDIS_CLIENT.expire(slot_key, slot_ttl)
                         last_ttl_refresh = now
                 except Exception as e:
-                    _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] slot check/refresh failed for {slot_key}: {e}")
+                    log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] slot check/refresh failed for {slot_key}: {e}")
 
                 if now - start_time > CHAT_EVENT_TIMEOUT:
-                    _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Timeout ({CHAT_EVENT_TIMEOUT}s) for task {task_id}")
+                    log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Timeout ({CHAT_EVENT_TIMEOUT}s) for task {task_id}")
                     err = {'message': 'Request timed out.'}
                     yield f"event: stream_error\ndata: {json.dumps(err)}\n\n"
                     return
@@ -2563,7 +2417,7 @@ def stream_chat_response(request, task_id):
                 try:
                     message = pubsub.get_message(timeout=1.0)
                 except Exception as get_msg_err:
-                    _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error retrieving Redis message task {task_id}: {get_msg_err}")
+                    log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error retrieving Redis message task {task_id}: {get_msg_err}")
                     continue
 
                 if not message or message['type'] != 'message':
@@ -2580,12 +2434,12 @@ def stream_chat_response(request, task_id):
                             time.sleep(0.1)
                             result = cache.get(task_id)
                     except Exception as cache_err:
-                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Cache error retrieving result for task {task_id}: {cache_err}")
+                        log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Cache error retrieving result for task {task_id}: {cache_err}")
                         result = None
 
                     if not result:
                         err = {'message': 'Result missing.'}
-                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Result missing after completion signal task {task_id}")
+                        log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Result missing after completion signal task {task_id}")
                         yield f"event: stream_error\ndata: {json.dumps(err)}\n\n"
                         return
 
@@ -2606,9 +2460,9 @@ def stream_chat_response(request, task_id):
                             if k in result:
                                 request.session[k] = result[k]
                         request.session.save()
-                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Session updated from completed result (task {task_id})")
+                        log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Session updated from completed result (task {task_id})")
                     except Exception as sess_err:
-                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error saving session (completed) task {task_id}: {sess_err}")
+                        log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error saving session (completed) task {task_id}: {sess_err}")
 
                     data = {
                         'response': result.get('response'),
@@ -2620,7 +2474,7 @@ def stream_chat_response(request, task_id):
                     try:
                         result = cache.get(task_id)
                     except Exception as cache_err:
-                        _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Cache error retrieving failed result task {task_id}: {cache_err}")
+                        log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Cache error retrieving failed result task {task_id}: {cache_err}")
                         result = None
                     if result and 'error' in result:
                         yield f"event: stream_error\ndata: {json.dumps({'message': result['error']})}\n\n"
@@ -2628,21 +2482,21 @@ def stream_chat_response(request, task_id):
                         yield f"event: stream_error\ndata: {json.dumps({'message': 'Processing failed.'})}\n\n"
                     return
                 else:
-                    _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Unknown payload '{payload}' ignored (task {task_id})")
+                    log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Unknown payload '{payload}' ignored (task {task_id})")
 
         except GeneratorExit:
-            _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Client disconnected (GeneratorExit) task {task_id}")
+            log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Client disconnected (GeneratorExit) task {task_id}")
             raise
         except Exception as e:
-            _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Unhandled exception in stream for task {task_id}: {e}")
+            log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Unhandled exception in stream for task {task_id}: {e}")
             err = {'message': 'A server error occurred during streaming.'}
             yield f"event: stream_error\ndata: {json.dumps(err)}\n\n"
         finally:
             try:
                 pubsub.close()
-                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Closed pubsub for task {task_id}")
+                log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Closed pubsub for task {task_id}")
             except Exception as close_err:
-                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error closing pubsub task {task_id}: {close_err}")
+                log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error closing pubsub task {task_id}: {close_err}")
 
             try:
                 owner = REDIS_CLIENT.get(slot_key)
@@ -2651,7 +2505,7 @@ def stream_chat_response(request, task_id):
                 if owner == stream_id:
                     REDIS_CLIENT.delete(slot_key)
             except Exception as e:
-                _log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] failed to release slot {slot_key}: {e}")
+                log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] failed to release slot {slot_key}: {e}")
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'
@@ -2663,7 +2517,7 @@ def stream_chat_response(request, task_id):
 @never_cache
 @rate_limit_scope('playlist_import')
 def import_playlists_api(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
+    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     _ensure_euphonic_intelligence_user_id(request)
     
     try:
@@ -2749,16 +2603,16 @@ def import_playlists_api(request):
                     request.session['spotify_user_tracks'] = pruned_tracks
                     request.session.save()
             else:
-                _log_to_file(GENERAL_LOG_FILE, f"No existing tracks to prune or no removals (session {request.session.session_key})")
+                log_to_file(GENERAL_LOG_FILE, f"No existing tracks to prune or no removals (session {request.session.session_key})")
         except Exception as e:
-            _log_to_file(GENERAL_LOG_FILE, f"Error pruning removed playlist tracks from session {request.session.session_key}: {e}")
+            log_to_file(GENERAL_LOG_FILE, f"Error pruning removed playlist tracks from session {request.session.session_key}: {e}")
         
         user_id = request.session.get('euphonic_intelligence_user_id')
         session_key = request.session.session_key
         
         access_token = get_spotify_access_token()
         if not access_token:
-            _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist import in session {session_key}")
+            log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist import in session {session_key}")
             return JsonResponse({'error': 'Failed to connect to Spotify'}, status=500)
         
         spotify_get_playlist_items_headers = {'Authorization': f'Bearer {access_token}'}
@@ -2840,14 +2694,14 @@ def import_playlists_api(request):
                                 'playlist_urls': urls
                             }
                 except Exception as e:
-                    _log_to_file(GENERAL_LOG_FILE, f"Exception occurred while processing playlist {url}: {e}")
+                    log_to_file(GENERAL_LOG_FILE, f"Exception occurred while processing playlist {url}: {e}")
         
         final_truncated_set = truncated_returned
         final_truncated_list = sorted([u for u in final_truncated_set if u in new_urls])
         request.session['truncated_playlists'] = final_truncated_list
 
         merged_tracks_list = list(existing_by_id.values())
-        _log_to_file(GENERAL_LOG_FILE, f"Import cycle completed for session {session_key}: {len(merged_tracks_list)} unique tracks total")
+        log_to_file(GENERAL_LOG_FILE, f"Import cycle completed for session {session_key}: {len(merged_tracks_list)} unique tracks total")
 
         if not merged_tracks_list:
             return JsonResponse(
@@ -2916,21 +2770,21 @@ def import_playlists_api(request):
         if updated_messages_for_saved_songs:
             response_data['updated_messages_for_saved_songs'] = updated_messages_for_saved_songs
         
-        _log_to_file(GENERAL_LOG_FILE, f"Completed synchronous playlist import for session {session_key}")
+        log_to_file(GENERAL_LOG_FILE, f"Completed synchronous playlist import for session {session_key}")
         return JsonResponse(response_data)
         
     except json.JSONDecodeError:
-        _log_to_file(GENERAL_LOG_FILE, f"Invalid JSON in import_playlists_api request. Session: {request.session.session_key}, Body: {request.body.decode('utf-8')}")
+        log_to_file(GENERAL_LOG_FILE, f"Invalid JSON in import_playlists_api request. Session: {request.session.session_key}, Body: {request.body.decode('utf-8')}")
         return JsonResponse({'error': 'Invalid request format'}, status=400)
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in import_playlists_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
+        log_to_file(GENERAL_LOG_FILE, f"Unexpected error in import_playlists_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
 
 @csrf_protect
 @require_http_methods(["GET"])
 @never_cache
 def get_submitted_playlists_api(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
+    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     _ensure_euphonic_intelligence_user_id(request)
 
     meta = request.session.get('submitted_playlists_meta') or []
@@ -2944,7 +2798,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
         if 'open.spotify.com/playlist/' in url:
             playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
         else:
-            _log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
+            log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
             return [], []
         
         tracks = []
@@ -2958,7 +2812,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
             with track_counter['lock']:
                 if track_counter['count'] >= max_total_new_tracks:
                     truncated_due_to_capacity = True
-                    _log_to_file(GENERAL_LOG_FILE, f"Track limit {max_total_new_tracks} reached; truncating playlist {playlist_id}")
+                    log_to_file(GENERAL_LOG_FILE, f"Track limit {max_total_new_tracks} reached; truncating playlist {playlist_id}")
                     break
             
             playlist_api_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
@@ -2970,46 +2824,46 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
             
             for attempt in range(max_retries):
                 try:
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_api_url} (offset: {offset}, limit: {limit})")
+                    log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_api_url} (offset: {offset}, limit: {limit})")
                     response = requests.get(playlist_api_url, headers=spotify_get_playlist_items_headers, params=params, timeout=10)
-                    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response {response.status_code} from {playlist_api_url}")
+                    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response {response.status_code} from {playlist_api_url}")
                     
                     if response.status_code == 200:
                         break
                     elif response.status_code == 429:
                         retry_after = int(response.headers.get('Retry-After', 2 ** attempt))
                         delay = retry_after + random.uniform(0, 1)
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Rate limited for playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        log_to_file(SPOTIFY_API_LOG_FILE, f"Rate limited for playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                         time.sleep(delay)
                         continue
                     elif response.status_code in {400, 401, 403, 404, 422}:
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} for playlist {playlist_id}")
+                        log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} for playlist {playlist_id}")
                         return tracks, []
                     else:
                         if attempt < max_retries - 1:
                             delay = 2 ** attempt + random.uniform(0, 1)
-                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Error {response.status_code} for playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                            log_to_file(SPOTIFY_API_LOG_FILE, f"Error {response.status_code} for playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                             time.sleep(delay)
                             continue
                         else:
-                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id} after {max_retries} attempts. Status: {response.status_code}")
+                            log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id} after {max_retries} attempts. Status: {response.status_code}")
                             return tracks, []
                             
                 except requests.exceptions.RequestException as e:
                     if attempt < max_retries - 1:
                         delay = 2 ** attempt + random.uniform(0, 1)
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception for playlist {playlist_id}: {e}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception for playlist {playlist_id}: {e}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                         time.sleep(delay)
                         continue
                     else:
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Request failed for playlist {playlist_id} after {max_retries} attempts: {e}")
+                        log_to_file(SPOTIFY_API_LOG_FILE, f"Request failed for playlist {playlist_id} after {max_retries} attempts: {e}")
                         return tracks, []
             else:
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"All retries exhausted for playlist {playlist_id}")
+                log_to_file(SPOTIFY_API_LOG_FILE, f"All retries exhausted for playlist {playlist_id}")
                 return tracks, []
             
             if response.status_code != 200:
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id}. Status: {response.status_code}, Response: {response.text}")
+                log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist {playlist_id}. Status: {response.status_code}, Response: {response.text}")
                 return tracks, []
             
             playlist_data = response.json()
@@ -3060,14 +2914,14 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
                 break
         
         if truncated_due_to_capacity:
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"Playlist {playlist_id} truncated due to capacity (fetched {len(tracks)} of {total_tracks_from_spotify})")
+            log_to_file(SPOTIFY_API_LOG_FILE, f"Playlist {playlist_id} truncated due to capacity (fetched {len(tracks)} of {total_tracks_from_spotify})")
             return tracks, [url]
         else:
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"Playlist {playlist_id} complete ({len(tracks)} tracks)")
+            log_to_file(SPOTIFY_API_LOG_FILE, f"Playlist {playlist_id} complete ({len(tracks)} tracks)")
             return tracks, []
         
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Error processing playlist URL {url}: {e}")
+        log_to_file(GENERAL_LOG_FILE, f"Error processing playlist URL {url}: {e}")
         return [], []
 
 @csrf_protect
@@ -3075,7 +2929,7 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
 @never_cache
 @rate_limit_scope('playlist_validate')
 def validate_playlist_api(request):
-    _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
+    log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     
     try:
         data = json.loads(request.body)
@@ -3090,20 +2944,20 @@ def validate_playlist_api(request):
             return JsonResponse({'error': 'No playlist URL provided'}, status=400)
         
         if not re.match(r'^https://open\.spotify\.com/playlist/[a-zA-Z0-9]{22}(\?pt=[a-zA-Z0-9]{32})?$', playlist_url):
-            _log_to_file(SPOTIFY_API_LOG_FILE, f"validate_playlist_api: Invalid playlist URL format received: '{playlist_url}' (input_id={input_id})")
+            log_to_file(SPOTIFY_API_LOG_FILE, f"validate_playlist_api: Invalid playlist URL format received: '{playlist_url}' (input_id={input_id})")
             return JsonResponse({'error': 'Invalid Spotify playlist URL format'}, status=400)
         
         playlist_id = playlist_url.split('playlist/')[1].split('?')[0]
         
         access_token = get_spotify_access_token()
         if not access_token:
-            _log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist validation in session {request.session.session_key}")
+            log_to_file(GENERAL_LOG_FILE, f"Failed to get Spotify access token for playlist validation in session {request.session.session_key}")
             return JsonResponse({'error': 'Failed to connect to Spotify'}, status=500)
         
         spotify_get_playlist_URL_headers = settings.SPOTIFY_HEADERS
         
         try:
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_url}")
+            log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_url}")
             with httpx.Client(http2=False, follow_redirects=False) as client:
                 current_url = playlist_url
                 current_headers = spotify_get_playlist_URL_headers.copy()
@@ -3127,7 +2981,7 @@ def validate_playlist_api(request):
                     redirect_url = response.headers['location']
                     current_url = redirect_url
                     response = client.get(current_url, headers=current_headers, timeout=10)
-            _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_url} | Status: {response.status_code}")
+            log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_url} | Status: {response.status_code}")
             
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
@@ -3140,7 +2994,7 @@ def validate_playlist_api(request):
                             # delay = min(0.1 * retry, 2.0)
                             delay = 0.1
                             time.sleep(delay)
-                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}/{max_meta_retries - 1} fetching playlist {playlist_id} for meta description (delay {delay:.2f}s)")
+                            log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}/{max_meta_retries - 1} fetching playlist {playlist_id} for meta description (delay {delay:.2f}s)")
                             with httpx.Client(http2=False, follow_redirects=False) as client:
                                 current_url_retry = playlist_url
                                 current_headers_retry = spotify_get_playlist_URL_headers.copy()
@@ -3165,13 +3019,13 @@ def validate_playlist_api(request):
                                 soup_retry = BeautifulSoup(retry_response.content, 'html.parser')
                                 meta_tag = soup_retry.find('meta', {'name': 'description'})
                                 if meta_tag and meta_tag.get('content'):
-                                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Meta description found on retry {retry} for playlist {playlist_id}")
+                                    log_to_file(SPOTIFY_API_LOG_FILE, f"Meta description found on retry {retry} for playlist {playlist_id}")
                                     break
                             else:
-                                _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}: Non-200 status {retry_response.status_code} while refetching playlist {playlist_id}")
+                                log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}: Non-200 status {retry_response.status_code} while refetching playlist {playlist_id}")
                                 break
                         except Exception as retry_err:
-                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}: Exception while refetching playlist {playlist_id}: {retry_err}")
+                            log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}: Exception while refetching playlist {playlist_id}: {retry_err}")
 
                 if meta_tag and meta_tag.get('content'):
                     description = meta_tag.get('content')
@@ -3185,24 +3039,24 @@ def validate_playlist_api(request):
                                 try:
                                     track_count = int(track_count_str)
                                 except ValueError:
-                                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Could not parse track count from: {track_count_str}")
+                                    log_to_file(SPOTIFY_API_LOG_FILE, f"Could not parse track count from: {track_count_str}")
                                     track_count = 0
                             else:
                                 track_count = 0
                         else:
-                            _log_to_file(SPOTIFY_API_LOG_FILE, f"Unexpected description format: {description}")
+                            log_to_file(SPOTIFY_API_LOG_FILE, f"Unexpected description format: {description}")
                             playlist_name = _fallback_name()
                             track_count = 0
                     else:
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Description does not match expected format: {description}")
+                        log_to_file(SPOTIFY_API_LOG_FILE, f"Description does not match expected format: {description}")
                         playlist_name = _fallback_name()
                         track_count = 0
                 else:
-                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Could not find meta description tag for playlist {playlist_id} after retries")
+                    log_to_file(SPOTIFY_API_LOG_FILE, f"Could not find meta description tag for playlist {playlist_id} after retries")
                     playlist_name = _fallback_name()
                     track_count = 0
                 
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully validated playlist {playlist_id}: {playlist_name} ({track_count} tracks)")
+                log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully validated playlist {playlist_id}: {playlist_name} ({track_count} tracks)")
                 
                 return JsonResponse({
                     'success': True,
@@ -3211,18 +3065,18 @@ def validate_playlist_api(request):
                     'playlist_id': playlist_id
                 })
             else:
-                _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist details for {playlist_id}. Status: {response.status_code}")
+                log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist details for {playlist_id}. Status: {response.status_code}")
                 return JsonResponse({'error': 'Playlist not found or not accessible'}, status=404)
                 
         except requests.exceptions.RequestException as e:
-            _log_to_file(GENERAL_LOG_FILE, f"Request exception during playlist validation for {playlist_id}: {e}")
+            log_to_file(GENERAL_LOG_FILE, f"Request exception during playlist validation for {playlist_id}: {e}")
             return JsonResponse({'error': 'Failed to validate playlist'}, status=500)
             
     except json.JSONDecodeError:
-        _log_to_file(GENERAL_LOG_FILE, f"Invalid JSON in validate_playlist_api request. Session: {request.session.session_key}, Body: {request.body.decode('utf-8')}")
+        log_to_file(GENERAL_LOG_FILE, f"Invalid JSON in validate_playlist_api request. Session: {request.session.session_key}, Body: {request.body.decode('utf-8')}")
         return JsonResponse({'error': 'Invalid request format'}, status=400)
     except Exception as e:
-        _log_to_file(GENERAL_LOG_FILE, f"Unexpected error in validate_playlist_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
+        log_to_file(GENERAL_LOG_FILE, f"Unexpected error in validate_playlist_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
 
 def _unfollow_playlist_async(playlist_id, access_token, session_key):
@@ -3238,43 +3092,43 @@ def _unfollow_playlist_async(playlist_id, access_token, session_key):
         
         for attempt in range(max_retries):
             try:
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> DELETE {unfollow_url} (attempt {attempt + 1}/{max_retries})")
+                log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> DELETE {unfollow_url} (attempt {attempt + 1}/{max_retries})")
                 response = requests.delete(unfollow_url, headers=headers, timeout=10)
-                _log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {unfollow_url} | Status: {response.status_code}")
+                log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {unfollow_url} | Status: {response.status_code}")
                 
                 if response.status_code == 200:
-                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully unfollowed playlist {playlist_id} for session {session_key}")
+                    log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully unfollowed playlist {playlist_id} for session {session_key}")
                     return
                 elif response.status_code in NON_RETRYABLE_CODES:
-                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} when unfollowing playlist {playlist_id} for session {session_key}. Response: {response.text}")
+                    log_to_file(SPOTIFY_API_LOG_FILE, f"Non-retryable error {response.status_code} when unfollowing playlist {playlist_id} for session {session_key}. Response: {response.text}")
                     return
                 elif response.status_code == 429:
                     retry_after = int(response.headers.get('Retry-After', (2 ** attempt) * 10))
                     delay = retry_after + random.uniform(0, 1)
-                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Rate limited when unfollowing playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                    log_to_file(SPOTIFY_API_LOG_FILE, f"Rate limited when unfollowing playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                     time.sleep(delay)
                     continue
                 else:
                     if attempt < max_retries - 1:
                         delay = (2 ** attempt) * 10 + random.uniform(0, 1)
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Error {response.status_code} when unfollowing playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                        log_to_file(SPOTIFY_API_LOG_FILE, f"Error {response.status_code} when unfollowing playlist {playlist_id}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                         time.sleep(delay)
                         continue
                     else:
-                        _log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to unfollow playlist {playlist_id} after {max_retries} attempts. Final status: {response.status_code}, Response: {response.text}")
+                        log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to unfollow playlist {playlist_id} after {max_retries} attempts. Final status: {response.status_code}, Response: {response.text}")
                         return
                         
             except requests.exceptions.RequestException as e:
                 if attempt < max_retries - 1:
                     delay = (2 ** attempt) * 10 + random.uniform(0, 1)
-                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception when unfollowing playlist {playlist_id}: {e}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
+                    log_to_file(SPOTIFY_API_LOG_FILE, f"Request exception when unfollowing playlist {playlist_id}: {e}. Retrying in {delay:.2f}s (attempt {attempt + 1}/{max_retries})")
                     time.sleep(delay)
                     continue
                 else:
-                    _log_to_file(SPOTIFY_API_LOG_FILE, f"Request failed when unfollowing playlist {playlist_id} after {max_retries} attempts: {e}")
+                    log_to_file(SPOTIFY_API_LOG_FILE, f"Request failed when unfollowing playlist {playlist_id} after {max_retries} attempts: {e}")
                     return
         
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"All retries exhausted when unfollowing playlist {playlist_id} for session {session_key}")
+        log_to_file(SPOTIFY_API_LOG_FILE, f"All retries exhausted when unfollowing playlist {playlist_id} for session {session_key}")
         
     except Exception as e:
-        _log_to_file(SPOTIFY_API_LOG_FILE, f"Unexpected error in _unfollow_playlist_async for playlist {playlist_id}: {e}")
+        log_to_file(SPOTIFY_API_LOG_FILE, f"Unexpected error in _unfollow_playlist_async for playlist {playlist_id}: {e}")

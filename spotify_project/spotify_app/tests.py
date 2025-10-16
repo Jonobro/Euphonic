@@ -32,7 +32,7 @@ from spotify_project.spotify_app.config.instructions import SAVED_SONGS_SYSTEM_I
 LOG_DIR = _project_root / 'logs' / 'custom_logs'
 GEMINI_TESTING_LOG_FILE = LOG_DIR / 'gemini_testing.log'
 
-def _log_to_file(log_file_path: Path, message: str):
+def log_to_file(log_file_path: Path, message: str):
     try:
         log_file_path.parent.mkdir(parents=True, exist_ok=True)
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(time.time()))
@@ -82,7 +82,7 @@ def _acquire_rate_limit_slot():
         wait_for = RATE_LIMIT_WINDOW_SECONDS - (now - _gemini_call_times[0])
         if wait_for < 0:
             continue
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"Rate limit reached ({len(_gemini_call_times)}/{RATE_LIMIT_MAX_CALLS}). Sleeping {wait_for:.2f}s.")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"Rate limit reached ({len(_gemini_call_times)}/{RATE_LIMIT_MAX_CALLS}). Sleeping {wait_for:.2f}s.")
         time.sleep(wait_for + 0.05)
 
 ANALYSIS_PROMPT_1="What percentage of my tracks contain any female vocals?"
@@ -315,7 +315,7 @@ def _call_gemini(prompt: str, model_name: str, temperature: float, max_output_to
             f"  User Message: {user_message}\n"
             f"  History (at call time):\n{json.dumps(history, indent=2)}\n"
         )
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\n{log_message_prompt_first_pass}\n******************************\n")
 
         chat = client.chats.create(
             model=model_name,
@@ -328,29 +328,29 @@ def _call_gemini(prompt: str, model_name: str, temperature: float, max_output_to
             getattr(response.candidates[0], "content", None) and
             getattr(response.candidates[0].content, "parts", None)):
             ai_response_text = response.text
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\nRaw Gemini Response (tests.py - First Pass):\n{response}\n******************************\n")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\nRaw Gemini Response (tests.py - First Pass):\n{response}\n******************************\n")
         return response, ai_response_text
 
     try:
         response, ai_response_text = _attempt(primary_key)
         response_str = str(response)
         if ERROR_TRIGGER_SUBSTRING in response_str and fallback_key:
-            _log_to_file(GEMINI_TESTING_LOG_FILE, "Detected error code substring in PRIMARY key response. Retrying with FALLBACK key.")
+            log_to_file(GEMINI_TESTING_LOG_FILE, "Detected error code substring in PRIMARY key response. Retrying with FALLBACK key.")
             try:
                 _, ai_response_text_fallback = _attempt(fallback_key)
                 return ai_response_text_fallback
             except Exception as e_fallback:
-                _log_to_file(GEMINI_TESTING_LOG_FILE, f"fallback key retry failed: {e_fallback}")
+                log_to_file(GEMINI_TESTING_LOG_FILE, f"fallback key retry failed: {e_fallback}")
         return ai_response_text
     except Exception as e:
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\nGemini API Error (tests.py - First Pass):\n{e}\n******************************\n")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\nGemini API Error (tests.py - First Pass):\n{e}\n******************************\n")
         if fallback_key:
             try:
-                _log_to_file(GEMINI_TESTING_LOG_FILE, "Exception on PRIMARY key. Retrying with FALLBACK key.")
+                log_to_file(GEMINI_TESTING_LOG_FILE, "Exception on PRIMARY key. Retrying with FALLBACK key.")
                 _, ai_response_text_fallback = _attempt(fallback_key)
                 return ai_response_text_fallback
             except Exception as e_fallback:
-                _log_to_file(GEMINI_TESTING_LOG_FILE, f"fallback key retry after exception failed: {e_fallback}")
+                log_to_file(GEMINI_TESTING_LOG_FILE, f"fallback key retry after exception failed: {e_fallback}")
         return f"ERROR: {e}"
 
 def _run_formatting_pass(raw_text: str) -> str:
@@ -380,29 +380,29 @@ def _run_formatting_pass(raw_text: str) -> str:
             f"Gemini API Call (tests.py - Formatting Pass):\n"
             f"Formatting Prompt: {prompt}"
         )
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\n{log_message_prompt_formatting_pass}\n******************************\n")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\n{log_message_prompt_formatting_pass}\n******************************\n")
         response = chat.send_message(prompt)
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\nRaw Gemini Response (tests.py - Formatting Pass):\n{response}\n******************************\n")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\nRaw Gemini Response (tests.py - Formatting Pass):\n{response}\n******************************\n")
         return response
 
     try:
         response = _attempt(primary_key)
         if ERROR_TRIGGER_SUBSTRING in str(response) and fallback_key:
-            _log_to_file(GEMINI_TESTING_LOG_FILE, "Detected error code substring in formatting PRIMARY key response. Retrying with FALLBACK key.")
+            log_to_file(GEMINI_TESTING_LOG_FILE, "Detected error code substring in formatting PRIMARY key response. Retrying with FALLBACK key.")
             try:
                 response = _attempt(fallback_key)
             except Exception as e_fallback:
-                _log_to_file(GEMINI_TESTING_LOG_FILE, f"fallback key formatting retry failed: {e_fallback}")
+                log_to_file(GEMINI_TESTING_LOG_FILE, f"fallback key formatting retry failed: {e_fallback}")
         return response.text
     except Exception as e:
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"Formatting pass error with PRIMARY key: {e}")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"Formatting pass error with PRIMARY key: {e}")
         if fallback_key:
             try:
-                _log_to_file(GEMINI_TESTING_LOG_FILE, "Retrying formatting pass with FALLBACK key after exception.")
+                log_to_file(GEMINI_TESTING_LOG_FILE, "Retrying formatting pass with FALLBACK key after exception.")
                 response = _attempt(fallback_key)
                 return response.text
             except Exception as e_fallback:
-                _log_to_file(GEMINI_TESTING_LOG_FILE, f"Formatting pass fallback key retry failed: {e_fallback}")
+                log_to_file(GEMINI_TESTING_LOG_FILE, f"Formatting pass fallback key retry failed: {e_fallback}")
         return f"ERROR: {e}"
 
 def normalize_playlist_output(raw: str) -> str:
@@ -422,11 +422,11 @@ def normalize_playlist_output(raw: str) -> str:
     return "\n".join(normalized_lines)
 
 def run_saved_songs_evaluation(model_name: str, temperature: float, max_output_tokens: int, thinking_budget: int):
-    _log_to_file(GEMINI_TESTING_LOG_FILE, "\n=== Saved Songs Prompt Evaluation ===\n")
+    log_to_file(GEMINI_TESTING_LOG_FILE, "\n=== Saved Songs Prompt Evaluation ===\n")
     summary = []
     timings: List[float] = []
     for case in SAVED_SONG_TEST_CASES:
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"\n--- {case['name']} ---\n")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"\n--- {case['name']} ---\n")
         prompt = case['prompt']
         start = time.time()
         model_output_raw = _call_gemini(prompt, model_name, temperature, max_output_tokens, thinking_budget)
@@ -435,7 +435,7 @@ def run_saved_songs_evaluation(model_name: str, temperature: float, max_output_t
         if (not model_output_raw) or (len(matches) != 1):
             elapsed_total = time.time() - start
             timings.append(elapsed_total)
-            _log_to_file(GEMINI_TESTING_LOG_FILE,"Failure: Expected exactly one occurrence of pattern +++++<playlist_name>+++++ in first Gemini pass output.")
+            log_to_file(GEMINI_TESTING_LOG_FILE,"Failure: Expected exactly one occurrence of pattern +++++<playlist_name>+++++ in first Gemini pass output.")
             summary.append({
                 "name": case["name"],
                 "false_positives": "FAIL",
@@ -448,7 +448,7 @@ def run_saved_songs_evaluation(model_name: str, temperature: float, max_output_t
         if not formatted_output or len(_extract_tracks(formatted_output)) == 0:
             elapsed_total = time.time() - start
             timings.append(elapsed_total)
-            _log_to_file(GEMINI_TESTING_LOG_FILE, "Failure: No tracks returned after formatting pass. Skipping comparison.")
+            log_to_file(GEMINI_TESTING_LOG_FILE, "Failure: No tracks returned after formatting pass. Skipping comparison.")
             summary.append({
                 "name": case["name"],
                 "false_positives": "FAIL",
@@ -462,17 +462,17 @@ def run_saved_songs_evaluation(model_name: str, temperature: float, max_output_t
 
         comparison = compare_track_lists(case['expected'], normalized_formatted_output)
         
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"False Positives Count: {comparison['false_positives_count']}")
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"Missing Tracks Count: {comparison['missing_tracks_count']}")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"False Positives Count: {comparison['false_positives_count']}")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"Missing Tracks Count: {comparison['missing_tracks_count']}")
         
         if comparison['false_positives']:
-            _log_to_file(GEMINI_TESTING_LOG_FILE, "False Positives:\n" + pformat(comparison['false_positives']))
+            log_to_file(GEMINI_TESTING_LOG_FILE, "False Positives:\n" + pformat(comparison['false_positives']))
         else:
-            _log_to_file(GEMINI_TESTING_LOG_FILE, "False Positives:\n  None")
+            log_to_file(GEMINI_TESTING_LOG_FILE, "False Positives:\n  None")
         if comparison['missing_tracks']:
-            _log_to_file(GEMINI_TESTING_LOG_FILE, "Missing Tracks:\n" + pformat(comparison['missing_tracks']))
+            log_to_file(GEMINI_TESTING_LOG_FILE, "Missing Tracks:\n" + pformat(comparison['missing_tracks']))
         else:
-            _log_to_file(GEMINI_TESTING_LOG_FILE, "Missing Tracks:\n  None\n")
+            log_to_file(GEMINI_TESTING_LOG_FILE, "Missing Tracks:\n  None\n")
 
         summary.append({
             "name": case["name"],
@@ -480,9 +480,9 @@ def run_saved_songs_evaluation(model_name: str, temperature: float, max_output_t
             "missing": comparison['missing_tracks_count']
         })
     
-    _log_to_file(GEMINI_TESTING_LOG_FILE, "=== Summary ===")
+    log_to_file(GEMINI_TESTING_LOG_FILE, "=== Summary ===")
     for item in summary:
-        _log_to_file(
+        log_to_file(
             GEMINI_TESTING_LOG_FILE,
             f"{item['name']}: false_positives={item['false_positives']} | missing={item['missing']}\n"
         )
@@ -497,7 +497,7 @@ def run_saved_songs_suite(model_name: str, temperature: float, max_output_tokens
     overall_score = (total_false_pos * 2.5) + total_missing
     average_time_taken = (sum(timings) / len(timings)) if timings else 0.0
 
-    _log_to_file(
+    log_to_file(
         GEMINI_TESTING_LOG_FILE,
         f"OVERALL: score={overall_score} | avg_time={average_time_taken:.2f}s | failures={failure_count} "
         f"| total_false_positives={total_false_pos} | total_missing={total_missing}"
@@ -557,9 +557,9 @@ def optimize_saved_songs_hyperparams(n_trials: int = 50):
         study_save_path.parent.mkdir(parents=True, exist_ok=True)
         with open(study_save_path, "wb") as f:
             pickle.dump(study, f) # Load later with open(r"C:\Users\...\custom_logs\saved_songs_optimization.pkl","rb") as f: study = pickle.load(f)
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"Study saved to {study_save_path}")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"Study saved to {study_save_path}")
     except Exception as e:
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"Failed to save study: {e}")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"Failed to save study: {e}")
 
     best = study.best_trial
     return {
@@ -627,9 +627,9 @@ def optimize_analysis_hyperparams(n_trials: int = 50):
         study_save_path.parent.mkdir(parents=True, exist_ok=True)
         with open(study_save_path, "wb") as f:
             pickle.dump(study, f)
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"Analysis study saved to {study_save_path}")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"Analysis study saved to {study_save_path}")
     except Exception as e:
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"Failed to save analysis study: {e}")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"Failed to save analysis study: {e}")
 
     best = study.best_trial
     return {
@@ -799,7 +799,7 @@ def assess_analysis_optimization_data(
     }
 
     try:
-        _log_to_file(
+        log_to_file(
             GEMINI_TESTING_LOG_FILE,
             json.dumps(
                 {"type": "reliability_analysis_summary",
@@ -983,7 +983,7 @@ def run_fixed_trials_saved_songs(
         "aggregate_by_temperature": aggregates
     }
     print(json.dumps({"type": "fixed_trials_summary", "data": summary}, indent=2))
-    _log_to_file(GEMINI_TESTING_LOG_FILE, json.dumps({"type": "fixed_trials_summary", "data": summary}, indent=2))
+    log_to_file(GEMINI_TESTING_LOG_FILE, json.dumps({"type": "fixed_trials_summary", "data": summary}, indent=2))
     return {"trials": all_results, "summary": summary}
 
 ANALYSIS_INITIAL_PROMPT = f"""At the bottom of this message, I have provided a list of all my imported tracks. Please conduct a comprehensive analysis of my music and provide insights about my preferences.
@@ -1108,7 +1108,7 @@ def _call_gemini_analysis(prompt: str, model_name: str, temperature: float, max_
             f"  User Message: {prompt}\n"
             f"  History (at call time):\n{json.dumps(history, indent=2)}"
         )
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\n{log_message}\n******************************\n")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\n{log_message}\n******************************\n")
         chat = client.chats.create(
             model=model_name,
             history=history,
@@ -1120,27 +1120,27 @@ def _call_gemini_analysis(prompt: str, model_name: str, temperature: float, max_
             getattr(response.candidates[0], "content", None) and
             getattr(response.candidates[0].content, "parts", None)):
             ai_response_text = response.text
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\nRaw Gemini Response (Analysis Tests - First Pass):\n{response}\n******************************\n")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"\n******************************\nRaw Gemini Response (Analysis Tests - First Pass):\n{response}\n******************************\n")
         return response, ai_response_text
     try:
         response, ai_response_text = _attempt(primary_key)
         response_str = str(response)
         if ERROR_TRIGGER_SUBSTRING in response_str and fallback_key:
-            _log_to_file(GEMINI_TESTING_LOG_FILE, "Primary key response contained error substring. Retrying with fallback.")
+            log_to_file(GEMINI_TESTING_LOG_FILE, "Primary key response contained error substring. Retrying with fallback.")
             try:
                 _, ai_response_text_fallback = _attempt(fallback_key)
                 return ai_response_text_fallback
             except Exception as e_fallback:
-                _log_to_file(GEMINI_TESTING_LOG_FILE, f"Fallback attempt failed: {e_fallback}")
+                log_to_file(GEMINI_TESTING_LOG_FILE, f"Fallback attempt failed: {e_fallback}")
         return ai_response_text
     except Exception as e:
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"Gemini Analysis API error primary attempt: {e}")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"Gemini Analysis API error primary attempt: {e}")
         if fallback_key:
             try:
                 _, ai_response_text_fallback = _attempt(fallback_key)
                 return ai_response_text_fallback
             except Exception as fe:
-                _log_to_file(GEMINI_TESTING_LOG_FILE, f"Fallback after exception failed: {fe}")
+                log_to_file(GEMINI_TESTING_LOG_FILE, f"Fallback after exception failed: {fe}")
         return f"ERROR: {e}"
 
 def _extract_percentage_number(text: str):
@@ -1155,7 +1155,7 @@ def _extract_percentage_number(text: str):
         return None
 
 def run_analysis_evaluation(model_name: str, temperature: float, max_output_tokens: int, thinking_budget: int):
-    _log_to_file(GEMINI_TESTING_LOG_FILE, "\n=== Analysis Percentage Evaluation ===\n")
+    log_to_file(GEMINI_TESTING_LOG_FILE, "\n=== Analysis Percentage Evaluation ===\n")
     results = []
     for case in ANALYSIS_TEST_CASES:
         prompt = case['prompt']
@@ -1182,9 +1182,9 @@ def run_analysis_evaluation(model_name: str, temperature: float, max_output_toke
             "time_taken": round(elapsed, 2),
             "status": "FAIL" if predicted_val is None else "OK"
         }
-        _log_to_file(GEMINI_TESTING_LOG_FILE, f"Result: {json.dumps({k: v for k, v in result.items() if k != 'raw_response'}, indent=2)}")
+        log_to_file(GEMINI_TESTING_LOG_FILE, f"Result: {json.dumps({k: v for k, v in result.items() if k != 'raw_response'}, indent=2)}")
         if predicted_val is None:
-            _log_to_file(GEMINI_TESTING_LOG_FILE, f"No numeric percentage extracted from response (marked as FAIL):\n{model_text}")
+            log_to_file(GEMINI_TESTING_LOG_FILE, f"No numeric percentage extracted from response (marked as FAIL):\n{model_text}")
         results.append(result)
     valid_errors = [r['rae_error_percentage'] for r in results if isinstance(r['rae_error_percentage'], (int, float))]
     avg_error = sum(valid_errors)/len(valid_errors) if valid_errors else None
@@ -1194,7 +1194,7 @@ def run_analysis_evaluation(model_name: str, temperature: float, max_output_toke
         "failure_count": failure_count,
         "cases": results
     }
-    _log_to_file(GEMINI_TESTING_LOG_FILE, f"=== Analysis Evaluation Summary ===\n{json.dumps({k: (v if k != 'cases' else '...cases logged above...') for k,v in summary.items()}, indent=2)}")
+    log_to_file(GEMINI_TESTING_LOG_FILE, f"=== Analysis Evaluation Summary ===\n{json.dumps({k: (v if k != 'cases' else '...cases logged above...') for k,v in summary.items()}, indent=2)}")
     print(json.dumps(summary, indent=2))
     return summary
 
@@ -1248,7 +1248,7 @@ def run_fixed_trials_analysis(
         "aggregate_by_temperature": aggregates
     }
     print(json.dumps({"type": "analysis_fixed_trials_summary", "data": final_summary}, indent=2))
-    _log_to_file(GEMINI_TESTING_LOG_FILE, json.dumps({"type": "analysis_fixed_trials_summary", "data": final_summary}, indent=2))
+    log_to_file(GEMINI_TESTING_LOG_FILE, json.dumps({"type": "analysis_fixed_trials_summary", "data": final_summary}, indent=2))
     return {"trials": all_results, "summary": final_summary}
 
 def main():
