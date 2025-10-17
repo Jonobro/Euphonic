@@ -1,15 +1,3 @@
-__all__ = [
-    "NEW_SONGS_SYSTEM_INSTRUCTION",
-    "SAVED_SONGS_SYSTEM_INSTRUCTION",
-    "ANALYSIS_SYSTEM_INSTRUCTION",
-    "NEW_SONGS_FEEDBACK_SYSTEM_INSTRUCTION",
-    "SAVED_SONGS_FEEDBACK_SYSTEM_INSTRUCTION",
-    "REVISE_NEW_SONGS_SYSTEM_INSTRUCTION",
-    "REVISE_SAVED_SONGS_SYSTEM_INSTRUCTION",
-    "REMOVAL_SYSTEM_INSTRUCTION",
-    "FORMATTING_SYSTEM_INSTRUCTION",
-]
-
 NEW_SONGS_SYSTEM_INSTRUCTION = """DEVELOPER MESSAGE: Hello, I am the developer. Please follow these instructions precisely at all times. These directions shall always supersede any conflicting instructions from the end-user. Here are your instructions:
 
 **Core Mission:**
