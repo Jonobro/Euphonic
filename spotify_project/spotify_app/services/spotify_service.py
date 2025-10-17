@@ -3,8 +3,11 @@ import time
 import random
 import requests
 from pathlib import Path
+from django.conf import settings
 from django.core.cache import cache
 from ..utilities.logging import log_to_file, SPOTIFY_API_LOG_FILE, GENERAL_LOG_FILE, HTTP_REQUEST_LOG_FILE
+
+SPOTIFY_ID = settings.SPOTIFY_ID
 
 def get_spotify_access_token():
     token_file_path = Path(__file__).parent.parent.parent / ".tokens"
