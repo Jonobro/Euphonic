@@ -534,6 +534,7 @@ def validate_playlist_logic(request):
                 a_tag = sub_heading.find('a', class_='secondary-action') if sub_heading else None
                 href = a_tag.get('href') if a_tag else None
                 if not href:
+                    log_to_file(HTTP_REQUEST_LOG_FILE, f"DEBUG mobile share HTML response body for {playlist_url}:\n{r.text}")
                     log_to_file(SPOTIFY_API_LOG_FILE, f"Could not find secondary-action link in mobile share HTML for URL: {playlist_url}")
                     return {'error': 'Invalid Spotify playlist URL format'}, 400
 
