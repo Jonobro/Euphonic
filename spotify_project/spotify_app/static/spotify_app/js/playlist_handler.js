@@ -18,6 +18,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return unique;
     }
 
+    function sanitizeSpotifyUrl(url) {
+        try {
+            const u = new URL(url);
+            if (u.protocol !== 'https:') return '#';
+            const host = u.hostname.toLowerCase();
+            if (host !== 'open.spotify.com') return '#';
+            return u.toString();
+        } catch {
+            return '#';
+        }
+    }
+
     function processMessageForPlaylist(messageElement) {
         if (!(messageElement instanceof HTMLElement)) return;
         if (messageElement.dataset.playlistProcessed === '1') return;
@@ -84,7 +96,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     const successMessage = document.createElement('p');
                     successMessage.className = 'create-playlist-success';
-                    successMessage.innerHTML = `Playlist <a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a> created in Spotify!`;
+                    successMessage.appendChild(document.createTextNode('Playlist '));
+                    const link1 = document.createElement('a');
+                    link1.href = sanitizeSpotifyUrl(savedPlaylists[playlistIdentifier]);
+                    link1.target = '_blank';
+                    link1.rel = 'noopener noreferrer';
+                    link1.textContent = playlistName;
+                    successMessage.appendChild(link1);
+                    successMessage.appendChild(document.createTextNode(' created in Spotify!'));
                     
                     const instructionMessage = document.createElement('p');
                     instructionMessage.className = 'create-playlist-instructions';
@@ -108,8 +127,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const successMessage = document.createElement('p');
                 successMessage.className = 'create-playlist-success';
-                successMessage.innerHTML = `Playlist <a href="${savedPlaylists[playlistIdentifier]}" target="_blank" rel="noopener noreferrer">${playlistName}</a> created in Spotify!`;
-                
+                successMessage.appendChild(document.createTextNode('Playlist '));
+                const link2 = document.createElement('a');
+                link2.href = sanitizeSpotifyUrl(savedPlaylists[playlistIdentifier]);
+                link2.target = '_blank';
+                link2.rel = 'noopener noreferrer';
+                link2.textContent = playlistName;
+                successMessage.appendChild(link2);
+                successMessage.appendChild(document.createTextNode(' created in Spotify!'));
+
                 const instructionMessage = document.createElement('p');
                 instructionMessage.className = 'create-playlist-instructions';
                 instructionMessage.innerHTML = `Press <svg xmlns="http://www.w3.org/2000/svg" width="48" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="spotify-save-icon"><path d="M21 11.998a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" style="stroke:#969696;stroke-width:1.75;stroke-dasharray:none;stroke-opacity:1"/><path d="M12 7.05v9.9" style="fill:#969696;fill-opacity:1;stroke:#969696;stroke-width:1.9265;stroke-dasharray:none;stroke-opacity:1"/><path d="M12.505 7.05a.505.505 0 0 1-.505.505.505.505 0 0 1-.505-.505.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916"/><path d="M12.505 16.95a.505.505 0 0 1-.505.506.505.505 0 0 1-.505-.506.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916233"/><path d="M16.95 12h-9.9" style="stroke-width:1.92679;stroke:#969696;stroke-opacity:1"/><path d="M17.455 12a.505.505 0 0 1-.505.506.505.505 0 0 1-.505-.506.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505zm-9.9 0a.505.505 0 0 1-.505.505.505.505 0 0 1-.505-.505.505.505 0 0 1 .505-.505.505.505 0 0 1 .505.505z" style="fill:#969696;stroke:#969696;stroke-width:.916233"/></svg> in Spotify to add it to your library`;
@@ -249,7 +275,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             const successMessage = document.createElement('p');
                             successMessage.className = 'create-playlist-success';
-                            successMessage.innerHTML = `Playlist <a href="${result.playlist_url}" target="_blank" rel="noopener noreferrer">${playlistName}</a> created in Spotify!`;
+                            successMessage.appendChild(document.createTextNode('Playlist '));
+                            const link3 = document.createElement('a');
+                            link3.href = sanitizeSpotifyUrl(result.playlist_url);
+                            link3.target = '_blank';
+                            link3.rel = 'noopener noreferrer';
+                            link3.textContent = playlistName;
+                            successMessage.appendChild(link3);
+                            successMessage.appendChild(document.createTextNode(' created in Spotify!'));
 
                             const instructionMessage = document.createElement('p');
                             instructionMessage.className = 'create-playlist-instructions';
