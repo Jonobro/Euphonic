@@ -37,14 +37,20 @@ document.addEventListener('DOMContentLoaded', () => {
     })();
 
     function parseSpotifyUrl(url) {
+        const trimmed = (url || '').trim();
+        const mobileSharePattern = /^https:\/\/spotify\.link\/[A-Za-z0-9]{11}$/;
+        if (mobileSharePattern.test(trimmed)) {
+            return trimmed;
+        }
+
         const baseUrlPattern = /https:\/\/open\.spotify\.com\/playlist\/([a-zA-Z0-9]{22})/;
         const ptPattern = /pt=([a-zA-Z0-9]{32})/;
         
-        const baseMatch = url.match(baseUrlPattern);
+        const baseMatch = trimmed.match(baseUrlPattern);
         if (!baseMatch) return null;
         
         const playlistId = baseMatch[1];
-        const ptMatch = url.match(ptPattern);
+        const ptMatch = trimmed.match(ptPattern);
         
         if (ptMatch) {
             return `https://open.spotify.com/playlist/${playlistId}?pt=${ptMatch[1]}`;

@@ -504,7 +504,6 @@ def create_playlist_logic(request):
         log_to_file(GENERAL_LOG_FILE, f"Unexpected error in create_playlist_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
         return {'error': 'An unexpected error occurred'}, 500
 
-
 def validate_playlist_logic(request):
     log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     
@@ -519,6 +518,40 @@ def validate_playlist_logic(request):
         
         if not playlist_url:
             return {'error': 'No playlist URL provided'}, 400
+
+        mobile_share_pattern = r'^https://spotify\.link/[A-Za-z0-9]{11}$'
+        if re.match(mobile_share_pattern, playlist_url):
+            try:
+                log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_url} (mobile share link)")
+                r = requests.get(playlist_url, timeout=10)
+                log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response {r.status_code} from {playlist_url}")
+                if r.status_code != 200:
+                    log_to_file(SPOTIFY_API_LOG_FILE, f"Mobile share URL returned non-200 status {r.status_code}: {playlist_url}")
+                    return {'error': 'Invalid Spotify playlist URL format'}, 400
+
+                soup = BeautifulSoup(r.text, 'html.parser')
+                sub_heading = soup.find('div', class_='sub-heading')
+                a_tag = sub_heading.find('a', class_='secondary-action') if sub_heading else None
+                href = a_tag.get('href') if a_tag else None
+                if not href:
+                    log_to_file(SPOTIFY_API_LOG_FILE, f"Could not find secondary-action link in mobile share HTML for URL: {playlist_url}")
+                    return {'error': 'Invalid Spotify playlist URL format'}, 400
+
+                base_match = re.search(r'(https://open\.spotify\.com/playlist/[A-Za-z0-9]{22})', href)
+                pt_match = re.search(r'(?:\?|&)(pt=[A-Za-z0-9]{32})', href)
+                if not base_match:
+                    log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to extract base URL from mobile share link: {href}")
+                    return {'error': 'Invalid Spotify playlist URL format'}, 400
+
+                if pt_match:
+                    playlist_url = f"{base_match.group(1)}?{pt_match.group(1)}"
+                else:
+                    playlist_url = base_match.group(1)
+
+                log_to_file(SPOTIFY_API_LOG_FILE, f"Resolved mobile share URL to normalized playlist URL: {playlist_url}")
+            except Exception as e:
+                log_to_file(GENERAL_LOG_FILE, f"Error resolving mobile share URL {playlist_url}: {e}")
+                return {'error': 'Invalid Spotify playlist URL format'}, 400
         
         if not re.match(r'^https://open\.spotify\.com/playlist/[a-zA-Z0-9]{22}(\?pt=[a-zA-Z0-9]{32})?$', playlist_url):
             log_to_file(SPOTIFY_API_LOG_FILE, f"validate_playlist_api: Invalid playlist URL format received: '{playlist_url}' (input_id={input_id})")
