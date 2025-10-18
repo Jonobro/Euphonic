@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let visibleCount = 3;
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     
-    // Flag to prevent multiple validations
     const validating = {};
 
     (function() {
@@ -113,7 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const inputId = `playlist-input-${id}`;
             const playlistInfo = await validatePlaylist(parsedUrl, inputId);
-            updatePlaylistStatus(id, 'success', playlistInfo.name, parsedUrl, playlistInfo.track_count, playlistInfo.playlist_id);
+            const effectiveUrl = playlistInfo.normalized_url || parsedUrl;
+            updatePlaylistStatus(id, 'success', playlistInfo.name, effectiveUrl, playlistInfo.track_count, playlistInfo.playlist_id);
         } catch (error) {
             showErrorAndClear(id);
         } finally {

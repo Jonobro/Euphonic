@@ -511,6 +511,7 @@ def validate_playlist_logic(request):
         data = json.loads(request.body)
         playlist_url = data.get('playlist_url', '').strip()
         input_id = data.get('input_id', '').strip()
+        normalized_url = None
 
         def _fallback_name():
             m = re.match(r'^playlist-input-(\d+)$', input_id or '')
@@ -523,7 +524,15 @@ def validate_playlist_logic(request):
         if re.match(mobile_share_pattern, playlist_url):
             try:
                 log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_url} (mobile share link)")
-                r = requests.get(playlist_url, timeout=10)
+                r = requests.get(
+                    playlist_url,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                        "Accept-Language": "en-US,en;q=0.9",
+                    },
+                    timeout=10
+                )
                 log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response {r.status_code} from {playlist_url}")
                 if r.status_code != 200:
                     log_to_file(SPOTIFY_API_LOG_FILE, f"Mobile share URL returned non-200 status {r.status_code}: {playlist_url}")
@@ -534,7 +543,6 @@ def validate_playlist_logic(request):
                 a_tag = sub_heading.find('a', class_='secondary-action') if sub_heading else None
                 href = a_tag.get('href') if a_tag else None
                 if not href:
-                    log_to_file(HTTP_REQUEST_LOG_FILE, f"DEBUG mobile share HTML response body for {playlist_url}:\n{r.text}")
                     log_to_file(SPOTIFY_API_LOG_FILE, f"Could not find secondary-action link in mobile share HTML for URL: {playlist_url}")
                     return {'error': 'Invalid Spotify playlist URL format'}, 400
 
@@ -549,6 +557,7 @@ def validate_playlist_logic(request):
                 else:
                     playlist_url = base_match.group(1)
 
+                normalized_url = playlist_url
                 log_to_file(SPOTIFY_API_LOG_FILE, f"Resolved mobile share URL to normalized playlist URL: {playlist_url}")
             except Exception as e:
                 log_to_file(GENERAL_LOG_FILE, f"Error resolving mobile share URL {playlist_url}: {e}")
@@ -669,12 +678,15 @@ def validate_playlist_logic(request):
                 
                 log_to_file(SPOTIFY_API_LOG_FILE, f"Successfully validated playlist {playlist_id}: {playlist_name} ({track_count} tracks)")
                 
-                return {
+                resp = {
                     'success': True,
                     'name': playlist_name,
                     'track_count': track_count,
                     'playlist_id': playlist_id
-                }, 200
+                }
+                if normalized_url:
+                    resp['normalized_url'] = normalized_url
+                return resp, 200
             else:
                 log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist details for {playlist_id}. Status: {response.status_code}")
                 return {'error': 'Playlist not found or not accessible'}, 404
