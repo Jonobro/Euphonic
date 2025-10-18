@@ -494,8 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function escapeNonAscii(str) {
         return str.replace(/[&<>\u007F-\uFFFF]/g, function(c) {
             const hex = c.charCodeAt(0).toString(16);
-            const upperHex = hex.slice(0, -1) + hex.slice(-1).toUpperCase();
-            return '\\u' + ('0000' + upperHex).slice(-4);
+            return '\\u' + ('0000' + hex).slice(-4);
         });
     }
 
@@ -746,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = arr.length - 1; i >= 0; i--) {
                 if (arr[i]?.role === 'user') {
                     arr.splice(i, 1);
-                    el.textContent = JSON.stringify(all);
+                    el.textContent = escapeNonAscii(JSON.stringify(all));
                     break;
                 }
             }

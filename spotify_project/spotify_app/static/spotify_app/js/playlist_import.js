@@ -480,11 +480,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const inputContainer = document.createElement('div');
             inputContainer.className = 'playlist-input-container';
             
-            let content = '';
-            
+            let contentNode = null;
+            let contentHTML = null;
             switch (playlist.status) {
                 case 'loading':
-                    content = `
+                    contentHTML = `
                         <div class="playlist-loading-state">
                             <span class="spinner-small" aria-hidden="true">
                                 <svg class="spinner-small-svg" viewBox="0 0 23.813 23.813">
@@ -499,71 +499,91 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     break;
                 case 'success': {
-                    const hasTracks = Number(playlist.trackCount) > 0;
-                    const trackMarkup = hasTracks
-                        ? `
-                                    <div class="playlist-name">·</div>
-                                    <div class="playlist-track-count">${playlist.trackCount} tracks</div>
-                              `
-                        : '';
-                    
-                    const successContentMarkup = isWindowsChromium
-                        ? `
-                            <div class="playlist-success-content">
-                                <span class="icon">🎵</span>
-                                <div class="playlist-success-info">
-                                    <div class="playlist-name">${playlist.name}</div>
-                                    ${trackMarkup}
-                                </div>
-                            </div>
-                        `
-                        : `
-                            <div class="playlist-success-content">
-                                <img class="icon" src="/static/spotify_app/images/MusicEmoji.webp" alt=""/>
-                                <div class="playlist-success-info">
-                                    <div class="playlist-name">${playlist.name}</div>
-                                    ${trackMarkup}
-                                </div>
-                            </div>
-                        `;
+                    const successEl = document.createElement('div');
+                    successEl.className = 'playlist-success-state';
+                    const contentEl = document.createElement('div');
+                    contentEl.className = 'playlist-success-content';
 
-                    content = `
-                        <div class="playlist-success-state">
-                            ${successContentMarkup}
-                            <button class="playlist-remove-btn" onclick="window.playlistImport.handleRemovePlaylist(${playlist.id})">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
+                    if (isWindowsChromium) {
+                        const iconSpan = document.createElement('span');
+                        iconSpan.className = 'icon';
+                        iconSpan.textContent = '🎵';
+                        contentEl.appendChild(iconSpan);
+                    } else {
+                        const iconImg = document.createElement('img');
+                        iconImg.className = 'icon';
+                        iconImg.src = '/static/spotify_app/images/MusicEmoji.webp';
+                        iconImg.alt = '';
+                        contentEl.appendChild(iconImg);
+                    }
+                    
+                    const infoEl = document.createElement('div');
+                    infoEl.className = 'playlist-success-info';
+
+                    const nameEl = document.createElement('div');
+                    nameEl.className = 'playlist-name';
+                    nameEl.textContent = typeof playlist.name === 'string' ? playlist.name : '';
+                    infoEl.appendChild(nameEl);
+
+                    const tc = Number(playlist.trackCount) || 0;
+                    if (tc > 0) {
+                        const dotEl = document.createElement('div');
+                        dotEl.className = 'playlist-name';
+                        dotEl.textContent = '·';
+                        infoEl.appendChild(dotEl);
+                        const countEl = document.createElement('div');
+                        countEl.className = 'playlist-track-count';
+                        countEl.textContent = `${tc} tracks`;
+                        infoEl.appendChild(countEl);
+                    }
+
+                    contentEl.appendChild(infoEl);
+                    successEl.appendChild(contentEl);
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'playlist-remove-btn';
+                    removeBtn.innerHTML = `
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
                     `;
+                    removeBtn.addEventListener('click', () => {
+                        window.playlistImport.handleRemovePlaylist(playlist.id);
+                    });
+                    successEl.appendChild(removeBtn);
+                    contentNode = successEl;
                     break;
                 }
                 case 'error':
-                    content = `
+                    contentHTML = `
                         <div class="playlist-error-state">
                             <span>Invalid share link. Press <svg xmlns="http://www.w3.org/2000/svg" class="import-help-icon-error" id="svg1" width="17" height="17" viewBox="0 0 21.25 21.25"><circle id="circle1" cx="10.625" cy="10.625" r="9.5" fill="none" stroke="#ff6b6b" stroke-width="1.5"></circle><path id="text1" fill="#ff6b6b" d="M11.41 12.848H9.522q.008-.666.106-1.143.098-.475.326-.864.236-.387.643-.783.284-.307.52-.585.244-.287.391-.586.146-.308.146-.697 0-.432-.122-.724-.114-.294-.333-.448t-.554-.153q-.244 0-.488.139-.236.132-.399.417-.154.28-.162.74H7.504q.016-.98.423-1.619.415-.644 1.123-.96.716-.321 1.595-.321.977 0 1.669.337.691.33 1.058.967.374.637.374 1.545 0 .644-.252 1.15-.253.505-.643.945-.39.432-.822.879-.366.373-.488.79-.114.418-.13.974M9.36 15.12q0-.446.309-.747.309-.3.838-.3.537 0 .838.3.31.3.31.747 0 .432-.31.74-.3.3-.838.3-.529 0-.838-.3-.31-.308-.31-.74"></path></svg> above for help.</span>
                         </div>
                     `;
                     break;
-                default:
-                    content = `
-                        <input 
-                            type="text" 
-                            class="playlist-input-field" 
-                            id="playlist-input-${playlist.id}"
-                            name="playlist-url-${playlist.id}"
-                            value="${playlist.url}" 
-                            placeholder="${i === 0 ? 'https://open.spotify.com/playlist/...' : ''}"
-                            data-playlist-id="${playlist.id}"
-                            onblur="window.playlistImport.handlePlaylistBlur(${playlist.id}, this.value)"
-                            oninput="window.playlistImport.handlePlaylistChange(${playlist.id}, this.value)"
-                        />
-                    `;
+                default: {
+                    const inputEl = document.createElement('input');
+                    inputEl.type = 'text';
+                    inputEl.className = 'playlist-input-field';
+                    inputEl.id = `playlist-input-${playlist.id}`;
+                    inputEl.name = `playlist-url-${playlist.id}`;
+                    inputEl.placeholder = i === 0 ? 'https://open.spotify.com/playlist/...' : '';
+                    inputEl.dataset.playlistId = String(playlist.id);
+                    inputEl.value = typeof playlist.url === 'string' ? playlist.url : '';
+                    inputEl.addEventListener('blur', (e) => {
+                        window.playlistImport.handlePlaylistBlur(playlist.id, e.target.value);
+                    });
+                    inputEl.addEventListener('input', (e) => {
+                        window.playlistImport.handlePlaylistChange(playlist.id, e.target.value);
+                    });
+                    contentNode = inputEl;
                     break;
+                }
             }
-            
-            inputContainer.innerHTML = content;
+            if (contentNode) {
+                inputContainer.appendChild(contentNode);
+            } else if (contentHTML != null) {
+                inputContainer.innerHTML = contentHTML;
+            }
             
             if (playlist.status === 'success') {
                 const successElement = inputContainer.querySelector('.playlist-success-state');
