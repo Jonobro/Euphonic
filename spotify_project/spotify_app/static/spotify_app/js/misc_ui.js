@@ -317,13 +317,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-window.onclick = function(event) {
+window.addEventListener('click', function(event) {
     const modal = document.getElementById('legalModal');
     const importModal = document.getElementById('importModal');
     if (event.target == modal) {
         closeModal();
     }
-};
+});
 
 (function () {
     let supportsPassive = false;

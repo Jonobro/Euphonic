@@ -1,0 +1,13 @@
+{
+  "name": "euphonicintelligence.com",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ESLint setup",
+  "scripts": {
+    "lint": "eslint \"spotify_project/spotify_app/static/spotify_app/js/**/*.js\"",
+    "lint:fix": "eslint \"spotify_project/spotify_app/static/spotify_app/js/**/*.js\" --fix"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  }
+}

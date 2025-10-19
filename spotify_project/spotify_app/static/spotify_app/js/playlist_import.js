@@ -626,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 addButtonDiv.className = 'playlist-add-button-container';
                 addButtonDiv.innerHTML = `
-                    <button class="playlist-add-btn" onclick="window.playlistImport.handleAddPlaylist()">
+                    <button class="playlist-add-btn">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.8V12m0 0v4.2m0-4.2h4.2M12 12H7.8" stroke-width="1.7" />
                             <path d="M21.217 12A9.217 9.217 0 0 1 12 21.217 9.217 9.217 0 0 1 2.783 12 9.217 9.217 0 0 1 12 2.783 9.217 9.217 0 0 1 21.217 12Z" stroke-width="1.565" />
@@ -634,6 +634,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         Add Another Playlist
                     </button>
                 `;
+                const addBtn = addButtonDiv.querySelector('.playlist-add-btn');
+                if (addBtn) {
+                    addBtn.addEventListener('click', () => window.playlistImport.handleAddPlaylist());
+                }
             }
             
             container.appendChild(addButtonDiv);

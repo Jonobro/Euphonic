@@ -940,7 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    sendButton.onclick = handleSend;
+    sendButton.addEventListener('click', handleSend);
     userInput.addEventListener('keydown', e => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
