@@ -2,28 +2,30 @@ const hamburgerBtn = document.getElementById('hamburger-btn');
 const hamburgerDropdown = document.getElementById('hamburger-dropdown');
 const hamburgerBackdrop = document.getElementById('hamburger-backdrop');
 
-hamburgerBtn.addEventListener('click', (event) => {
-    event.stopPropagation();
-    hamburgerDropdown.classList.toggle('show');
-});
+if (hamburgerBtn && hamburgerDropdown) {
+    hamburgerBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        hamburgerDropdown.classList.toggle('show');
+    });
+}
 
 if (hamburgerBackdrop) {
     hamburgerBackdrop.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (hamburgerDropdown.classList.contains('show')) {
+        if (hamburgerDropdown && hamburgerDropdown.classList.contains('show')) {
             hamburgerDropdown.classList.remove('show');
         }
     });
 }
 
-window.addEventListener('click', (event) => {
-    if (hamburgerDropdown.classList.contains('show')) {
+window.addEventListener('click', () => {
+    if (hamburgerDropdown && hamburgerDropdown.classList.contains('show')) {
         hamburgerDropdown.classList.remove('show');
     }
 });
 
 function openModal(type) {
-    if (hamburgerDropdown.classList.contains('show')) {
+    if (hamburgerDropdown && hamburgerDropdown.classList.contains('show')) {
         hamburgerDropdown.classList.remove('show');
     }
     const modal = document.getElementById('legalModal');
@@ -165,7 +167,7 @@ function setImportUiState() {
 }
 
 function openImportModal(switchToModeOnCompletion) {
-    if (hamburgerDropdown.classList.contains('show')) {
+    if (hamburgerDropdown && hamburgerDropdown.classList.contains('show')) {
         hamburgerDropdown.classList.remove('show');
     }
     if (switchToModeOnCompletion) {
@@ -319,7 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener('click', function(event) {
     const modal = document.getElementById('legalModal');
-    const importModal = document.getElementById('importModal');
     if (event.target == modal) {
         closeModal();
     }
@@ -329,7 +330,10 @@ window.addEventListener('click', function(event) {
     let supportsPassive = false;
     try {
         const opts = Object.defineProperty({}, 'passive', {
-            get() { supportsPassive = true; }
+            get() { 
+                supportsPassive = true; 
+                return false;
+            }
         });
         window.addEventListener('testPassive', null, opts);
         window.removeEventListener('testPassive', null, opts);
@@ -683,8 +687,7 @@ window.addEventListener('click', function(event) {
                         try { sessionStorage.setItem('ei_pwa_prompt_shown', '1'); } catch (_) {}
                         closePwaModal();
                     }
-                } catch (_) {
-                }
+                } catch (_) {}
             });
         }
     });

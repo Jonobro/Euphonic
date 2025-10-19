@@ -700,6 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const importBtn = document.getElementById('importPlaylistsBtn');
         if (importBtn) {
+            importBtn.removeEventListener('click', handleImportAll);
             importBtn.addEventListener('click', handleImportAll);
         }
     }

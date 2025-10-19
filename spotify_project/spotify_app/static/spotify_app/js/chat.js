@@ -279,7 +279,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, delay);
 
         function startIntro() {
-            const base = 0;
             const step1 = 1450;
             const step2 = 2900;
             const step3 = 7500;
@@ -458,20 +457,20 @@ document.addEventListener('DOMContentLoaded', () => {
         switchChatMode(chatMode);
     })();
 
-    const renderer = new marked.Renderer();
-    const originalLinkRenderer = renderer.link;
-    renderer.link = (href, title, text) => {
-        const link = originalLinkRenderer.call(renderer, href, title, text);
-        return link.replace(/^<a/, '<a target="_blank" rel="noopener noreferrer"');
-    };
-
     if (window.marked) {
-        marked.setOptions({ 
-            gfm: true, 
-            breaks: true, 
-            headerIds: false, 
-            mangle: false, 
-            smartLists: true, 
+        const renderer = new window.marked.Renderer();
+        const originalLinkRenderer = renderer.link;
+        renderer.link = (href, title, text) => {
+            const link = originalLinkRenderer.call(renderer, href, title, text);
+            return link.replace(/^<a/, '<a target="_blank" rel="noopener noreferrer"');
+        };
+
+        window.marked.setOptions({
+            gfm: true,
+            breaks: true,
+            headerIds: false,
+            mangle: false,
+            smartLists: true,
             smartypants: true,
             renderer: renderer
         });
@@ -549,8 +548,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (window.marked && window.DOMPurify) {
                 try {
-                    const dirtyHtml = marked.parse(text || '');
-                    contentDiv.innerHTML = DOMPurify.sanitize(dirtyHtml, { 
+                    const dirtyHtml = window.marked.parse(text || '');
+                    contentDiv.innerHTML = window.DOMPurify.sanitize(dirtyHtml, { 
                         ADD_ATTR: ['target'],
                         FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input'],
                         FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
@@ -588,8 +587,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             if (window.marked && window.DOMPurify) {
                 try {
-                    const dirtyHtml = marked.parse(text || '');
-                    msg.innerHTML = DOMPurify.sanitize(dirtyHtml, { 
+                    const dirtyHtml = window.marked.parse(text || '');
+                    msg.innerHTML = window.DOMPurify.sanitize(dirtyHtml, { 
                         ADD_ATTR: ['target'],
                         FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input'],
                         FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
@@ -1641,8 +1640,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (resp.ok) {
                             const data = await resp.json();
                             if (!data.completed) {
-                                if (typeof openImportModal === 'function') {
-                                    openImportModal(targetMode);
+                                if (typeof window.openImportModal === 'function') {
+                                    window.openImportModal(targetMode);
                                 } else {
                                     alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
                                 }
@@ -1650,16 +1649,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                             hasImportedTracks = true;
                         } else {
-                            if (typeof openImportModal === 'function') {
-                                openImportModal(targetMode);
+                            if (typeof window.openImportModal === 'function') {
+                                window.openImportModal(targetMode);
                             } else {
                                 alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
                             }
                             return;
                         }
                     } catch (e) {
-                        if (typeof openImportModal === 'function') {
-                            openImportModal(targetMode);
+                        if (typeof window.openImportModal === 'function') {
+                            window.openImportModal(targetMode);
                         } else {
                             alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
                         }
