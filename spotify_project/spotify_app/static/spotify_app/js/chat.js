@@ -376,10 +376,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.shouldShowActionPlaceholder = shouldShowActionPlaceholder;
 
     (() => {
-        const chatMode = sessionStorage.getItem('chatMode') || 'new_songs';
-        window.switchChatMode(chatMode);
+        const start = () => window.switchChatMode(sessionStorage.getItem('chatMode') || 'new_songs');
+        setTimeout(start, 0);
     })();
-
+    
     if (window.marked) {
         const renderer = new window.marked.Renderer();
         const originalLinkRenderer = renderer.link;
