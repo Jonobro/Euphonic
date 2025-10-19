@@ -1,86 +1,7 @@
-(function detectMacChrome() {
-    try {
-        const ua = navigator.userAgent;
-        const platformHint = navigator.userAgentData?.platform || '';
-        const isMac = /mac/i.test(platformHint) || /\bMacintosh\b/.test(ua);
-
-        const brands = navigator.userAgentData?.brands || [];
-        const brandIsChrome = brands.some(b =>
-            /Chrom(ium|e)|Edg|Edge|OPR|Opera|Brave|Vivaldi|YaBrowser|Yandex|Arc/i.test(b.brand)
-        );
-
-        const isChromeUA = /\b(Chrome|Chromium|Edg|OPR|Vivaldi|YaBrowser|Yandex|Brave|Arc)\//i.test(ua);
-
-        const isChrome = brandIsChrome || isChromeUA;
-
-        if (isMac && isChrome) {
-            document.documentElement.classList.add('mac-chrome');
-        }
-    } catch (_) {}
-})();
-
-window.addEventListener('load', function() {
-    const container = document.querySelector('.container');
-    const betaNotice = document.querySelector('.beta-notice');
-    const spotifyFooter = document.querySelector('.spotify-footer');
-    
-    setTimeout(() => {
-        if (container) container.classList.add('loaded');
-        if (betaNotice) betaNotice.classList.add('loaded');
-        if (spotifyFooter) spotifyFooter.classList.add('loaded');
-        
-        const segmented = document.querySelector('.segmented-control');
-        if (segmented) {
-            const rect = segmented.getBoundingClientRect();
-            segmented.style.setProperty('--segmented-control-height', rect.height + 'px');
-
-            if (document.fonts?.ready) {
-                document.fonts.ready.then(() => {
-                    const r = segmented.getBoundingClientRect();
-                    segmented.style.setProperty('--segmented-control-height', r.height + 'px');
-                });
-            }
-
-            window.addEventListener('resize', () => {
-                const r = segmented.getBoundingClientRect();
-                segmented.style.setProperty('--segmented-control-height', r.height + 'px');
-            }, { passive: true });
-        }
-    }, 300);
-});
-
-// Fallback in case window.load doesn't execute
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-        const container = document.querySelector('.container');
-        const betaNotice = document.querySelector('.beta-notice');
-        const spotifyFooter = document.querySelector('.spotify-footer');
-        
-        if (container && !container.classList.contains('loaded')) {
-            container.classList.add('loaded');
-        }
-        if (betaNotice && !betaNotice.classList.contains('loaded')) {
-            betaNotice.classList.add('loaded');
-        }
-        if (spotifyFooter && !spotifyFooter.classList.contains('loaded')) {
-            spotifyFooter.classList.add('loaded');
-        }
-    }, 3000);
-});
-
 let initialMessageDelayNeeded = true;
-let hasImportedTracks = false;
-
-function getChatMode() {
-    const activeBtn = document.querySelector('.segment-button.active');
-    if (activeBtn) return activeBtn.dataset.mode;
-    throw new Error('No active chat mode button found');
-}
-
-window.getChatMode = getChatMode;
 
 async function handleNewContextAction(userAction) {
-    const chatMode = getChatMode();
+    const chatMode = window.getChatMode();
     const messageList = document.getElementById('message-list');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
@@ -103,8 +24,8 @@ async function handleNewContextAction(userAction) {
         if (response.ok) {
             const data = await response.json();
 
-            if (data.chat_mode && data.chat_mode !== getChatMode()) {
-                console.log(`Ignoring playlist action response for '${data.chat_mode}' mode as current mode is '${getChatMode()}'.`);
+            if (data.chat_mode && data.chat_mode !== window.getChatMode()) {
+                console.log(`Ignoring playlist action response for '${data.chat_mode}' mode as current mode is '${window.getChatMode()}'.`);
                 return;
             }
 
@@ -203,10 +124,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let suppressHistoryUpdate = false;
     let initialAnalysisEventSource = null;
-    let modeSwitchCooldown = false;
-
     let analysisLoadingIndicator = null;
     let analysisLoadingInterval = null;
+
+    window.resetAnalysisLoadingUI = function(newMode) {
+        try {
+            if (analysisLoadingInterval) {
+                clearInterval(analysisLoadingInterval);
+                analysisLoadingInterval = null;
+            }
+        } catch {}
+        try {
+            if (analysisLoadingIndicator) {
+                analysisLoadingIndicator.remove();
+                analysisLoadingIndicator = null;
+            }
+        } catch {}
+        try {
+            if (initialAnalysisEventSource && newMode !== 'analysis') {
+                initialAnalysisEventSource.close();
+                initialAnalysisEventSource = null;
+            }
+        } catch {}
+    };
 
     const DISABLED_STATE_KEY = 'chatInputDisabledModes';
 
@@ -325,23 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function watchScrollbar(el) {
-        if (!el) return;
-        const update = () => {
-            const needsYScroll = el.scrollHeight > el.clientHeight + 1; // Add one to avoid false positives due to subpixel differences
-            el.classList.toggle('has-scrollbar', needsYScroll);
-        };
-        const ro = new ResizeObserver(update);
-        ro.observe(el);
-        const mo = new MutationObserver(update);
-        mo.observe(el, { childList: true, subtree: true, characterData: true });
-        window.addEventListener('resize', update, { passive: true });
-        update();
-    }
-
-    document.querySelectorAll('.import-modal-content, .legal-modal-content')
-        .forEach(watchScrollbar);
-    
     function shouldShowActionPlaceholder() {
         const aiMessages = document.querySelectorAll('.ai-message.has-playlist-button');
         for (const msg of aiMessages) {
@@ -425,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleChatInput(disable, opts = {}) {
         const { persist = false } = opts;
-        const mode = (() => { try { return getChatMode(); } catch { return null; } })();
+        const mode = (() => { try { return window.getChatMode(); } catch { return null; } })();
 
         if (userInput) {
             if (disable && document.activeElement === userInput) {
@@ -454,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     (() => {
         const chatMode = sessionStorage.getItem('chatMode') || 'new_songs';
-        switchChatMode(chatMode);
+        window.switchChatMode(chatMode);
     })();
 
     if (window.marked) {
@@ -524,7 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.updateChatHistoryData = updateChatHistoryData;
     window.appendDividerToHistory = function() {
         try {
-            const mode = getChatMode();
+            const mode = window.getChatMode();
             updateChatHistoryData(mode, { role: 'divider', parts: [{ text: '---' }] });
         } catch (e) {
             console.error('Error appending divider to history:', e);
@@ -532,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function addMessage(text, sender, shouldScroll = true, allowBlurFade = false) {
-        const chatMode = getChatMode();
+        const chatMode = window.getChatMode();
         const msg = document.createElement('div');
         msg.className = `message ${sender}-message`;
         
@@ -731,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const el = document.getElementById('chat-history-data');
             if (!el) return;
             const indexMap = { new_songs: 0, saved_songs: 1, analysis: 2 };
-            const mode = getChatMode();
+            const mode = window.getChatMode();
             const idx = indexMap[mode];
             if (idx == null) return;
 
@@ -762,8 +685,8 @@ document.addEventListener('DOMContentLoaded', () => {
         eventSource.onmessage = (event) => {
             const data = JSON.parse(event.data);
 
-            if (data.chat_mode && data.chat_mode !== getChatMode()) {
-                console.log(`Ignoring response for '${data.chat_mode}' mode as current mode is '${getChatMode()}'.`);
+            if (data.chat_mode && data.chat_mode !== window.getChatMode()) {
+                console.log(`Ignoring response for '${data.chat_mode}' mode as current mode is '${window.getChatMode()}'.`);
                 return; 
             }
 
@@ -890,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/chat_message_api/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({message: text, chat_mode: getChatMode()})
+                body: JSON.stringify({message: text, chat_mode: window.getChatMode()})
             });
 
             if (!res.ok) {
@@ -947,41 +870,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function setActiveSegment(mode) {
-        const buttons = document.querySelectorAll('.segment-button');
-        buttons.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.mode === mode);
-        });
-    }
-
-    function switchChatMode(newMode) {
-        if (analysisLoadingInterval) {
-            clearInterval(analysisLoadingInterval);
-            analysisLoadingInterval = null;
-        }
-        if (analysisLoadingIndicator) {
-            analysisLoadingIndicator.remove();
-            analysisLoadingIndicator = null;
-        }
-        if (initialAnalysisEventSource && newMode !== 'analysis') {
-            initialAnalysisEventSource.close();
-            initialAnalysisEventSource = null;
-        }
-        if (window.playlistNames) {
-            window.playlistNames = [];
-        }
-
-        const chatMode = newMode;
-        sessionStorage.setItem('chatMode', chatMode);
-        setActiveSegment(chatMode);
-        document.body.dataset.chatMode = chatMode;
-        if (isChatModeInitialized(chatMode)) {
-            renderHistory(chatMode);
-        } else {
-            initializeChatMode(chatMode);
-        }
-    }
-
     function forceResetAnalysis(reinitIfActive = true) {
         try {
             const el = document.getElementById('chat-history-data');
@@ -1012,13 +900,12 @@ document.addEventListener('DOMContentLoaded', () => {
             analysisLoadingIndicator = null;
         }
 
-        const currentMode = getChatMode();
+        const currentMode = window.getChatMode();
         if (reinitIfActive && currentMode === 'analysis') {
             toggleChatInput(true);
             initializeChatMode('analysis');
         }
     }
-
     window.forceResetAnalysis = forceResetAnalysis;
 
     function isChatModeInitialized(mode) {
@@ -1042,6 +929,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return false;
     }
+    window.isChatModeInitialized = isChatModeInitialized;
 
     function renderHistory(mode) {
         while (messageList.firstChild) {
@@ -1168,6 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+    window.renderHistory = renderHistory;
 
     function initializeChatMode(mode) {
         while (messageList.firstChild) messageList.removeChild(messageList.firstChild);
@@ -1175,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (mode === 'analysis') {
             setTimeout(() => {
-                if (!analysisLoadingIndicator && getChatMode() === 'analysis' && messageList.querySelectorAll('.message').length === 0) {
+                if (!analysisLoadingIndicator && window.getChatMode() === 'analysis' && messageList.querySelectorAll('.message').length === 0) {
                     showAnalysisLoadingIndicator({ forceReplace: false });
                 }
             }, 300);
@@ -1238,8 +1127,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(err);
             }
 
-            if (data.chat_mode && data.chat_mode !== getChatMode()) {
-                console.log(`Ignoring initialization response for '${data.chat_mode}' mode as current mode is '${getChatMode()}'.`);
+            if (data.chat_mode && data.chat_mode !== window.getChatMode()) {
+                console.log(`Ignoring initialization response for '${data.chat_mode}' mode as current mode is '${window.getChatMode()}'.`);
                 return;
             }
 
@@ -1269,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     initialAnalysisEventSource = es;
 
                     es.onmessage = (e) => {
-                        if (getChatMode() !== 'analysis') {
+                        if (window.getChatMode() !== 'analysis') {
                             es.close();
                             initialAnalysisEventSource = null;
                             return;
@@ -1315,7 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     es.addEventListener('stream_error', (e) => {
                         if (analysisLoadingIndicator) { analysisLoadingIndicator.remove(); analysisLoadingIndicator = null; }
                         if (analysisLoadingInterval) { clearInterval(analysisLoadingInterval); analysisLoadingInterval = null; }
-                        if (getChatMode() !== 'analysis') {
+                        if (window.getChatMode() !== 'analysis') {
                             es.close();
                             initialAnalysisEventSource = null;
                             return;
@@ -1330,7 +1219,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     es.onerror = () => {
                         if (analysisLoadingIndicator) { analysisLoadingIndicator.remove(); analysisLoadingIndicator = null; }
                         if (analysisLoadingInterval) { clearInterval(analysisLoadingInterval); analysisLoadingInterval = null; }
-                        if (getChatMode() !== 'analysis') {
+                        if (window.getChatMode() !== 'analysis') {
                             es.close();
                             initialAnalysisEventSource = null;
                             return;
@@ -1366,324 +1255,5 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    (function initSegmentedControlAnimation() {
-        const control = document.querySelector('.segmented-control');
-        const svg = document.getElementById('segment-animation-svg');
-        if (!control || !svg) return;
-
-        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        defs.innerHTML = `
-            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse">
-                <feGaussianBlur stdDeviation="3.5" result="coloredBlur"></feGaussianBlur>
-                <feMerge>
-                    <feMergeNode in="coloredBlur"></feMergeNode>
-                    <feMergeNode in="SourceGraphic"></feMergeNode>
-                </feMerge>
-            </filter>
-        `;
-        svg.appendChild(defs);
-
-        const buttons = Array.from(control.querySelectorAll('.segment-button'));
-
-        const getStrokeWidth = () => {
-            const activeBtn = control.querySelector('.segment-button.active');
-            if (activeBtn) {
-                const w = parseFloat(getComputedStyle(activeBtn).borderWidth);
-                if (!isNaN(w) && w > 0) return w;
-            }
-            return 2;
-        };
-
-        const referenceWidth = 600; // reference width in pixels
-        const referenceEraseSpeed  = 1; // px/ms at reference width
-        const referencePaintSpeed  = 1;
-        const referenceTravelSpeed = 3;
-
-        const cfg = {
-            strokeWidth: getStrokeWidth(),
-            glowColor: 'rgb(30,200,90)',
-            dotRadius: 3.5,
-            eraseSpeed: referenceEraseSpeed,
-            paintSpeed: referencePaintSpeed,
-            travelSpeed: referenceTravelSpeed,
-            easingIn: t => t*t*t,
-            easingOut: t => 1 - Math.pow(1 - t, 3)
-        };
-
-        function updateSpeeds() {
-            const currentWidth = Math.max(1, control.getBoundingClientRect().width);
-            const scale = currentWidth / referenceWidth;
-            cfg.eraseSpeed  = referenceEraseSpeed  * scale;
-            cfg.paintSpeed  = referencePaintSpeed  * scale;
-            cfg.travelSpeed = referenceTravelSpeed * scale;
-        }
-        updateSpeeds();
-
-        let isAnimating = false;
-
-        function ensureSVGSize() {
-            const r = control.getBoundingClientRect();
-            const cs = getComputedStyle(control);
-
-            let cssH = parseFloat((cs.getPropertyValue('--segmented-control-height') || '').trim());
-            if (!Number.isFinite(cssH) || cssH <= 0) {
-                cssH = r.height || control.offsetHeight || 39;
-                control.style.setProperty('--segmented-control-height', `${cssH}px`);
-            }
-
-            svg.setAttribute('width', r.width);
-            svg.setAttribute('height', cssH);
-            svg.setAttribute('viewBox', `0 0 ${r.width} ${cssH}`);
-            svg.style.position = 'absolute';
-            svg.style.top = '0';
-            svg.style.left = '0';
-            svg.style.pointerEvents = 'none';
-            svg.style.overflow = 'visible';
-            if (!control.style.position) control.style.position = 'relative';
-            updateSpeeds();
-        }
-
-        const oldPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const newPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const dotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-
-        [oldPathEl, newPathEl].forEach(p => {
-            p.setAttribute('fill', 'none');
-            p.setAttribute('stroke', cfg.glowColor);
-            p.setAttribute('stroke-width', cfg.strokeWidth);
-            p.setAttribute('stroke-linejoin', 'round');
-            p.setAttribute('stroke-linecap', 'round');
-            p.style.visibility = 'hidden';
-            p.setAttribute('filter', 'url(#glow)');
-        });
-
-        dotEl.setAttribute('r', cfg.dotRadius);
-        dotEl.setAttribute('fill', cfg.glowColor);
-        dotEl.style.visibility = 'hidden';
-        dotEl.setAttribute('filter', 'url(#glow)');
-
-        svg.appendChild(oldPathEl);
-        svg.appendChild(newPathEl);
-        svg.appendChild(dotEl);
-
-        function rectFor(el) {
-            const parent = control.getBoundingClientRect();
-            const r = el.getBoundingClientRect();
-            const cs = getComputedStyle(control);
-            const borderLeft = parseFloat(cs.borderLeftWidth) || 0;
-            const borderTop  = parseFloat(cs.borderTopWidth) || 0;
-            const result = {
-                x: r.left - parent.left - borderLeft,
-                y: -borderTop,
-                width: r.width,
-                height: r.height
-            };
-            return result;
-        }
-
-        function buildPillPath(r) {
-            const inset = ((cfg && typeof cfg.strokeWidth === 'number') ? cfg.strokeWidth : 2) * 0.5;
-            let { x, y, width, height } = r;
-            x += inset;
-            y += inset;
-            width -= inset * 2;
-            height -= inset * 2;
-            const radius = height / 2;
-            const sx = x + width / 2;
-            const sy = y + height;
-            const brA = x + width - radius;
-            return [
-                `M ${sx} ${sy}`,
-                `L ${brA} ${y + height}`,
-                `A ${radius} ${radius} 0 0 0 ${x + width} ${y + height - radius}`,
-                `L ${x + width} ${y + radius}`,
-                `A ${radius} ${radius} 0 0 0 ${x + width - radius} ${y}`,
-                `L ${x + radius} ${y}`,
-                `A ${radius} ${radius} 0 0 0 ${x} ${y + radius}`,
-                `L ${x} ${y + height - radius}`,
-                `A ${radius} ${radius} 0 0 0 ${x + radius} ${y + height}`,
-                `L ${sx} ${sy}`
-            ].join(' ');
-        }
-
-        function dashArray(L) {
-            return `${L} ${L}`;
-        }
-
-        function animateStroke(pathEl, type, direction, speedPxPerMs) {
-            return new Promise(res => {
-                pathEl.style.visibility = 'visible';
-                const length = pathEl.getTotalLength();
-                pathEl.setAttribute('stroke-dasharray', dashArray(length));
-                let from, to;
-                if (type === 'erase') {
-                    from = 0;
-                    to = direction === 'reverse' ? length : -length;
-                    pathEl.setAttribute('stroke-dashoffset', '0');
-                } else {
-                    from = direction === 'reverse' ? -length : length;
-                    to = 0;
-                    pathEl.setAttribute('stroke-dashoffset', `${from}`);
-                }
-                const duration = length / speedPxPerMs;
-                let start = null;
-                function frame(ts) {
-                    if (!start) start = ts;
-                    const raw = Math.min((ts - start) / duration, 1);
-                    const eased = type === 'erase' ? cfg.easingIn(raw) : cfg.easingOut(raw);
-                    const current = from + (to - from) * eased;
-                    pathEl.setAttribute('stroke-dashoffset', `${current}`);
-                    const prog = direction === 'reverse' ? 1 - eased : eased;
-                    const posLen = prog * length;
-                    const pt = pathEl.getPointAtLength(Math.max(0, Math.min(length, posLen)));
-                    dotEl.setAttribute('cx', pt.x);
-                    dotEl.setAttribute('cy', pt.y);
-                    dotEl.style.visibility = 'visible';
-                    if (raw < 1) requestAnimationFrame(frame); else res();
-                }
-                requestAnimationFrame(frame);
-            });
-        }
-
-        function animateTravel(fromRect, toRect) {
-            return new Promise(res => {
-                const y = fromRect.y + fromRect.height;
-                const startX = fromRect.x + fromRect.width / 2;
-                const endX = toRect.x + toRect.width / 2;
-                const dx = endX - startX;
-                const dist = Math.abs(dx);
-                const duration = dist / cfg.travelSpeed;
-                let startTime = null;
-                dotEl.style.visibility = 'visible';
-                dotEl.setAttribute('cx', startX);
-                dotEl.setAttribute('cy', y);
-                function frame(ts) {
-                    if (!startTime) startTime = ts;
-                    const raw = Math.min((ts - startTime) / duration, 1);
-                    dotEl.setAttribute('cx', startX + dx * raw);
-                    if (raw < 1) requestAnimationFrame(frame); else res();
-                }
-                requestAnimationFrame(frame);
-            });
-        }
-
-        function animateTransition(fromBtn, toBtn, done) {
-            if (isAnimating || !fromBtn || !toBtn || fromBtn === toBtn) { done && done(); return; }
-            isAnimating = true;
-            if (window.toggleChatInput) window.toggleChatInput(true);
-            control.classList.add('is-animating');
-            ensureSVGSize();
-
-            const fromRect = rectFor(fromBtn);
-            const toRect = rectFor(toBtn);
-            if ((window.matchMedia && window.matchMedia('(max-width: 768px)').matches) || window.innerWidth <= 768) {
-                const controlBorderWidth = parseFloat(getComputedStyle(control).borderTopWidth) || 0;
-                toRect.height -= controlBorderWidth;
-                fromRect.height -= controlBorderWidth;
-            } else {
-                toRect.width = fromRect.width;
-                toRect.height = fromRect.height;
-            }
-            
-            oldPathEl.setAttribute('d', buildPillPath(fromRect));
-            newPathEl.setAttribute('d', buildPillPath(toRect));
-            newPathEl.style.visibility = 'hidden';
-            dotEl.style.visibility = 'hidden';
-
-            const fromIdx = buttons.indexOf(fromBtn);
-            const toIdx = buttons.indexOf(toBtn);
-            const direction = toIdx > fromIdx ? 'forward' : 'reverse';
-
-            fromBtn.classList.remove('active');
-            fromBtn.classList.add('was-active');
-
-            animateStroke(oldPathEl, 'erase', direction, cfg.eraseSpeed)
-                .then(() => animateTravel(fromRect, toRect))
-                .then(() => animateStroke(newPathEl, 'paint', direction, cfg.paintSpeed))
-                .then(() => {
-                    toBtn.classList.add('active');
-                    toBtn.classList.remove('tap-target');
-                    oldPathEl.style.visibility = 'hidden';
-                    newPathEl.style.visibility = 'hidden';
-                    setTimeout(() => {
-                        dotEl.style.visibility = 'hidden';
-                        control.classList.remove('is-animating');
-                        fromBtn.classList.remove('was-active');
-                        isAnimating = false;
-                        done && done();
-                    }, 0);
-                });
-        }
-
-        window.addEventListener('resize', () => {
-            if (isAnimating) return;
-            ensureSVGSize();
-        });
-
-        buttons.forEach(btn => {
-            btn.addEventListener('click', async function() {
-                if (isAnimating || modeSwitchCooldown || this.classList.contains('active')) return;
-                if (document.querySelector('.thinking-message')) {
-                    alert("Aria's still thinking! Let her finish.");
-                    return;
-                }
-
-                const targetMode = this.dataset.mode;
-
-                if ((targetMode === 'saved_songs' || targetMode === 'analysis') && !hasImportedTracks) {
-                    try {
-                        const resp = await fetch('/check_import_status_api/', {
-                            method: 'GET',
-                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                        });
-                        if (resp.ok) {
-                            const data = await resp.json();
-                            if (!data.completed) {
-                                if (typeof window.openImportModal === 'function') {
-                                    window.openImportModal(targetMode);
-                                } else {
-                                    alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
-                                }
-                                return;
-                            }
-                            hasImportedTracks = true;
-                        } else {
-                            if (typeof window.openImportModal === 'function') {
-                                window.openImportModal(targetMode);
-                            } else {
-                                alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
-                            }
-                            return;
-                        }
-                    } catch (e) {
-                        if (typeof window.openImportModal === 'function') {
-                            window.openImportModal(targetMode);
-                        } else {
-                            alert("Please import at least one Spotify playlist to continue. The import screen can be accessed by clicking the three dots (...) and selecting 'Import My Music'.");
-                        }
-                        return;
-                    }
-                }
-
-                const fromBtn = document.querySelector('.segment-button.active');
-                const toBtn = this;
-                modeSwitchCooldown = true;
-                buttons.forEach(b => b.style.pointerEvents='none');
-
-                const isMobile = (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) || window.innerWidth <= 768;
-                if (isMobile) {
-                    toBtn.classList.add('tap-target');
-                }
-
-                animateTransition(fromBtn, toBtn, () => {
-                    switchChatMode(toBtn.dataset.mode);
-                    setTimeout(() => {
-                        modeSwitchCooldown = false;
-                        buttons.forEach(b => b.style.pointerEvents='');
-                    }, 300);
-                });
-            }, { capture: true });
-        });
-    })();
+    window.initializeChatMode = initializeChatMode;
 });

@@ -1,3 +1,73 @@
+(function detectMacChrome() {
+    try {
+        const ua = navigator.userAgent;
+        const platformHint = navigator.userAgentData?.platform || '';
+        const isMac = /mac/i.test(platformHint) || /\bMacintosh\b/.test(ua);
+
+        const brands = navigator.userAgentData?.brands || [];
+        const brandIsChrome = brands.some(b =>
+            /Chrom(ium|e)|Edg|Edge|OPR|Opera|Brave|Vivaldi|YaBrowser|Yandex|Arc/i.test(b.brand)
+        );
+
+        const isChromeUA = /\b(Chrome|Chromium|Edg|OPR|Vivaldi|YaBrowser|Yandex|Brave|Arc)\//i.test(ua);
+
+        const isChrome = brandIsChrome || isChromeUA;
+
+        if (isMac && isChrome) {
+            document.documentElement.classList.add('mac-chrome');
+        }
+    } catch (_) {}
+})();
+
+window.addEventListener('load', function() {
+    const container = document.querySelector('.container');
+    const betaNotice = document.querySelector('.beta-notice');
+    const spotifyFooter = document.querySelector('.spotify-footer');
+    
+    setTimeout(() => {
+        if (container) container.classList.add('loaded');
+        if (betaNotice) betaNotice.classList.add('loaded');
+        if (spotifyFooter) spotifyFooter.classList.add('loaded');
+        
+        const segmented = document.querySelector('.segmented-control');
+        if (segmented) {
+            const rect = segmented.getBoundingClientRect();
+            segmented.style.setProperty('--segmented-control-height', rect.height + 'px');
+
+            if (document.fonts?.ready) {
+                document.fonts.ready.then(() => {
+                    const r = segmented.getBoundingClientRect();
+                    segmented.style.setProperty('--segmented-control-height', r.height + 'px');
+                });
+            }
+
+            window.addEventListener('resize', () => {
+                const r = segmented.getBoundingClientRect();
+                segmented.style.setProperty('--segmented-control-height', r.height + 'px');
+            }, { passive: true });
+        }
+    }, 300);
+});
+
+// Fallback in case window.load doesn't execute
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        const container = document.querySelector('.container');
+        const betaNotice = document.querySelector('.beta-notice');
+        const spotifyFooter = document.querySelector('.spotify-footer');
+        
+        if (container && !container.classList.contains('loaded')) {
+            container.classList.add('loaded');
+        }
+        if (betaNotice && !betaNotice.classList.contains('loaded')) {
+            betaNotice.classList.add('loaded');
+        }
+        if (spotifyFooter && !spotifyFooter.classList.contains('loaded')) {
+            spotifyFooter.classList.add('loaded');
+        }
+    }, 3000);
+});
+
 const hamburgerBtn = document.getElementById('hamburger-btn');
 const hamburgerDropdown = document.getElementById('hamburger-dropdown');
 const hamburgerBackdrop = document.getElementById('hamburger-backdrop');
@@ -244,6 +314,20 @@ function closeImportModal() {
     importModal.addEventListener('transitionend', tidy);
 }
 
+function watchScrollbar(el) {
+    if (!el) return;
+    const update = () => {
+        const needsYScroll = el.scrollHeight > el.clientHeight + 1; // Add one to avoid false positives due to subpixel differences
+        el.classList.toggle('has-scrollbar', needsYScroll);
+    };
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    const mo = new MutationObserver(update);
+    mo.observe(el, { childList: true, subtree: true, characterData: true });
+    window.addEventListener('resize', update, { passive: true });
+    update();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const importMusicLink = document.getElementById('import-music-link');
     if (importMusicLink) {
@@ -317,6 +401,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (importCancelBtn) {
         importCancelBtn.addEventListener('click', closeImportModal);
     }
+
+    document.querySelectorAll('.import-modal-content, .legal-modal-content')
+        .forEach(watchScrollbar);
 });
 
 window.addEventListener('click', function(event) {
