@@ -398,6 +398,31 @@ document.addEventListener('DOMContentLoaded', () => {
             renderer: renderer
         });
     }
+    
+    const DOMPURIFY_CONFIG = {
+        USE_PROFILES: { html: true },
+        FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input', 'svg', 'math', 'foreignObject'],
+        FORBID_ATTR: [
+            'onerror','onload','onclick','onmouseover','onfocus','onblur','onmouseenter','onmouseleave',
+            'onpointerover','onpointerenter','onpointerleave','onpointerdown','onpointerup','onwheel',
+            'xlink:href','style'
+        ],
+        ADD_ATTR: ['target', 'rel'],
+        ALLOW_DATA_ATTR: false,
+        ALLOWED_URI_REGEXP: /^https:/i
+    };
+    
+    function renderMarkdownSafe(text) {
+        if (window.marked && window.DOMPurify) {
+            try {
+                const dirtyHtml = window.marked.parse(text || '');
+                return window.DOMPurify.sanitize(dirtyHtml, DOMPURIFY_CONFIG);
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    }
 
     function scrollToBottom() {
         setTimeout(() => {
@@ -469,18 +494,10 @@ document.addEventListener('DOMContentLoaded', () => {
             contentDiv.className = 'blur-fade-combo';
             msg.appendChild(contentDiv);
             
-            if (window.marked && window.DOMPurify) {
-                try {
-                    const dirtyHtml = window.marked.parse(text || '');
-                    contentDiv.innerHTML = window.DOMPurify.sanitize(dirtyHtml, { 
-                        ADD_ATTR: ['target'],
-                        FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input'],
-                        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
-                        ALLOW_DATA_ATTR: false
-                    });
-                }
-                catch { contentDiv.textContent = text; }
-            } else { 
+            const safeHtml = renderMarkdownSafe(text);
+            if (safeHtml != null) {
+                contentDiv.innerHTML = safeHtml;
+            } else {
                 contentDiv.textContent = text;
             }
 
@@ -508,19 +525,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 1500);
         } else {
-            if (window.marked && window.DOMPurify) {
-                try {
-                    const dirtyHtml = window.marked.parse(text || '');
-                    msg.innerHTML = window.DOMPurify.sanitize(dirtyHtml, { 
-                        ADD_ATTR: ['target'],
-                        FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input'],
-                        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
-                        ALLOW_DATA_ATTR: false
-                    });
-                }
-                catch { msg.textContent = text; }
-            } else { 
-                msg.textContent = text; 
+            const safeHtml = renderMarkdownSafe(text);
+            if (safeHtml != null) {
+                msg.innerHTML = safeHtml;
+            } else {
+                msg.textContent = text;
             }
         }
 

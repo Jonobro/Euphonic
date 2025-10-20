@@ -2,7 +2,7 @@ import os
 import json
 from pathlib import Path
 from dotenv import load_dotenv
-import redis
+from django.core.cache import cache as django_cache
 
 load_dotenv()
 
@@ -61,17 +61,21 @@ DATABASES = {
     }
 }
 
+REDIS_URL = os.environ.get('REDIS_URL')
+if not REDIS_URL:
+    raise ValueError("REDIS_URL .env variable is required")
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
 }
 
-REDIS_CLIENT = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
+REDIS_CLIENT = django_cache.client.get_client()
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -105,10 +109,12 @@ SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_DOMAIN = "euphonicintelligence.com"
+CSRF_COOKIE_SECURE = True
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
 if not SPOTIFY_CLIENT_ID:

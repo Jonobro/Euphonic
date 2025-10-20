@@ -13,6 +13,42 @@ from ..utilities.logging import log_to_file, GENERAL_LOG_FILE, SPOTIFY_API_LOG_F
 from ..utilities.session_utils import ensure_euphonic_intelligence_user_id
 from .spotify_service import get_spotify_access_token, _unfollow_playlist_async, SPOTIFY_ID
 from .analysis_service import reset_and_start_analysis
+import ipaddress
+from urllib.parse import urlparse, parse_qs
+
+ALLOWED_PLAYLIST_HOSTS = {'open.spotify.com'}
+
+def _is_allowed_spotify_playlist_url(url: str):
+    try:
+        p = urlparse(url)
+        if p.scheme != 'https':
+            return False, None
+        host = (p.hostname or '').lower()
+        try:
+            ipaddress.ip_address(host)
+            return False, None
+        except Exception:
+            pass
+        if host not in ALLOWED_PLAYLIST_HOSTS:
+            return False, None
+        m = re.match(r'^/playlist/([A-Za-z0-9]{22})$', p.path or '')
+        if not m:
+            return False, None
+        norm = f"https://open.spotify.com/playlist/{m.group(1)}"
+        if p.query:
+            qs = parse_qs(p.query, keep_blank_values=True)
+            if set(qs.keys()) - {'pt'}:
+                return False, None
+            pt_vals = qs.get('pt', [])
+            if len(pt_vals) > 1:
+                return False, None
+            if pt_vals:
+                if not re.match(r'^[A-Za-z0-9]{32}$', pt_vals[0] or ''):
+                    return False, None
+                norm = f"{norm}?pt={pt_vals[0]}"
+        return True, norm
+    except Exception:
+        return False, None
 
 def get_submitted_playlists_logic(request):
     log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
@@ -50,11 +86,12 @@ def import_playlists_logic(request):
             url = (p.get('url') or '').strip()
             if not url:
                 continue
-            if 'https://open.spotify.com/playlist/' not in url:
+            ok, normalized = _is_allowed_spotify_playlist_url(url)
+            if not ok:
                 return {'error': f'Invalid Spotify playlist URL: {url}'}, 400
             playlist_meta = {
                 'id': p.get('id'),
-                'url': url,
+                'url': normalized,
                 'name': p.get('name'),
                 'track_count': int(p.get('track_count') or 0),
                 'playlist_id': p.get('playlist_id')
@@ -290,15 +327,13 @@ def import_playlists_logic(request):
         log_to_file(GENERAL_LOG_FILE, f"Unexpected error in import_playlists_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
         return {'error': 'An unexpected error occurred'}, 500
 
-
 def _process_single_playlist(url, spotify_get_playlist_items_headers, track_counter, max_total_new_tracks, existing_ids, existing_ids_lock):
     try:
-        if 'open.spotify.com/playlist/' in url:
-            playlist_id = url.split('open.spotify.com/playlist/')[1].split('?')[0]
-        else:
-            log_to_file(GENERAL_LOG_FILE, f"Could not extract playlist ID from URL: {url}")
+        ok, normalized = _is_allowed_spotify_playlist_url(url)
+        if not ok:
+            log_to_file(GENERAL_LOG_FILE, f"Invalid Spotify playlist URL format: {url}")
             return [], []
-        
+        playlist_id = normalized.split('open.spotify.com/playlist/')[1].split('?')[0]
         tracks = []
         offset = 0
         limit = 100
@@ -593,7 +628,7 @@ def validate_playlist_logic(request):
                                 break
                         
                         if sp_landing_cookie:
-                            if 'cookie' in current_headers:
+                            if 'cookie' in current_headers and current_headers['cookie']:
                                 current_headers['cookie'] += f"; {sp_landing_cookie}"
                             else:
                                 current_headers['cookie'] = sp_landing_cookie
@@ -691,7 +726,7 @@ def validate_playlist_logic(request):
                 log_to_file(SPOTIFY_API_LOG_FILE, f"Failed to fetch playlist details for {playlist_id}. Status: {response.status_code}")
                 return {'error': 'Playlist not found or not accessible'}, 404
                 
-        except requests.exceptions.RequestException as e:
+        except (httpx.RequestError, httpx.HTTPError) as e:
             log_to_file(GENERAL_LOG_FILE, f"Request exception during playlist validation for {playlist_id}: {e}")
             return {'error': 'Failed to validate playlist'}, 500
             
