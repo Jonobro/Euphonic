@@ -50,7 +50,7 @@ async function handleNewContextAction(userAction) {
                         window.appendDividerToHistory();
                     }
                 } catch (e) {
-                    console.error('Error persisting divider to chat history:', e);
+                    console.error('Error persisting divider to chat history');
                 }
                 window.toggleChatInput?.(false);
                 if (window.addMessageAndScroll) {
@@ -62,7 +62,7 @@ async function handleNewContextAction(userAction) {
             throw new Error(errorData.error || 'Failed to reset chat.');
         }
     } catch (error) {
-        console.error('Error resetting chat:', error);
+        console.error('Error resetting chat');
         alert("Sorry, something went wrong. Please try again.");
         window.toggleChatInput?.(false);
     }
@@ -114,10 +114,10 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 localStorage.clear();
                 sessionStorage.clear();
-                console.log("Browser storage cleared during reset.");
+                console.log('Browser storage cleared during reset');
                 window.history.replaceState({}, document.title, window.location.pathname);
             } catch (e) {
-                console.error("Failed to clear browser storage:", e);
+                console.error('Failed to clear browser storage');
             }
         }
     }
@@ -465,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 chatHistoryDataElement.textContent = escapeNonAscii(jsonString);
             }
         } catch (e) {
-            console.error('Error updating chat history data:', e);
+            console.error('Error updating chat history data');
         }
     }
 
@@ -475,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const mode = window.getChatMode();
             updateChatHistoryData(mode, { role: 'divider', parts: [{ text: '---' }] });
         } catch (e) {
-            console.error('Error appending divider to history:', e);
+            console.error('Error appending divider to history');
         }
     };
 
@@ -756,7 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error('Server error:', serverMsg);
                 }
             } catch (e) {
-                console.error('Stream error (parse failed):', e);
+                console.error('Stream error (parse failed)');
             }
             const fallback = `Sorry, I had a problem with your request. Please resend your message.`;
             removeLastUserMessageFromHistory();
@@ -772,7 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
         eventSource.onerror = (err) => {
             removeLastUserMessageFromHistory();
             addEphemeralMessage(`Sorry, I had a problem with your request. Please resend your message.`, 'ai');
-            console.error("EventSource failed:", err);
+            console.error('EventSource failed');
             cleanup();
         };
     };
@@ -863,7 +863,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 addEphemeralMessage(`Sorry, something went wrong. Please try again later.`, 'ai');
             }
-            console.error('Chat send error:', e);
+            console.error('Chat send error');
             toggleChatInput(false);
             if (window.matchMedia('(min-width: 769px)').matches) {
                 userInput.focus();
@@ -951,14 +951,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const allChatHistory = JSON.parse(chatHistoryDataElement.textContent);
                 
                 if (!Array.isArray(allChatHistory) || allChatHistory.length !== 3 || !allChatHistory.every(Array.isArray)) {
-                    console.error("Invalid chat history format");
+                    console.error('Invalid chat history format');
                     return;
                 }
                 
                 const indexMap = {new_songs: 0, saved_songs: 1, analysis: 2};
                 const modeIndex = indexMap[mode];
                 if (modeIndex == null) {
-                    console.error("Invalid chat mode:", mode);
+                    console.error('Invalid chat mode:', mode);
                     return;
                 }
                 
@@ -1060,7 +1060,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             } catch (e) {
-                console.error("Could not parse chat history:", e);
+                console.error('Could not parse chat history');
                 addEphemeralMessage(`Sorry, there was an error loading your chat history. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
             }
         }
@@ -1220,7 +1220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         const errorData = JSON.parse(e.data);
                         addEphemeralMessage(`Sorry, an error occurred while processing your request. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
-                        console.error('Stream error:', errorData.message);
+                        console.error('Stream error');
                         es.close();
                         initialAnalysisEventSource = null;
                     });
@@ -1244,7 +1244,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (mode === 'saved_songs' || mode === 'new_songs') {
                 if (data.error) {
-                    console.error(`Initialization failed: ${data.error}`);
+                    console.error('Initialization failed');
                     addEphemeralMessage(`Sorry, there was a problem initializing the chat. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
                     const intros = messageList.querySelectorAll('.initial-mode-message');
                     intros.forEach(el => el.remove());
@@ -1255,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch((error) => {
             if (analysisLoadingIndicator) { analysisLoadingIndicator.remove(); analysisLoadingIndicator = null; }
             if (analysisLoadingInterval) { clearInterval(analysisLoadingInterval); analysisLoadingInterval = null; }
-            console.error("Initialization error:", error);
+            console.error('Initialization error');
             addEphemeralMessage(`Sorry, there was a problem initializing the chat. Please refresh the page and try again. If that doesn't fix it, click the three dots (...) and select "Reset" to start over.`, 'ai');
             if (mode === 'saved_songs' || mode === 'new_songs') {
                 const intros = messageList.querySelectorAll('.initial-mode-message');

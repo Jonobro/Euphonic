@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             const all = JSON.parse(historyEl.textContent || '[]');
                             hasSavedSongsHistory = Array.isArray(all) && all.length === 3 && Array.isArray(all[1]) && all[1].length > 0;
                         } catch (e) {
-                            console.error('Failed to parse chat-history-data JSON:', e);
+                            console.error('Failed to parse chat history data JSON');
                         }
                     }
 
@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             }
                         } catch (e) {
-                            console.error('Failed to append saved_songs updates to chat-history');
+                            console.error('Failed to append saved songs updates to chat history');
                         }
                     }
                 }
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(result.error || 'Failed to import playlists');
             }
         } catch (error) {
-            console.error('Playlist import failed:', error);
+            console.error('Playlist import failed');
             alert(`Error: ${error.message}`);
         } finally {
             isImporting = false;
@@ -742,7 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateModalInteractivity();
             }
         } catch (e) {
-            console.error('populatePlaylistStates error:', e);
+            console.error('populatePlaylistStates error');
         }
     }
 
