@@ -79,6 +79,25 @@ def import_playlists_logic(request):
         if len(playlists) > 10:
             return {'error': 'Maximum of 10 playlists allowed'}, 400
         
+        def _sanitize_id(raw):
+            try:
+                i = int(raw)
+            except (TypeError, ValueError):
+                return None
+            return i if 1 <= i <= 10 else None
+        
+        def _sanitize_name(raw):
+            s = str(raw or '').strip()
+            s = re.sub(r'[\x00-\x1F\x7F]', '', s)
+            s = s.replace('<', '').replace('>', '')
+            if len(s) > 100:
+                s = s[:100]
+            return s
+        
+        def _sanitize_playlist_id(raw):
+            s = str(raw or '').strip()
+            return s if re.fullmatch(r'[A-Za-z0-9]{22}', s or '') else None
+         
         valid_playlist_objs = []
         for p in playlists:
             if not isinstance(p, dict):
@@ -89,12 +108,15 @@ def import_playlists_logic(request):
             ok, normalized = _is_allowed_spotify_playlist_url(url)
             if not ok:
                 return {'error': f'Invalid Spotify playlist URL: {url}'}, 400
+            sanitized_id = _sanitize_id(p.get('id'))
+            sanitized_name = _sanitize_name(p.get('name'))
+            sanitized_playlist_id = _sanitize_playlist_id(p.get('playlist_id'))
             playlist_meta = {
-                'id': p.get('id'),
+                'id': sanitized_id,
                 'url': normalized,
-                'name': p.get('name'),
+                'name': sanitized_name,
                 'track_count': int(p.get('track_count') or 0),
-                'playlist_id': p.get('playlist_id')
+                'playlist_id': sanitized_playlist_id
             }
             valid_playlist_objs.append(playlist_meta)
         
@@ -457,7 +479,6 @@ def _process_single_playlist(url, spotify_get_playlist_items_headers, track_coun
         log_to_file(GENERAL_LOG_FILE, f"Error processing playlist URL {url}: {e}")
         return [], []
 
-
 def create_playlist_logic(request):
     log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key} | Body: {request.body.decode('utf-8')}")
     if not get_spotify_access_token():
@@ -473,13 +494,51 @@ def create_playlist_logic(request):
         data = json.loads(request.body)
         playlist_name = data.get('name')
         track_uris = data.get('track_uris')
-        description = data.get('description', f'Playlist created by Aria.')
 
-        if not playlist_name or not track_uris:
-            log_to_file(GENERAL_LOG_FILE, f"Missing required fields in create_playlist_api. Session: {request.session.session_key}, has_name: {bool(playlist_name)}, has_track_uris: {bool(track_uris)}")
+        if not isinstance(playlist_name, str):
+            log_to_file(GENERAL_LOG_FILE, f"Invalid type for playlist name in create_playlist_api (session {request.session.session_key})")
+            return {'error': 'Error creating playlist'}, 400
+        
+        playlist_name = re.sub(r'[\x00-\x1F\x7F]', '', playlist_name).strip()
+
+        if not playlist_name:
+            log_to_file(GENERAL_LOG_FILE, f"Empty playlist name in create_playlist_api (session {request.session.session_key})")
+            return {'error': 'Error creating playlist'}, 400
+        
+        if len(playlist_name) > 100:
+            log_to_file(GENERAL_LOG_FILE, f"Excessive playlist name length in create_playlist_api (session {request.session.session_key})")
+            return {'error': 'Error creating playlist'}, 400
+        
+        description = f'A playlist named "{playlist_name}" created by Aria.'
+        
+        if not isinstance(track_uris, list):
+            log_to_file(GENERAL_LOG_FILE, f"track_uris not a list in create_playlist_api (session {request.session.session_key})")
             return {'error': 'Error creating playlist'}, 400
 
-        log_to_file(SPOTIFY_API_LOG_FILE, f"Creating playlist '{playlist_name}' with {len(track_uris)} tracks for session {request.session.session_key}")
+        uri_pattern = re.compile(r'^spotify:track:[A-Za-z0-9]{22}$')
+        seen = set()
+        validated_track_uris = []
+        for idx, uri in enumerate(track_uris):
+            if not isinstance(uri, str):
+                log_to_file(GENERAL_LOG_FILE, f"Non-string track URI at index {idx} (session {request.session.session_key})")
+                return {'error': 'Error creating playlist'}, 400
+            u = uri.strip()
+            if not uri_pattern.match(u):
+                log_to_file(GENERAL_LOG_FILE, f"Invalid track URI format at index {idx}: {u} (session {request.session.session_key})")
+                return {'error': 'Error creating playlist'}, 400
+            if u not in seen:
+                seen.add(u)
+                validated_track_uris.append(u)
+
+        if not validated_track_uris:
+            log_to_file(GENERAL_LOG_FILE, f"No valid track URIs provided (session {request.session.session_key})")
+            return {'error': 'Error creating playlist'}, 400
+
+        if len(validated_track_uris) > 100:
+            log_to_file(GENERAL_LOG_FILE, f"Too many track URIs provided ({len(validated_track_uris)} > 100) (session {request.session.session_key})")
+            return {'error': 'Error creating playlist'}, 400
+
+        log_to_file(SPOTIFY_API_LOG_FILE, f"Creating playlist '{playlist_name}' with {len(validated_track_uris)} tracks for session {request.session.session_key}")
 
         create_playlist_url = f'https://api.spotify.com/v1/users/{user_id}/playlists'
         playlist_data = {
@@ -512,8 +571,8 @@ def create_playlist_logic(request):
             log_to_file(GENERAL_LOG_FILE, f"Failed to record playlist_created: {e_record}")
 
         add_tracks_url = f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks'
-        for i in range(0, len(track_uris), 100):
-            chunk = track_uris[i:i+100]
+        for i in range(0, len(validated_track_uris), 100):
+            chunk = validated_track_uris[i:i+100]
             tracks_data = {'uris': chunk}
             
             log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> POST {add_tracks_url} | Body: {json.dumps(tracks_data)}")
@@ -550,8 +609,10 @@ def validate_playlist_logic(request):
 
         def _fallback_name():
             m = re.match(r'^playlist-input-(\d+)$', input_id or '')
-            return f"Playlist {m.group(1)} 🎧"
-        
+            if m:
+                return f"Playlist {m.group(1)} 🎧"
+            return "Playlist 🎧"
+
         if not playlist_url:
             return {'error': 'No playlist URL provided'}, 400
 

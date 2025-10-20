@@ -341,6 +341,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const resetLink = document.getElementById('reset-link');
+    if (resetLink) {
+        resetLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            const form = document.getElementById('reset-form');
+            if (form) form.submit();
+        });
+    }
+
     const eulaLinkMenu = document.getElementById('eula-link-menu');
     if (eulaLinkMenu) {
         eulaLinkMenu.addEventListener('click', (event) => {

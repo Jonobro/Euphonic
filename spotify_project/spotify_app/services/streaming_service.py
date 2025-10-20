@@ -169,6 +169,26 @@ def chat_response_event_stream(request, task_id):
     def event_stream():
         channel = f"{CHAT_EVENT_CHANNEL_PREFIX}{task_id}"
         log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Opening stream for task {task_id} on channel '{channel}'")
+
+        try:
+            owner_raw = REDIS_CLIENT.get(f"task_owner:{task_id}")
+            if isinstance(owner_raw, bytes):
+                owner_raw = owner_raw.decode('utf-8')
+            owner = json.loads(owner_raw) if owner_raw else None
+        except Exception as e:
+            owner = None
+            log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Error loading task owner for {task_id}: {e}")
+
+        req_session_key = request.session.session_key
+        req_user_id = request.session.get('euphonic_intelligence_user_id')
+
+        if not owner or owner.get('session_key') != req_session_key or (
+            owner.get('user_id') and owner.get('user_id') != req_user_id
+        ):
+            log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Unauthorized stream attempt for task {task_id} by session {req_session_key}")
+            yield f"event: stream_error\ndata: {json.dumps({'message': 'Invalid or expired task.'})}\n\n"
+            return
+
         pubsub = REDIS_CLIENT.pubsub()
         start_time = time.time()
         last_keepalive = start_time
@@ -300,6 +320,10 @@ def chat_response_event_stream(request, task_id):
                         'response': result.get('response'),
                         'chat_mode': result.get('chat_mode')
                     }
+                    try:
+                        REDIS_CLIENT.delete(f"task_owner:{task_id}")
+                    except Exception:
+                        pass
                     yield f"data: {json.dumps(data)}\n\n"
                     return
                 elif payload == 'failed':
@@ -308,6 +332,10 @@ def chat_response_event_stream(request, task_id):
                     except Exception as cache_err:
                         log_to_file(GENERAL_LOG_FILE, f"[SSE CHAT] Cache error retrieving failed result task {task_id}: {cache_err}")
                         result = None
+                    try:
+                        REDIS_CLIENT.delete(f"task_owner:{task_id}")
+                    except Exception:
+                        pass
                     if result and 'error' in result:
                         yield f"event: stream_error\ndata: {json.dumps({'message': result['error']})}\n\n"
                     else:

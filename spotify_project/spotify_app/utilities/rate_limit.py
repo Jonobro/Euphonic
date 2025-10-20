@@ -31,6 +31,11 @@ RATE_LIMITS = {
         ('ip', 10, 60, 180),
         ('session', 10, 60, 180),
     ],
+    'playlist_create': [
+        # Limit playlist creation to 6 requests per IP/session per minute with a 3-minute block if max is exceeded
+        ('ip', 6, 60, 180),
+        ('session', 6, 60, 180),
+    ],
 }
 
 def _rl_keys(request, scope, key_type):

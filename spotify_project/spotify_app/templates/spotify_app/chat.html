@@ -66,7 +66,7 @@
                                 </a>
                             </div>
                             <div class="divider desktop-only"></div>
-                            <a href="{% url 'reset' %}" class="dropdown-link reset-link">
+                            <a href="#" id="reset-link" class="dropdown-link reset-link">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="22" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-icon reset-icon" viewBox="0 0 18 22" aria-hidden="true">
                                     <path d="M0 5h18m-2 0v14c0 1-1 2-2 2H4c-1 0-2-1-2-2V5m3 0V3c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 5v6m4-6v6"></path>
                                 </svg>
@@ -76,6 +76,9 @@
                                     <span class="dropdown-tooltip mobile-only">Delete your chats, music collection, and saved data</span>
                                 </span>
                             </a>
+                            <form id="reset-form" method="POST" action="{% url 'reset' %}" style="display:none">
+                                {% csrf_token %}
+                            </form>
                             <div class="mobile-only">
                                 <div class="divider"></div>
                                 <a href="#" id="privacy-link-menu" class="dropdown-link">

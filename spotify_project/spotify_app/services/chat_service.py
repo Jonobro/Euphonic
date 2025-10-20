@@ -41,6 +41,7 @@ from ..config.constants import (
     HIGH_TRAFFIC_ERROR_MESSAGE,
     LENGTH_TERMINATION_MSG,
     EMPTY_PLAYLIST_ERROR_MESSAGE,
+    CHAT_EVENT_TIMEOUT,
 )
 
 def initialize_chat_data_logic(request):
@@ -171,6 +172,10 @@ def reset_chat_history_logic(request):
         if chat_mode not in ['saved_songs', 'new_songs']:
             return {'error': 'Invalid chat mode for reset'}, 400
 
+        allowed_user_actions = {'revise_playlist', 'create_another_playlist'}
+        if user_action not in allowed_user_actions:
+            return {'error': 'Invalid user action for reset'}, 400
+
         history_map = {
             'saved_songs': 'saved_songs_chat_history',
             'new_songs': 'new_songs_chat_history'
@@ -291,8 +296,8 @@ def chat_message_logic(request):
             return {'error': 'No message provided'}, 400
 
         chat_mode = data.get('chat_mode')
-        if not chat_mode:
-            return {'error': 'No chat mode provided'}, 400
+        if chat_mode not in ('analysis', 'saved_songs', 'new_songs'):
+            return {'error': 'Invalid chat mode'}, 400
 
         if not isinstance(user_message, str):
             return {'error': 'Message must be a string'}, 400
@@ -304,10 +309,8 @@ def chat_message_logic(request):
             r'<script[^>]*>.*?</script>',
             r'javascript:',
             r'vbscript:',
-            r'data:text/html',
-            r'onerror\s*=',
-            r'onload\s*=',
-            r'onclick\s*='
+            r'\bdata:',
+            r'on(?:error|load|click)\s*='
         ]
         
         for pattern in dangerous_patterns:
@@ -385,6 +388,15 @@ def chat_message_logic(request):
             return {'message': long_convo_msg}, 200
 
         task_id = str(uuid.uuid4())
+        
+        try:
+            owner = {
+                'session_key': request.session.session_key,
+                'user_id': request.session.get('euphonic_intelligence_user_id')
+            }
+            REDIS_CLIENT.set(f"task_owner:{task_id}", json.dumps(owner), ex=CHAT_EVENT_TIMEOUT + 60)
+        except Exception as bind_err:
+            log_to_file(GENERAL_LOG_FILE, f"[TASK BIND] Failed to bind owner for task {task_id}: {bind_err}")
         
         session_data = dict(request.session)
         thread = threading.Thread(

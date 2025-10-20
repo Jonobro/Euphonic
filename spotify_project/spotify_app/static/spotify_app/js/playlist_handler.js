@@ -81,6 +81,11 @@ document.addEventListener('DOMContentLoaded', () => {
             content.innerHTML = cleanContent;
             content.prepend(titleElement);
 
+            Array.from(content.querySelectorAll('ul li a[href^="https"]')).forEach(a => {
+                a.setAttribute('target', '_blank');
+                a.setAttribute('rel', 'noopener noreferrer');
+            });
+
             if (savedPlaylists[playlistIdentifier]) {
                 messageElement.classList.add('has-playlist-button');
                 if (isBeforeLastDivider) {
@@ -226,8 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             },
                             body: JSON.stringify({
                                 name: playlistName,
-                                track_uris: trackUris,
-                                description: `A playlist named "${playlistName}" created by Aria.`
+                                track_uris: trackUris
                             })
                         });
 

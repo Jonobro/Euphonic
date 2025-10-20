@@ -13,6 +13,7 @@ from .services import playlist_service
 from .services import chat_service
 from .services import streaming_service
 
+@require_http_methods(["GET"])
 def index(request):
     log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     ensure_euphonic_intelligence_user_id(request)
@@ -21,6 +22,8 @@ def index(request):
         return redirect(chat_url)
     return redirect(reverse('chat'))
 
+@csrf_protect
+@require_http_methods(["POST"])
 def reset_view(request):
     log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- {request.method} {request.path} from session {request.session.session_key}")
     user_id = request.session.get('euphonic_intelligence_user_id')
@@ -99,6 +102,7 @@ def import_playlists_api(request):
 @csrf_protect
 @require_http_methods(["POST"])
 @never_cache
+@rate_limit_scope('playlist_create')
 def create_playlist_api(request):
     data, status = playlist_service.create_playlist_logic(request)
     return JsonResponse(data, status=status)
