@@ -675,28 +675,10 @@ def validate_playlist_logic(request):
         try:
             log_to_file(HTTP_REQUEST_LOG_FILE, f"OUT ---> GET {playlist_url}")
             with httpx.Client(http2=False, follow_redirects=False) as client:
-                current_url = playlist_url
                 current_headers = spotify_get_playlist_URL_headers.copy()
-                response = client.get(current_url, headers=current_headers, timeout=10)
-                
-                while response.is_redirect:
-                    current_headers['cookie'] += f"; Referer={current_url}"
-                    if 'set-cookie' in response.headers:
-                        sp_landing_cookie = None
-                        for set_cookie_str in response.headers.get_list('set-cookie'):
-                            if set_cookie_str.strip().startswith('sp_landing='):
-                                sp_landing_cookie = set_cookie_str.strip().split(';')[0]
-                                break
-                        
-                        if sp_landing_cookie:
-                            if 'cookie' in current_headers and current_headers['cookie']:
-                                current_headers['cookie'] += f"; {sp_landing_cookie}"
-                            else:
-                                current_headers['cookie'] = sp_landing_cookie
-                    
-                    redirect_url = response.headers['location']
-                    current_url = redirect_url
-                    response = client.get(current_url, headers=current_headers, timeout=10)
+                response = _follow_spotify_redirects(client, playlist_url, current_headers, retry=False)
+                if response is None:
+                    return {'error': 'Invalid Spotify playlist URL'}, 400
             log_to_file(HTTP_REQUEST_LOG_FILE, f"IN <--- Response from {playlist_url} | Status: {response.status_code}")
             
             if response.status_code == 200:
@@ -712,25 +694,10 @@ def validate_playlist_logic(request):
                             time.sleep(delay)
                             log_to_file(SPOTIFY_API_LOG_FILE, f"Retry {retry}/{max_meta_retries - 1} fetching playlist {playlist_id} for meta description (delay {delay:.2f}s)")
                             with httpx.Client(http2=False, follow_redirects=False) as client:
-                                current_url_retry = playlist_url
                                 current_headers_retry = spotify_get_playlist_URL_headers.copy()
-                                retry_response = client.get(current_url_retry, headers=current_headers_retry, timeout=10)
-                                while retry_response.is_redirect:
-                                    current_headers_retry['cookie'] += f"; Referer={current_url_retry}"
-                                    if 'set-cookie' in retry_response.headers:
-                                        sp_landing_cookie = None
-                                        for set_cookie_str in retry_response.headers.get_list('set-cookie'):
-                                            if set_cookie_str.strip().startswith('sp_landing='):
-                                                sp_landing_cookie = set_cookie_str.strip().split(';')[0]
-                                                break
-                                        if sp_landing_cookie:
-                                            if 'cookie' in current_headers_retry:
-                                                current_headers_retry['cookie'] += f"; {sp_landing_cookie}"
-                                            else:
-                                                current_headers_retry['cookie'] = sp_landing_cookie
-                                    redirect_url = retry_response.headers['location']
-                                    current_url_retry = redirect_url
-                                    retry_response = client.get(current_url_retry, headers=current_headers_retry, timeout=10)
+                                retry_response = _follow_spotify_redirects(client, playlist_url, current_headers_retry, retry=True)
+                                if retry_response is None:
+                                    return {'error': 'Invalid Spotify playlist URL'}, 400
                             if retry_response.status_code == 200:
                                 soup_retry = BeautifulSoup(retry_response.content, 'html.parser')
                                 meta_tag = soup_retry.find('meta', {'name': 'description'})
@@ -797,3 +764,45 @@ def validate_playlist_logic(request):
     except Exception as e:
         log_to_file(GENERAL_LOG_FILE, f"Unexpected error in validate_playlist_api. Session: {request.session.session_key}, Error: {str(e)}, Type: {type(e).__name__}")
         return {'error': 'An unexpected error occurred'}, 500
+
+def _follow_spotify_redirects(client: httpx.Client, start_url: str, headers: dict, retry: bool = False):
+    current_url = start_url
+    response = client.get(current_url, headers=headers, timeout=10)
+    while response.is_redirect:
+        headers['cookie'] += f"; Referer={current_url}"
+        if 'set-cookie' in response.headers:
+            sp_landing_cookie = None
+            for set_cookie_str in response.headers.get_list('set-cookie'):
+                if set_cookie_str.strip().startswith('sp_landing='):
+                    sp_landing_cookie = set_cookie_str.strip().split(';')[0]
+                    break
+            if sp_landing_cookie:
+                if 'cookie' in headers and headers['cookie']:
+                    headers['cookie'] += f"; {sp_landing_cookie}"
+                else:
+                    headers['cookie'] = sp_landing_cookie
+
+        redirect_url = str(response.headers.get('location', '') or '').strip()
+        suffix = " (retry)" if retry else ""
+        if not redirect_url:
+            log_to_file(HTTP_REQUEST_LOG_FILE, f"Missing Location header during validation redirect{suffix}")
+            return None
+
+        if redirect_url.startswith('//'):
+            redirect_url = f"https:{redirect_url}"
+        if redirect_url.startswith('/'):
+            redirect_url = f"https://open.spotify.com{redirect_url}"
+
+        try:
+            p = urlparse(redirect_url)
+            if p.scheme != 'https' or (p.hostname or '').lower() != 'open.spotify.com':
+                log_to_file(HTTP_REQUEST_LOG_FILE, f"Blocked non-Spotify redirect during validation{suffix}: {redirect_url}")
+                return None
+        except Exception:
+            log_to_file(HTTP_REQUEST_LOG_FILE, f"Error parsing redirect URL during validation{suffix}: {redirect_url}")
+            return None
+
+        current_url = redirect_url
+        response = client.get(current_url, headers=headers, timeout=10)
+
+    return response

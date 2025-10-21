@@ -213,7 +213,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     let pendingTab = null;
                     if (!isAndroid && !isIOS) {
-                        pendingTab = window.open('', 'spotify_pending_tab'); 
+                        pendingTab = window.open('about:blank', 'spotify_pending_tab');
+                        try { if (pendingTab) pendingTab.opener = null; } catch (_) {}
                     }
 
                     const trackUris = trackLinks.map(link => {
@@ -266,10 +267,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                         try {
                                             pendingTab.location.replace(webUrl);
                                         } catch (_) {
-                                            window.open(webUrl, 'spotify_pending_tab');
+                                            window.open(webUrl, 'spotify_pending_tab', 'noopener,noreferrer');
                                         }
                                     } else {
-                                        window.open(webUrl, 'spotify_pending_tab');
+                                        window.open(webUrl, 'spotify_pending_tab', 'noopener,noreferrer');
                                     }
                                 }
                             }
@@ -326,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (pendingTab && !pendingTab.closed) {
                                 pendingTab.close();
                             } else {
-                                const w = window.open('', 'spotify_pending_tab');
+                                const w = window.open('about:blank', 'spotify_pending_tab');
                                 if (w && !w.closed) w.close();
                             }
                         } catch (_) {}

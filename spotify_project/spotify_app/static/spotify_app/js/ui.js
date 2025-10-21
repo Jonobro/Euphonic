@@ -94,6 +94,8 @@ window.addEventListener('click', () => {
     }
 });
 
+const LEGAL_TPL_CACHE = Object.create(null);
+
 function openModal(type) {
     if (hamburgerDropdown && hamburgerDropdown.classList.contains('show')) {
         hamburgerDropdown.classList.remove('show');
@@ -110,7 +112,11 @@ function openModal(type) {
     if (!entry) return;
 
     title.textContent = entry.title;
-    body.innerHTML = document.getElementById(entry.tpl).innerHTML;
+
+    const tplEl = LEGAL_TPL_CACHE[entry.tpl];
+    if (!tplEl) return;
+    body.innerHTML = tplEl.innerHTML;
+
     modal.style.display = 'block';
     requestAnimationFrame(() => {
         modal.classList.add('open');
@@ -329,6 +335,9 @@ function watchScrollbar(el) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    LEGAL_TPL_CACHE['privacy-template'] = document.getElementById('privacy-template');
+    LEGAL_TPL_CACHE['eula-template'] = document.getElementById('eula-template');
+
     const importMusicLink = document.getElementById('import-music-link');
     if (importMusicLink) {
         importMusicLink.addEventListener('click', (event) => {
