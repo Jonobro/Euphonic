@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const isMobileViewport = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
 
                                 if (isMobileViewport && isAndroid) {
-                                    await new Promise(resolve => setTimeout(resolve, 1500));
+                                    await new Promise(resolve => setTimeout(resolve, 3000));
                                     const intentUrl = `intent://playlist/${playlistId}#Intent;scheme=spotify;package=com.spotify.music;end`;
                                     try {
                                         window.location.href = intentUrl;
