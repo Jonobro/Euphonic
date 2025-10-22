@@ -4,18 +4,13 @@ import uuid
 import threading
 import concurrent.futures
 from django.conf import settings
-from django.views.decorators.csrf import csrf_protect
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
 from google import genai
 from google.genai import types
 from google.genai.types import FinishReason
-from django.views.decorators.cache import never_cache
 from django.core.cache import cache
 from ..utilities.logging import log_to_file, GEMINI_API_LOG_FILE, GENERAL_LOG_FILE, HTTP_REQUEST_LOG_FILE
 from ..utilities.grounding import check_and_update_grounding_usage
 from ..utilities.redis_utils import REDIS_CLIENT
-from ..utilities.rate_limit import rate_limit_scope
 from ..utilities.session_utils import ensure_euphonic_intelligence_user_id
 from ..services.spotify_service import _get_spotify_track_url_with_backoff
 from ..services.gemini_service import _choose_gemini_client, _is_resource_exhausted_error, _record_gemini_usage_safe, _is_transient_gemini_error, GEMINI_CLIENT_CACHE, GOOGLE_SEARCH_TOOL, SAFETY_SETTINGS
