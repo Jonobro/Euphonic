@@ -3,7 +3,7 @@ name: Deploy application to DigitalOcean
 on:
   push:
     branches:
-      - EuphonicIntelligence
+      - Euphonic
     tags:
       - '*'
   workflow_dispatch:
