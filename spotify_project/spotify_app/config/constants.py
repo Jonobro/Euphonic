@@ -5,13 +5,13 @@ CHAT_EVENT_CHANNEL_PREFIX = 'chat_completion:'
 CHAT_EVENT_TIMEOUT = 300
 
 # Model names
-NEW_SONGS_MODEL_NAME = "gemini-2.5-flash-preview-09-2025"
-SAVED_SONGS_MODEL_NAME = "gemini-2.5-flash-preview-09-2025"
-ANALYSIS_CHAT_MODEL_NAME = "gemini-2.5-flash"
-INITIAL_ANALYSIS_MODEL_NAME = "gemini-2.5-flash"
-FORMATTING_MODEL_NAME = "gemini-2.5-flash"
+NEW_SONGS_MODEL_NAME = "gemini-3-flash-preview"
+SAVED_SONGS_MODEL_NAME = "gemini-3-flash-preview"
+ANALYSIS_CHAT_MODEL_NAME = "gemini-3-flash-preview"
+INITIAL_ANALYSIS_MODEL_NAME = "gemini-3-flash-preview"
+FORMATTING_MODEL_NAME = "gemini-3-flash-preview"
 FEEDBACK_REMOVAL_MODEL_NAME = "gemini-2.5-flash-lite"
-PRO_MODEL_NAME = "gemini-2.5-pro"
+PRO_MODEL_NAME = "gemini-3-flash-preview"
 
 # Thinking Budgets
 NEW_SONGS_THINKING_BUDGET = -1
